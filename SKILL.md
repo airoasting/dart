@@ -223,6 +223,7 @@ out_path = out_dir / f'{corp_name}_{today}_{nn}.html'
 ```
 
 **절대 규칙**:
+- `<title>` 형식은 반드시 **`{종목명} {YYYY.MM.DD} - AI ROASTING`** (예: `네이버 2026.05.10 - AI ROASTING`)
 - Chart.js는 반드시 **`chart.js@4.4.4`** (4.4.3 아님)
 - Pretendard는 반드시 **`<style>` 태그 안** `@import url(...)` 방식 (Google Fonts `<link>` 태그 사용 금지)
 
