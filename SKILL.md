@@ -76,8 +76,9 @@ client = DartClient()
 | 기업 개황 | `client.company(corp_code)` | 업종·CEO·설립일 |
 | 재무제표 (연결) | `client.get_financial_statements(corp_code, year, reprt_code, 'CFS')` | 매출·영업이익·순이익 |
 | 전년 동기 | 동일, `year-1` | YoY 비교 |
-| 공시 목록 | `client.list_disclosures(corp_code, bgn_de, end_de, page_count=20)` | 뉴스카드용 |
 | 배당 | `client.get_dividend(corp_code, year, reprt_code)` | 있을 때만 |
+
+> **뉴스 섹션은 DART 공시 목록을 사용하지 않는다.** WebSearch 도구로 국내 신문사 기사를 수집한다. 아래 Step 3-B를 참조.
 
 연결(CFS) 응답 없으면 개별(OFS)로 자동 재시도 → 차트 제목에 "(개별)" 표기.  
 `status != '000'`이면 메시지 내용을 사용자에게 알리고 중단.
@@ -103,6 +104,50 @@ text = re.sub(r'\s+', ' ', text).strip()
 
 `잠정실적 공시` 문서의 공시명 패턴: "실적(잠정)" 또는 "잠정실적" 포함.  
 공시 목록에서 해당 rcept_no를 먼저 찾은 뒤 위 코드로 ZIP을 내려받는다.
+
+#### Step 3-B. 뉴스 수집 — 국내 신문사 기사 (WebSearch)
+
+뉴스 섹션은 **DART 공시가 아닌 국내 신문사 기사**로 채운다. WebSearch 도구를 사용해 실적 전후 2주 내 핵심 기사를 수집한다.
+
+검색 쿼리 예시:
+```
+"{기업명} 1분기 2026 실적 영업이익"
+"{기업명} 2026 AI 커머스 주가"
+```
+
+검색 대상 신문사 (우선순위 순):
+
+| 매체 | 도메인 |
+|------|--------|
+| 한국경제 | hankyung.com |
+| 이데일리 | edaily.co.kr |
+| 전자신문 | etnews.com |
+| 파이낸셜뉴스 | fnnews.com |
+| 서울경제 | sedaily.com |
+| 뉴스1 | news1.kr |
+| 아이뉴스24 | inews24.com |
+| 뉴시스 | newsis.com |
+
+수집 후 NEWS 배열로 구성:
+
+```javascript
+const NEWS=[
+  {h:'기사 제목',        // 원문 헤드라인 그대로
+   src:'한국경제',       // 신문사 이름 (도메인 아닌 한글명)
+   date:'2026.04.30',    // 기사 날짜 (YYYY.MM.DD)
+   sent:'pos',           // pos | neg | mix
+   url:'https://...',    // 기사 원본 URL (실제 URL만 사용, 네이버 검색 URL 금지)
+   body:'2~3문장 요약'}, // 기사 핵심 내용, 직접 인용 없이 요약
+  // ... 6~8건
+];
+```
+
+`sent` 판단 기준:
+- `pos`: 매출/이익 상회, 긍정 전망, 신사업 성과
+- `neg`: 이익 급감, 주가 하락, 규제·소송, 리스크 부각
+- `mix`: 호실적이지만 우려 동반, 상반된 평가
+
+**규칙**: 실제로 검색에서 확인된 URL만 사용한다. 확인되지 않은 URL은 생성하지 않는다.
 
 ### Step 4. 데이터 파싱
 
@@ -1847,10 +1892,14 @@ tr:hover td { background:var(--row-hover); }
 
 ### 뉴스 (NEWS 배열)
 
-1. DART 공시 목록 (`list_disclosures`)에서 최근 8~10건 추출
-2. 언론 보도는 실적발표일 전후 2주 내 핵심 뉴스 위주
-3. `sent` 판단 기준: 매출/이익 상회 → pos, 가이던스 미달·소송·규제 → neg, 혼재 → mix
-4. `url` 없을 경우 네이버 뉴스 검색 URL로 자동 폴백 (buildNews 함수 내 처리됨)
+DART 공시 목록은 사용하지 않는다. **WebSearch로 국내 신문사 기사만 수집**한다.
+
+1. WebSearch 쿼리: `"{기업명} {분기} 실적"`, `"{기업명} 주가 실적발표"` 등 2~3회 검색
+2. 우선 매체: 한국경제, 이데일리, 전자신문, 파이낸셜뉴스, 서울경제, 뉴스1, 아이뉴스24, 뉴시스
+3. 실적발표일 전후 2주 내 기사 6~8건 선별
+4. `sent` 판단: 매출/이익 상회 → `pos`, 이익 급감·주가 하락·규제 → `neg`, 혼재 → `mix`
+5. **검색에서 확인된 실제 URL만** 사용. 추측·생성 URL 절대 금지
+6. `url` 필드에 DART(`dart.fss.or.kr`), 네이버 검색 URL 사용 금지
 
 ### Bull/Bear 케이스 (BULLS/BEARS 배열)
 
