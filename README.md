@@ -12,6 +12,8 @@
 
 DART Open API에서 재무제표·공시 데이터를 수집하고, 13인 전설적 투자자의 철학으로 기업을 평가한 인터랙티브 HTML 리포트를 생성합니다. 라이트/다크 테마, Chart.js 차트, Pretendard 폰트가 기본 포함됩니다.
 
+**예시** → [airoasting.github.io/dart/kakao_20260510.html](https://airoasting.github.io/dart/kakao_20260510.html)
+
 ---
 
 ## 빠른 시작
