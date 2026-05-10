@@ -216,7 +216,7 @@ out_path = out_dir / f'{corp_name}_{today}_{nn}.html'
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{종목명} 애널리스트 대시보드 · {분기} {연도}</title>
+<title>{종목명} {YYYY.MM.DD} - AI ROASTING</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
