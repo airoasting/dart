@@ -6,44 +6,6 @@
 
 ---
 
-## 예시 — 카카오 1Q2026
-
-> `/dart 카카오` 실행 결과 캡처입니다.
-
-### 대시보드 헤더
-
-![예시: 대시보드 헤더](assets/screenshots/01_hero.png)
-
-### KPI 카드
-
-![예시: KPI 카드 — 매출액 · 영업이익 · 순이익 (YoY % 배지)](assets/screenshots/02_kpi.png)
-
-### 성장 기여도 분석
-
-![예시: 성장 기여도 Waterfall 차트](assets/screenshots/03_growth.png)
-
-### 사업별 매출 상세
-
-![예시: 사업별 매출 세그먼트 바 차트](assets/screenshots/04_segment.png)
-
-### 주가 반응
-
-![예시: 실적 발표 전후 주가 및 목표주가](assets/screenshots/05_stock.png)
-
-### 애널리스트 시각
-
-![예시: 컨센서스 · Bull / Bear](assets/screenshots/06_market.png)
-
-### 최신 공시 뉴스
-
-![예시: 공시 뉴스](assets/screenshots/07_news.png)
-
-### 투자자 시각
-
-![예시: 13인 페르소나 평가](assets/screenshots/08_persona.png)
-
----
-
 ## 개요
 
 `/dart 카카오` 한 줄이면 끝납니다.
@@ -105,6 +67,44 @@ output/카카오_20260510_02.html   ← 같은 날 재실행 시
 | **애널리스트 시각** | 컨센서스 도넛 · Bull / Bear 근거 |
 | **공시 뉴스** | 최근 공시 목록 (접수일 + 공시명) |
 | **투자자 시각** | 13인 투자자 페르소나 평가 |
+
+---
+
+## 예시 — 카카오 1Q2026
+
+> `/dart 카카오` 실행 결과 캡처입니다.
+
+### 대시보드 헤더
+
+![예시: 대시보드 헤더](assets/screenshots/01_hero.png)
+
+### KPI 카드
+
+![예시: KPI 카드 — 매출액 · 영업이익 · 순이익 (YoY % 배지)](assets/screenshots/02_kpi.png)
+
+### 성장 기여도 분석
+
+![예시: 성장 기여도 Waterfall 차트](assets/screenshots/03_growth.png)
+
+### 사업별 매출 상세
+
+![예시: 사업별 매출 세그먼트 바 차트](assets/screenshots/04_segment.png)
+
+### 주가 반응
+
+![예시: 실적 발표 전후 주가 및 목표주가](assets/screenshots/05_stock.png)
+
+### 애널리스트 시각
+
+![예시: 컨센서스 · Bull / Bear](assets/screenshots/06_market.png)
+
+### 최신 공시 뉴스
+
+![예시: 공시 뉴스](assets/screenshots/07_news.png)
+
+### 투자자 시각
+
+![예시: 13인 페르소나 평가](assets/screenshots/08_persona.png)
 
 ---
 
