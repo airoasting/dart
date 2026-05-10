@@ -226,6 +226,8 @@ out_path = out_dir / f'{corp_name}_{today}_{nn}.html'
 - `<title>` 형식은 반드시 **`{종목명} {YYYY.MM.DD} - AI ROASTING`** (예: `네이버 2026.05.10 - AI ROASTING`)
 - Chart.js는 반드시 **`chart.js@4.4.4`** (4.4.3 아님)
 - Pretendard는 반드시 **`<style>` 태그 안** `@import url(...)` 방식 (Google Fonts `<link>` 태그 사용 금지)
+- **모든 Chart.js 바 차트** (`buildDeltaChart`, `buildSegmentChart`)는 반드시 `clip:false` + `layout:{padding:{top:44}}` 적용 — 데이터 레이블·YoY 텍스트가 canvas 밖으로 나가도 렌더링됨
+- **모든 Y축**은 데이터 기반 자동 계산 (하드코딩 수치 절대 금지)
 
 ---
 
@@ -714,15 +716,22 @@ function buildDeltaChart(){
     d.d>=0?(d.est?'rgba(201,100,66,.50)':'rgba(201,100,66,.82)'):
            (d.est?'rgba(158,45,20,.48)':'rgba(158,45,20,.76)'));
   const bors=DATA.map(d=>d.tot?'#888':d.d>=0?'#C05A3C':'#CC3333');
+  /* Y축 자동 스케일: 양수 최대값 +30% headroom, 음수 최소값 ×1.3 확장.
+     clip:false + layout.padding.top:44 로 레이블이 canvas 밖에서도 렌더링됨. */
+  const _dMax=Math.max(...vals.filter(v=>v>0),0);
+  const _dMin=Math.min(...vals.filter(v=>v<0),0);
   deltaChartInst=new Chart(document.getElementById('deltaChart').getContext('2d'),{
     type:'bar',
     data:{labels:DATA.map(d=>d.name.split('\n')),
           datasets:[{data:vals,backgroundColor:cols,borderColor:bors,borderWidth:1.5,borderRadius:6}]},
     options:{responsive:true,maintainAspectRatio:false,
+      clip:false,
+      layout:{padding:{top:44}},
       plugins:{legend:{display:false},tooltip:{...ttDef(c),callbacks:{label:ctx=>`${sgn(ctx.raw)}${ctx.raw.toLocaleString('ko-KR')}억${DATA[ctx.dataIndex].est?' (추정)':''}`}}},
       scales:{
         x:{grid:{display:false},ticks:{color:c.tick,font:{size:11.5,family:'Pretendard'}}},
-        y:{min: Math.min(...vals)*1.3,
+        y:{min:_dMin!==0?_dMin*1.3:undefined,
+           max:_dMax!==0?Math.ceil(_dMax*1.30/100)*100:undefined,
            grid:{color:ctx=>ctx.tick.value===0?c.grid0:c.grid,
                  lineWidth:ctx=>ctx.tick.value===0?1.5:1},
            ticks:{color:c.tick,font:{size:12,family:'Pretendard'},
