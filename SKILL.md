@@ -893,8 +893,14 @@ function drawSeg(){
        backgroundColor:data.map(s=>s.q26>s.q25?c.segUp:c.segDn),
        borderColor:data.map(s=>s.q26>s.q25?c.segUpB:c.segDnB),borderWidth:1.5,borderRadius:5},
     ]},
+    /* ★ 규칙: Y축은 반드시 데이터 최대값 기준 20% 헤드룸으로 자동 계산.
+       clip:false + layout.padding.top:44 로 YoY 레이블이 잘리지 않도록 한다. */
+    const _allVals=data.flatMap(s=>[s.q25,s.q26>0?s.q26:0]).filter(Boolean);
+    const _segMax=Math.ceil(Math.max(..._allVals)*1.20/1000)*1000;
     options:{
       responsive:true,maintainAspectRatio:false,
+      clip:false,
+      layout:{padding:{top:44}},
       onClick(e,el){if(!el.length){closeDp();return;}showDp(data[el[0].index]);},
       plugins:{legend:{display:false},tooltip:{...ttDef(c),callbacks:{label(ctx){
         const seg=data[ctx.dataIndex];
@@ -904,7 +910,7 @@ function drawSeg(){
         x:{grid:{display:false},ticks:{color:c.tick,font:{size:12,family:'Pretendard'},maxRotation:0}},
         y:{grid:{color:c.grid},
            ticks:{color:c.tick,font:{size:12,family:'Pretendard'},callback:v=>v.toLocaleString('ko-KR')},
-           min:0}
+           min:0, max:_segMax}
       }
     },
     plugins:[
@@ -1093,10 +1099,12 @@ function buildStockCharts(){
         title:ctx=>PRICE_DATA[ctx[0].dataIndex].d+(PRICE_DATA[ctx[0].dataIndex].earnings?' (실적발표)':''),
         label:ctx=>` 종가: ${ctx.raw.toLocaleString('ko-KR')}원`
       }}},
+      /* ★ 규칙: Y축은 데이터 기준 자동 계산. 1000원 단위로 반올림해 깔끔하게 표시. */
       scales:{
         x:{grid:{display:false},ticks:{color:c.tick,font:{size:11,family:'Pretendard'}}},
         y:{grid:{color:c.grid},
-           min:Math.min(...prices)*0.97,max:Math.max(...prices)*1.03,
+           min:Math.floor(Math.min(...prices)*0.96/1000)*1000,
+           max:Math.ceil(Math.max(...prices)*1.04/1000)*1000,
            ticks:{color:c.tick,font:{size:11,family:'Pretendard'},callback:v=>v.toLocaleString('ko-KR')+'원'}}
       }
     },
@@ -1876,13 +1884,28 @@ tr:hover td { background:var(--row-hover); }
 2. **우선순위 2**: 기업 IR 자료 (분기 실적 발표 PDF, 공시 첨부)
 3. **추정 필요 시**: 전체 매출에서 공개된 항목을 빼고 역산, `est:true` 표시
 4. 세그먼트가 3개 미만이면 `cg` 필터 버튼을 생략하고 전체만 표시
+5. **Y축 자동 스케일 (고정값 절대 금지)** — 바 위 레이블·YoY 텍스트가 잘리지 않도록:
+   ```javascript
+   const _allVals = data.flatMap(s=>[s.q25, s.q26>0?s.q26:0]).filter(Boolean);
+   const _segMax  = Math.ceil(Math.max(..._allVals) * 1.20 / 1000) * 1000;
+   // chart options에 반드시 포함:
+   clip: false,
+   layout: { padding: { top: 44 } },
+   // scales.y에 반드시 포함:
+   max: _segMax
+   ```
 
 ### 주가 데이터 (PRICE_DATA 배열)
 
-1. 실적발표일을 기준으로 ±30일 영업일 데이터를 구성
+1. **반드시 30 영업일** 데이터를 구성한다 (실적발표일 기준 전후 포함, 부족하면 이전 날짜로 채움)
 2. 확인된 기준점(발표일, 익일): 뉴스·거래소 종가 공식 확인치 우선
 3. 중간 추정치 포함 시 `.disc` 태그에 추정 기준 명기
 4. `EARN_IDX`: `PRICE_DATA` 배열에서 `earnings:true` 항목의 0-based 인덱스
+5. **Y축 자동 계산 (고정값 절대 금지)**:
+   ```javascript
+   min: Math.floor(Math.min(...prices) * 0.96 / 1000) * 1000,
+   max: Math.ceil(Math.max(...prices)  * 1.04 / 1000) * 1000,
+   ```
 
 ### 애널리스트 데이터 (ANALYSTS 배열)
 
