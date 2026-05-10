@@ -54,8 +54,6 @@ output/카카오_20260510_01.html
 output/카카오_20260510_02.html   ← 같은 날 재실행 시
 ```
 
-**예시** → [airoasting.github.io/dart/kakao_20260510.html](https://airoasting.github.io/dart/kakao_20260510.html)
-
 ---
 
 ## 리포트 구성
