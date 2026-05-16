@@ -61,7 +61,7 @@ corp_code, bsns_year, reprt_code
 
 ```python
 import sys
-sys.path.insert(0, str(Path('~/.claude/skills/dart-dashboard/assets').expanduser()))
+sys.path.insert(0, str(Path('~/.claude/skills/dart/assets').expanduser()))
 from dart_client import DartClient
 
 client = DartClient()  # .env 또는 DART_API_KEY 자동 로드

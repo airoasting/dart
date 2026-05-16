@@ -91,7 +91,8 @@ td,th { transition: background-color .22s ease, border-color .22s ease, color .1
 
 body {
   background: var(--bg);
-  font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  -moz-osx-font-smoothing: grayscale;
   color: var(--t1);
   padding-bottom: 80px;
   -webkit-font-smoothing: antialiased;
@@ -155,6 +156,7 @@ body {
   gap: 0;
   align-items: center;
   scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 .sticky-nav-inner::-webkit-scrollbar { display:none; }
 .nav-link {
