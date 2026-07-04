@@ -37,11 +37,10 @@ dart/
 ├── investor_persona/
 │   ├── _ALL.md                       ← 13인 페르소나 통합본 (이 파일 하나만 읽어라)
 │   └── *.md                          ← 개별 원본 (참고용)
-├── references/                       ← 사람용 설계 문서 (런타임에 읽을 필요 없음)
-│   ├── dart-api.md                   ← DART API 엔드포인트·응답 구조
-│   ├── design-system.md              ← CSS 설계 (이미 template.html에 반영됨)
-│   └── section-templates.md          ← HTML/JS 설계 (이미 template.html에 반영됨)
-└── kakao_20260510.html               ← ground-truth 참고 출력 (열어볼 필요 거의 없음)
+└── references/                       ← 사람용 설계 문서 (런타임에 읽을 필요 없음)
+    ├── dart-api.md                   ← DART API 엔드포인트·응답 구조
+    ├── design-system.md              ← CSS 설계 (이미 template.html에 반영됨)
+    └── section-templates.md          ← HTML/JS 설계 (이미 template.html에 반영됨)
 ```
 
 **경로 규칙**: 스킬 루트를 `SKILL_DIR`로 표기한다. 실제 경로는 `~/.claude/skills/dart/`이다.
