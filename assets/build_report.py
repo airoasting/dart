@@ -26,8 +26,7 @@ data.json 구조:
 import sys, os, re, json, html, datetime, argparse, pathlib
 
 # js 객체를 선언할 순서 (함수보다 먼저 정의돼야 하는 것들). 목록에 없는 키는 뒤에 알파벳순으로.
-JS_ORDER = ["NAME", "CONS", "CHIPS", "SEGS", "TOT25", "TOT26", "DELTA",
-            "PRICE_DATA", "EARN_IDX", "CURR", "TP_BARS",
+JS_ORDER = ["NAME", "CONS", "CHIPS", "SEGS", "TOT25", "TOT26", "DELTA", "CURR",
             "ANALYSTS", "BULLS", "BEARS", "NEWS", "PERSONAS"]
 
 
@@ -82,7 +81,7 @@ def validate(out, js):
     n_persona = len(js.get("PERSONAS", []))
     if n_persona != 13:
         problems.append(f"페르소나가 13인이 아닙니다: {n_persona}인")
-    for req in ["SEGS", "PRICE_DATA", "ANALYSTS", "NEWS", "PERSONAS", "DELTA"]:
+    for req in ["SEGS", "ANALYSTS", "NEWS", "PERSONAS", "DELTA"]:
         if not js.get(req):
             problems.append(f"필수 데이터 누락 또는 비어있음: {req}")
     # chart.js 버전 가드 (스킬 절대 규칙)

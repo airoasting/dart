@@ -556,7 +556,6 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
       <a class="nav-link active" href="#sec-kpi">{{nav_label}}</a>
       <a class="nav-link" href="#sec-growth">성장 기여도</a>
       <a class="nav-link" href="#sec-segment">사업별 매출</a>
-      <a class="nav-link" href="#sec-stock">주가 반응</a>
       <a class="nav-link" href="#sec-market">애널리스트 시각</a>
       <a class="nav-link" href="#sec-news">뉴스</a>
       <a class="nav-link" href="#sec-persona">투자자 시각</a>
@@ -647,39 +646,6 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
     </tr></thead><tbody id="tB"></tbody></table>
   </div>
   <div class="fn" id="fn1"></div>
-</div>
-
-<!-- ══ 주가 반응 ════════════════════════════════════ -->
-<div id="sec-stock" class="sec-label">주가 반응</div>
-<div class="sc nr full">
-  <div class="stat-grid">
-    <div class="stat-card nr">
-      <div class="stat-lbl">현재 주가</div>
-      <div class="stat-val">{{stat_price}}<span style="font-size:.86rem;color:var(--t2)">원</span></div>
-      <div class="stat-sub">{{stat_price_note}}</div>
-    </div>
-    <div class="stat-card nr">
-      <div class="stat-lbl">실적발표일 등락</div>
-      <div class="stat-val" style="color:var(--dn)">{{earn_day_pct}}</div>
-      <div class="stat-sub">{{earn_day_note}}</div>
-    </div>
-    <div class="stat-card nr">
-      <div class="stat-lbl">발표 후 익일</div>
-      <div class="stat-val" style="color:var(--up)">{{next_day_pct}}</div>
-      <div class="stat-sub">{{next_day_note}}</div>
-    </div>
-    <div class="stat-card nr">
-      <div class="stat-lbl">52주 범위</div>
-      <div class="stat-val" style="font-size:1.08rem">{{stat_w52}}</div>
-      <div class="stat-sub">{{w52_gap}}</div>
-    </div>
-  </div>
-  <div class="cw" style="height:300px"><canvas id="priceChart"></canvas></div>
-  <div class="disc">{{price_disc}}</div>
-</div>
-<div class="sc nr full" style="margin-top:0">
-  <div class="cw" style="height:200px"><canvas id="tpChart"></canvas></div>
-  <div class="fn">{{tp_footnote}}</div>
 </div>
 
 <!-- ══ 애널리스트 시각 ════════════════════════════════════ -->
@@ -830,7 +796,7 @@ function ttDef(c){
 }
 
 /* ═══════════════ THEME TOGGLE ═══════════════ */
-let deltaChartInst=null, priceChartInst=null, tpChartInst=null, consChartInst=null;
+let deltaChartInst=null, consChartInst=null;
 
 function toggleTheme(){
   const root=document.documentElement;
@@ -849,15 +815,12 @@ function rebuildCharts(){
   if(deltaChartInst){deltaChartInst.destroy();deltaChartInst=null;}
   buildDeltaChart();
   drawSeg();
-  if(priceChartInst){priceChartInst.destroy();priceChartInst=null;}
-  if(tpChartInst){tpChartInst.destroy();tpChartInst=null;}
-  buildStockCharts();
   if(consChartInst){consChartInst.destroy();consChartInst=null;}
   buildMarket();
 }
 
 /* ═══════════════ NAV HIGHLIGHT ═══════════════ */
-const sections=['sec-kpi','sec-growth','sec-segment','sec-stock','sec-market','sec-news','sec-persona'];
+const sections=['sec-kpi','sec-growth','sec-segment','sec-market','sec-news','sec-persona'];
 window.addEventListener('scroll',()=>{
   let cur=sections[0];
   sections.forEach(id=>{
@@ -1059,88 +1022,6 @@ function togTable(){
 document.getElementById('fn1').innerHTML=
   '* 추정치: 카카오모빌리티(플랫폼기타 역산), 픽코마·카카오엔터(스토리 비율 기준), 기타·재편(1Q26 세부 미공시). 영업이익·순이익은 연결 기준 IR 발표치.';
 
-/* ═══════════════ STOCK CHART ═══════════════ */
-function buildStockCharts(){
-  const c=tc();
-  const prices=PRICE_DATA.map(d=>d.p);
-  const labels=PRICE_DATA.map(d=>d.d);
-  const gradCtx=document.getElementById('priceChart').getContext('2d');
-  const grad=gradCtx.createLinearGradient(0,0,0,280);
-  grad.addColorStop(0,c.gradTop);
-  grad.addColorStop(1,c.gradBot);
-
-  priceChartInst=new Chart(gradCtx,{
-    type:'line',
-    data:{labels,datasets:[{
-      data:prices,borderColor:'var(--coral)',borderWidth:2.5,
-      backgroundColor:grad,fill:true,tension:.35,
-      pointRadius:PRICE_DATA.map((_,i)=>i===EARN_IDX||i===EARN_IDX+1?7:3),
-      pointBackgroundColor:PRICE_DATA.map((_,i)=>i===EARN_IDX?'#922010':i===EARN_IDX+1?'#059669':'var(--coral)'),
-      pointBorderColor:'#fff',pointBorderWidth:1.5,
-    }]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{...ttDef(c),callbacks:{
-        title:ctx=>PRICE_DATA[ctx[0].dataIndex].d+(PRICE_DATA[ctx[0].dataIndex].earnings?' (실적발표)':''),
-        label:ctx=>` 종가: ${ctx.raw.toLocaleString('ko-KR')}원`
-      }}},
-      scales:{
-        x:{grid:{display:false},ticks:{color:c.tick,font:{size:11,family:'Pretendard'}}},
-        y:{grid:{color:c.grid},min:Math.floor(Math.min(...prices)*0.96/1000)*1000,max:Math.ceil(Math.max(...prices)*1.04/1000)*1000,
-           ticks:{color:c.tick,font:{size:11,family:'Pretendard'},callback:v=>v.toLocaleString('ko-KR')+'원'}}
-      }
-    },
-    plugins:[{
-      id:'eLine',afterDraw(chart){
-        const meta=chart.getDatasetMeta(0);
-        const bar=meta.data[EARN_IDX];if(!bar)return;
-        const{ctx,chartArea}=chart;
-        ctx.save();
-        ctx.fillStyle=c.earnTxt;ctx.font='bold 11px Pretendard,sans-serif';
-        ctx.textAlign='center';
-        ctx.fillText('실적발표',bar.x,chartArea.top+14);
-        ctx.fillText('5/7',bar.x,chartArea.top+27);
-        ctx.setLineDash([5,4]);ctx.strokeStyle=c.earnLine;ctx.lineWidth=1.5;
-        ctx.beginPath();ctx.moveTo(bar.x,chartArea.top+34);ctx.lineTo(bar.x,chartArea.bottom);ctx.stroke();
-        ctx.restore();
-      }
-    }]
-  });
-
-  /* TP chart - vertical bars */
-  const tpLabels=[['현재가',CURR.toLocaleString('ko-KR')+'원'],
-    ...TP_BARS.map(b=>[b.label,b.tp.toLocaleString('ko-KR')+'원'])];
-  const tpVals=[CURR,...TP_BARS.map(b=>b.tp)];
-  const _tpGrad=['rgba(224,112,80,.42)','rgba(224,112,80,.60)','rgba(224,112,80,.76)','rgba(224,112,80,.92)'];
-  const tpCols=[c.tpCurr,...TP_BARS.map((_,i)=>_tpGrad[Math.min(i,_tpGrad.length-1)])];
-  tpChartInst=new Chart(document.getElementById('tpChart').getContext('2d'),{
-    type:'bar',
-    data:{labels:tpLabels,datasets:[{data:tpVals,backgroundColor:tpCols,borderRadius:6,borderWidth:0}]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{...ttDef(c),callbacks:{label:ctx=>` ${ctx.raw.toLocaleString('ko-KR')}원`}}},
-      scales:{
-        x:{grid:{display:false},ticks:{color:c.tick,font:{size:11,family:'Pretendard'}}},
-        y:{grid:{color:c.grid},min:Math.floor(Math.min(...tpVals)*0.90/10000)*10000,max:Math.ceil(Math.max(...tpVals)*1.05/10000)*10000,
-           ticks:{color:c.tick,font:{size:11,family:'Pretendard'},callback:v=>(v/10000).toFixed(0)+'만원'}}
-      }
-    },
-    plugins:[{id:'tl',afterDatasetsDraw(chart){
-      const{ctx}=chart;
-      chart.getDatasetMeta(0).data.forEach((bar,i)=>{
-        const v=tpVals[i];
-        const up=((v-CURR)/CURR*100).toFixed(1);
-        ctx.save();
-        ctx.fillStyle=i===0?c.tpBase:c.tpUp;
-        ctx.font='700 11.5px Pretendard,sans-serif';
-        ctx.textBaseline='bottom';ctx.textAlign='center';
-        ctx.fillText(i===0?'기준':'+'+up+'%',bar.x,bar.y-10);
-        ctx.restore();
-      });
-    }}]
-  });
-}
-
 /* ═══════════════ MARKET TAB ═══════════════ */
 function buildMarket(){
   const c=tc();
@@ -1295,7 +1176,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   buildChips();
   buildDeltaChart();
   drawSeg();
-  buildStockCharts();
   buildMarket();
   buildNews();
   buildPersonas();
