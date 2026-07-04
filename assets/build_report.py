@@ -112,6 +112,10 @@ def main():
     data = json.loads(pathlib.Path(args.data).read_text(encoding="utf-8"))
     template = pathlib.Path(args.template).read_text(encoding="utf-8")
 
+    # 기준일(base_date)은 항상 빌드 실행일(= 스킬 돌린 오늘)로 스탬프. 주가(전일 종가)와 별개다.
+    _run = args.date or datetime.date.today().strftime("%Y%m%d")
+    data.setdefault("meta", {})["base_date"] = f"{_run[:4]}.{_run[4:6]}.{_run[6:]}"
+
     out = render(template, data)
 
     problems = validate(out, data.get("js", {}))
