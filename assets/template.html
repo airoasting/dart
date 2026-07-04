@@ -480,13 +480,9 @@ tr.link-row:hover td { background:var(--row-hover) !important; }
 /* ─── section divider ─── */
 .sec-label { font-size:.78rem; font-weight:800; color:var(--coral);
              text-transform:uppercase; letter-spacing:1.4px;
-             padding:44px 0 0 16px; position:relative;
+             padding:44px 0 0 0; position:relative;
              scroll-margin-top:58px; }
-.sec-label::before {
-  content:''; position:absolute; left:0; bottom:0;
-  height:1.25em; width:3px; background:var(--coral); border-radius:2px;
-  transition: background-color .22s ease;
-}
+.sec-label::before { content:none; }
 
 /* ─── disclaimer ─── */
 .invest-disclaimer {
