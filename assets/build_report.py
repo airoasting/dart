@@ -13,7 +13,7 @@ data.json 구조:
     {
       "meta": { "name": "...", "code": "...", ... 스칼라 토큰 ... ,
                 "filter_cats": [["platform","플랫폼"], ...] },
-      "js":   { "SEGS":[...], "TOT25":..., "PRICE_DATA":[...], "PERSONAS":[...], ... }
+      "js":   { "SEGS":[...], "TOT25":..., "DELTA":[...], "ANALYSTS":[...], "PERSONAS":[...], ... }
     }
 
 동작:
