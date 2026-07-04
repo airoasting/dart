@@ -910,6 +910,8 @@ function drawSeg(){
   const data=vis();
   const c=tc();
   const labels=data.map(s=>[s.name,'('+s.sub+')']);
+  const _sv=data.flatMap(s=>[s.q25,s.q26>0?s.q26:0]).filter(Boolean);
+  const _segMax=_sv.length?Math.ceil(Math.max(..._sv)*1.20/1000)*1000:undefined;
   if(segC)segC.destroy();
   const ctx=document.getElementById('segChart').getContext('2d');
   segC=new Chart(ctx,{
@@ -922,6 +924,8 @@ function drawSeg(){
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
+      clip:false,
+      layout:{padding:{top:44}},
       onClick(e,el){if(!el.length){closeDp();return;}showDp(data[el[0].index]);},
       plugins:{legend:{display:false},tooltip:{...ttDef(c),callbacks:{label(ctx){
         const seg=data[ctx.dataIndex];return ctx.raw===null?null:` ${ctx.dataset.label}: ${fmt(ctx.raw)}${seg.est?' (추정)':''}`;
@@ -930,7 +934,7 @@ function drawSeg(){
         x:{grid:{display:false},ticks:{color:c.tick,font:{size:12,family:'Pretendard'},maxRotation:0}},
         y:{grid:{color:c.grid},
            ticks:{color:c.tick,font:{size:12,family:'Pretendard'},callback:v=>v.toLocaleString('ko-KR')},
-           min:0}
+           min:0, max:_segMax}
       }
     },
     plugins:[
