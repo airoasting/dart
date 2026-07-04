@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{name}} {{base_date}} - AI ROASTING</title>
+<title>카카오 2026.07.03 - AI ROASTING</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
@@ -533,13 +533,13 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div class="wrap">
 <div class="hdr">
   <div class="hdr-l">
-    <h1><span>{{name}}</span> ({{code}}) 실적 대시보드</h1>
-    <p>{{period_full}} &nbsp;|&nbsp; {{basis}} 기준 &nbsp;|&nbsp; 기준일: {{base_date}}</p>
+    <h1><span>카카오</span> (035720) 실적 대시보드</h1>
+    <p>1Q 2025 vs 1Q 2026 &nbsp;|&nbsp; 연결 기준 &nbsp;|&nbsp; 기준일: 2026.07.03</p>
   </div>
   <div class="hdr-r">
-    <div class="price-now">{{price}}<span style="font-size:.93rem;color:var(--t2);font-weight:500">원</span></div>
-    <div class="price-chg">{{price_chg}}</div>
-    <div class="price-meta">52W {{w52_range}} &nbsp;|&nbsp; KRX</div>
+    <div class="price-now">35,500<span style="font-size:.93rem;color:var(--t2);font-weight:500">원</span></div>
+    <div class="price-chg">+0.71% (7/3 종가)</div>
+    <div class="price-meta">52W 32,250 ~ 71,600 &nbsp;|&nbsp; KRX</div>
   </div>
 </div>
 </div>
@@ -549,7 +549,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
   <div class="nav-progress-track"><div class="nav-progress-bar" id="navProgress"></div></div>
   <div class="sticky-nav-outer">
     <div class="sticky-nav-inner">
-      <a class="nav-link active" href="#sec-kpi">{{nav_label}}</a>
+      <a class="nav-link active" href="#sec-kpi">26 1Q 실적</a>
       <a class="nav-link" href="#sec-growth">성장 기여도</a>
       <a class="nav-link" href="#sec-segment">사업별 매출</a>
       <a class="nav-link" href="#sec-market">애널리스트 시각</a>
@@ -565,29 +565,29 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div style="max-width:1080px;margin:0 auto;padding:0 20px">
 
 <!-- ══ 실적 요약 ════════════════════════════════════ -->
-<div id="sec-kpi" class="sec-label">{{kpi_label}}</div>
+<div id="sec-kpi" class="sec-label">26 1Q 실적 요약</div>
 <div class="sc nr full">
   <div class="kpi-grid">
     <div class="kpi-card nr">
       <div class="kpi-lbl">전체 매출</div>
-      <div class="kpi-val">{{rev_val}}<span class="kpi-unit">억원</span></div>
-      <div class="kpi-yoy {{rev_dir}}">{{rev_yoy}}</div>
+      <div class="kpi-val">19,421<span class="kpi-unit">억원</span></div>
+      <div class="kpi-yoy up">+784억 &nbsp;(+4.2% YoY)</div>
       <div class="kpi-div"></div>
-      <div class="kpi-sub">{{rev_sub}}</div>
+      <div class="kpi-sub">1Q25 &nbsp;18,637억</div>
     </div>
     <div class="kpi-card nr">
       <div class="kpi-lbl">영업이익</div>
-      <div class="kpi-val">{{op_val}}<span class="kpi-unit">억원</span></div>
-      <div class="kpi-yoy {{op_dir}}">{{op_yoy}}</div>
+      <div class="kpi-val">2,114<span class="kpi-unit">억원</span></div>
+      <div class="kpi-yoy up">+1,060억 &nbsp;(+100.6% YoY)</div>
       <div class="kpi-div"></div>
-      <div class="kpi-sub">{{op_sub}}</div>
+      <div class="kpi-sub">OPM &nbsp;5.7%<span class="arr"> → </span><span class="b">10.9%</span></div>
     </div>
     <div class="kpi-card nr">
       <div class="kpi-lbl">당기순이익</div>
-      <div class="kpi-val">{{np_val}}<span class="kpi-unit">억원</span></div>
-      <div class="kpi-yoy {{np_dir}}">{{np_yoy}}</div>
+      <div class="kpi-val">2,268<span class="kpi-unit">억원</span></div>
+      <div class="kpi-yoy up">+265억 &nbsp;(+13.2% YoY)</div>
       <div class="kpi-div"></div>
-      <div class="kpi-sub">{{np_sub}}</div>
+      <div class="kpi-sub">NPM &nbsp;10.7%<span class="arr"> → </span><span class="b">11.7%</span></div>
     </div>
   </div>
   <div class="chips" id="perfChips"></div>
@@ -597,7 +597,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div id="sec-growth" class="sec-label">성장 기여도 분석</div>
 <div class="sc nr full">
   <div class="sh">
-    <div class="sann">순증 <strong style="color:var(--coral)">{{g_net}}</strong> &nbsp;= 성장 기여 <strong style="color:var(--coral)">{{g_up}}</strong> + 감소 요인 <strong style="color:var(--dn)">{{g_dn}}</strong> &nbsp;<span style="color:var(--t3);font-size:.80rem">* 추정치 포함</span></div>
+    <div class="sann">순증 <strong style="color:var(--coral)">+784억</strong> &nbsp;= 성장 기여 <strong style="color:var(--coral)">+784억</strong> + 감소 요인 <strong style="color:var(--dn)">0억</strong> &nbsp;<span style="color:var(--t3);font-size:.80rem">* 추정치 포함</span></div>
   </div>
   <div class="cw" style="height:360px"><canvas id="deltaChart"></canvas></div>
 </div>
@@ -609,7 +609,11 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
     <div class="sann">막대 클릭 시 상세 &nbsp;·&nbsp; <strong style="color:var(--t2)">단위: 억원</strong></div>
   </div>
   <div class="ctrls">
-    <div class="cg" id="fg">{{filter_buttons}}</div>
+    <div class="cg" id="fg">
+      <button class="cb active" onclick="setF('all',this)">전체</button>
+      <button class="cb" onclick="setF('platform',this)">플랫폼</button>
+      <button class="cb" onclick="setF('content',this)">콘텐츠</button>
+    </div>
     <div class="cg" id="sg">
       <button class="cb active" onclick="setS('size',this)">규모순</button>
       <button class="cb" onclick="setS('contrib',this)">기여도순</button>
@@ -618,15 +622,15 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
     </div>
   </div>
   <div class="leg-row">
-    <button class="lb" id="ls0" onclick="togL(0,this)"><span class="dot" style="background:var(--c25)"></span>{{q_prev_full}}</button>
-    <button class="lb" id="ls1" onclick="togL(1,this)"><span class="dot" style="background:var(--coral)"></span>{{q_cur_full}}</button>
+    <button class="lb" id="ls0" onclick="togL(0,this)"><span class="dot" style="background:var(--c25)"></span>1Q 2025</button>
+    <button class="lb" id="ls1" onclick="togL(1,this)"><span class="dot" style="background:var(--coral)"></span>1Q 2026</button>
   </div>
   <div class="cw" id="segWrap" style="height:420px"><canvas id="segChart"></canvas></div>
   <div class="dp" id="dp">
     <div class="dp-hdr"><div class="dp-title" id="dpT"></div><button class="dp-close" onclick="closeDp()">✕</button></div>
     <div class="dp-grid">
-      <div class="dp-item ni-sm"><div class="dp-lbl">{{q_prev_full}}</div><div class="dp-val" id="dp25"></div></div>
-      <div class="dp-item ni-sm"><div class="dp-lbl">{{q_cur_full}}</div><div class="dp-val" id="dp26"></div></div>
+      <div class="dp-item ni-sm"><div class="dp-lbl">1Q 2025</div><div class="dp-val" id="dp25"></div></div>
+      <div class="dp-item ni-sm"><div class="dp-lbl">1Q 2026</div><div class="dp-val" id="dp26"></div></div>
       <div class="dp-item ni-sm"><div class="dp-lbl">δ 절대</div><div class="dp-val" id="dpD"></div></div>
       <div class="dp-item ni-sm"><div class="dp-lbl">YoY %</div><div class="dp-val" id="dpP"></div></div>
       <div class="dp-item ni-sm"><div class="dp-lbl">믹스 변화</div><div class="dp-val" id="dpM"></div></div>
@@ -636,9 +640,9 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
   <div class="dt-wrap" id="dtW">
     <table><thead><tr>
       <th>사업부문</th><th>구분</th>
-      <th class="r">{{q_prev_short}}</th><th class="r">{{q_cur_short}}</th>
+      <th class="r">1Q25</th><th class="r">1Q26</th>
       <th class="r">δ(억)</th><th class="r">YoY%</th>
-      <th class="r">{{mix_prev}}</th><th class="r">{{mix_cur}}</th><th class="r">믹스Δ</th>
+      <th class="r">비중25</th><th class="r">비중26</th><th class="r">믹스Δ</th>
     </tr></thead><tbody id="tB"></tbody></table>
   </div>
   <div class="fn" id="fn1"></div>
@@ -648,37 +652,37 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div id="sec-market" class="sec-label">애널리스트 시각</div>
 <div class="sc nr full">
   <div class="sh">
-    <div class="sann">{{coverage_note}}</div>
+    <div class="sann">총 22명 커버리지 (2026.06 기준)</div>
   </div>
   <div class="cons-wrap">
     <div class="cons-pie">
       <canvas id="consChart" style="max-width:150px;max-height:150px"></canvas>
-      <div class="cons-lbl">Buy {{cons_buy}} &nbsp;|&nbsp; Hold {{cons_hold}} &nbsp;|&nbsp; Sell {{cons_sell}}</div>
+      <div class="cons-lbl">Buy 18 &nbsp;|&nbsp; Hold 4 &nbsp;|&nbsp; Sell 0</div>
     </div>
     <div>
       <div class="cons-rows" style="margin-bottom:16px">
         <div class="cons-row">
           <span class="nm" style="color:var(--coral)">Buy</span>
-          <div class="cons-bw"><div class="cons-b" style="width:{{cons_buy_pct}};background:var(--coral)"></div></div>
-          <span class="cnt" style="color:var(--coral)">{{cons_buy}}</span>
+          <div class="cons-bw"><div class="cons-b" style="width:81.8%;background:var(--coral)"></div></div>
+          <span class="cnt" style="color:var(--coral)">18</span>
         </div>
         <div class="cons-row">
           <span class="nm" style="color:#4B5563">Hold</span>
-          <div class="cons-bw"><div class="cons-b" style="width:{{cons_hold_pct}};background:#9CA3AF"></div></div>
-          <span class="cnt" style="color:#4B5563">{{cons_hold}}</span>
+          <div class="cons-bw"><div class="cons-b" style="width:18.2%;background:#9CA3AF"></div></div>
+          <span class="cnt" style="color:#4B5563">4</span>
         </div>
         <div class="cons-row">
           <span class="nm" style="color:var(--dn)">Sell</span>
-          <div class="cons-bw"><div class="cons-b" style="width:{{cons_sell_pct}};background:var(--dn)"></div></div>
-          <span class="cnt" style="color:var(--dn)">{{cons_sell}}</span>
+          <div class="cons-bw"><div class="cons-b" style="width:0.0%;background:var(--dn)"></div></div>
+          <span class="cnt" style="color:var(--dn)">0</span>
         </div>
       </div>
       <div class="tp-sum">
-        <div class="tp-item"><div class="l">현재가</div><div class="v">{{tp_cur}}</div></div>
-        <div class="tp-item"><div class="l">최저 목표가</div><div class="v">{{tp_low}}</div></div>
-        <div class="tp-item"><div class="l">평균 목표가</div><div class="v" style="color:var(--coral)">{{tp_avg}}</div></div>
-        <div class="tp-item"><div class="l">최고 목표가</div><div class="v">{{tp_high}}</div></div>
-        <div class="tp-item"><div class="l">Implied Upside</div><div class="v" style="color:var(--grn)">{{tp_upside}}</div></div>
+        <div class="tp-item"><div class="l">현재가</div><div class="v">35,500원</div></div>
+        <div class="tp-item"><div class="l">최저 목표가</div><div class="v">60,000원</div></div>
+        <div class="tp-item"><div class="l">평균 목표가</div><div class="v" style="color:var(--coral)">75,000원</div></div>
+        <div class="tp-item"><div class="l">최고 목표가</div><div class="v">82,000원</div></div>
+        <div class="tp-item"><div class="l">Implied Upside</div><div class="v" style="color:var(--grn)">+111.3%</div></div>
       </div>
     </div>
   </div>
@@ -716,7 +720,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div id="sec-persona" class="sec-label">투자자 시각</div>
 <div class="sc nr full">
   <div class="sh">
-    <div class="sann">13인의 전설적 투자자가 {{name}}을 본다면</div>
+    <div class="sann">13인의 전설적 투자자가 카카오을 본다면</div>
   </div>
   <div class="persona-summary nr" id="personaSummary"></div>
   <div class="persona-grid" id="personaGrid"></div>
@@ -736,7 +740,19 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 
 <script>
 /* ═══════════════ DATA ═══════════════ */
-/*__REPORT_DATA__*/
+const NAME = "카카오";
+const CONS = {"buy": 18, "hold": 4, "sell": 0};
+const CHIPS = [{"cls": "co", "dot": "var(--coral)", "txt": "영업이익 +100.6% YoY"}, {"cls": "co", "dot": "var(--coral)", "txt": "영업이익률 5.7%→10.9%"}, {"cls": "gn", "dot": "var(--grn)", "txt": "순이익 2,268억 +13.2%"}, {"cls": "dn", "dot": "var(--dn)", "txt": "매출 성장 +4.2% 둔화"}];
+const SEGS = [{"name": "톡비즈-광고", "sub": "톡비즈", "cat": "platform", "q25": 3117, "q26": 3384, "est": true}, {"name": "톡비즈-커머스", "sub": "톡비즈", "cat": "platform", "q25": 2857, "q26": 2700, "est": true}, {"name": "포털비즈", "sub": "플랫폼", "cat": "platform", "q25": 766, "q26": 676, "est": true}, {"name": "모빌리티·페이 등", "sub": "플랫폼", "cat": "platform", "q25": 4165, "q26": 5067, "est": true}, {"name": "뮤직", "sub": "콘텐츠", "cat": "content", "q25": 4667, "q26": 4846, "est": true}, {"name": "스토리", "sub": "콘텐츠", "cat": "content", "q25": 2262, "q26": 1824, "est": true}, {"name": "미디어", "sub": "콘텐츠", "cat": "content", "q25": 803, "q26": 924, "est": true}];
+const TOT25 = 18637;
+const TOT26 = 19421;
+const DELTA = [{"name": "톡비즈-광고", "d": 267, "est": true}, {"name": "톡비즈-커머스", "d": -157, "est": true}, {"name": "포털비즈", "d": -90, "est": true}, {"name": "모빌리티·페이 등", "d": 902, "est": true}, {"name": "뮤직", "d": 179, "est": true}, {"name": "스토리", "d": -438, "est": true}, {"name": "미디어", "d": 121, "est": true}, {"name": "합계", "d": 784, "tot": true}];
+const CURR = 35500;
+const ANALYSTS = [{"firm": "미래에셋증권", "r": "Buy", "tp": 82000, "from": 75000, "date": "2026.05.08", "note": "\"자회사 매각 수익성 개선·광고 성장 반영, 목표가 상향\""}, {"firm": "하나증권", "r": "Buy", "tp": 75000, "from": 70000, "date": "2026.05.08", "note": "\"본업 이익 기여도가 주가 회복의 핵심 변수\""}, {"firm": "한화투자증권", "r": "Buy", "tp": 70000, "from": 70000, "date": "2026.05.08", "note": "\"AI 수익화 시점 확인되면 상승 여력 크다\""}, {"firm": "삼성증권", "r": "Hold", "tp": 60000, "from": 60000, "date": "2026.04.13", "note": "\"P/E 29배, 본업 가속·신규 동력 필요\""}, {"firm": "다올투자증권", "r": "Buy", "tp": 70000, "from": 70000, "date": "2026.04.08", "note": "\"1Q26는 뼈대 세우는 구간, 에이전트 커머스 실행이 관건\""}];
+const BULLS = [{"t": "영업이익 2배로 뛴 수익성", "d": "영업이익이 1,054억에서 2,114억으로 늘며 영업이익률이 5.7%에서 10.9%로 올라섰다. 매출 증가폭이 4%대에 그친 점을 감안하면, 이익 개선의 무게는 톱라인이 아니라 비용 구조 자체에 실렸다."}, {"t": "비핵심 자회사 정리 효과", "d": "수익성이 두 배로 벌어진 배경에는 비핵심 자회사 정리와 비용 효율화가 자리한 것으로 보인다. 외형을 키우던 국면에서 남길 사업과 접을 사업을 가리는 국면으로 넘어간 신호로 읽힌다."}, {"t": "플랫폼 지배력에 기반한 커머스", "d": "선물하기와 톡스토어를 축으로 한 커머스는 카카오톡 사용자 기반 위에서 돌아간다. 국민 메신저라는 접점을 이미 확보하고 있어, 신규 트래픽을 사서 키우는 사업보다 이익 방어가 수월하다."}, {"t": "핀테크로 넓어진 수익 기반", "d": "카카오페이를 통한 결제와 금융 서비스는 광고 경기에 덜 흔들리는 수익원 역할을 한다. 본체 플랫폼과 맞물릴수록 결제 데이터가 쌓이고, 이 데이터가 다시 광고와 커머스로 이어질 여지가 있다."}, {"t": "AI 비서 카나나라는 성장 촉매", "d": "AI 비서 카나나는 카카오톡 위에서 검색과 대화를 잇는 새로운 접점이 될 수 있다. 수익화 시점은 아직 불투명하지만, 대규모 사용자 기반에 얹히는 서비스라는 점에서 확산 속도 면의 이점이 있다."}];
+const BEARS = [{"t": "4%대에 그친 톱라인", "d": "매출은 18,637억에서 19,421억으로 4.2% 늘어나는 데 그쳤다. 이익은 두 배로 뛰었지만 외형 성장세가 둔해진 만큼, 비용 절감 효과가 소진된 뒤 이익을 계속 밀어 올릴 동력이 마땅치 않다."}, {"t": "비용 효율화의 한계", "d": "이번 이익 개선은 상당 부분 자회사 정리와 비용 통제에서 나온 것으로 추정된다. 이런 개선은 한 번에 반영되는 성격이 강해, 다음 분기부터는 같은 폭의 증가를 다시 만들기 어렵다."}, {"t": "불확실한 AI 수익화 시점", "d": "카나나를 비롯한 AI 서비스가 언제 매출로 연결될지는 아직 뚜렷하지 않다. 개발과 인프라 비용은 먼저 들어가는 반면, 회수 시점이 늦어지면 개선된 이익률을 다시 갉아먹을 수 있다."}, {"t": "규제와 지배구조 리스크", "d": "플랫폼 규제와 지배구조를 둘러싼 논의는 카카오에 반복적으로 따라붙는 변수다. 사업 확장이나 인수합병 과정에서 제약으로 작용하면, 성장 선택지가 좁아질 수 있다."}, {"t": "네이버와의 경쟁 심화", "d": "검색, 커머스, AI 전반에서 네이버와의 경쟁은 계속 이어진다. 상대가 데이터와 자본을 앞세워 같은 영역을 파고들면, 카카오가 플랫폼 접점만으로 우위를 지키기는 쉽지 않다."}];
+const NEWS = [{"h": "카카오, 1분기 매출 1조9,421억·영업이익 2,114억 '역대 1분기 최대'", "src": "카카오", "date": "2026.05.07", "sent": "pos", "url": "https://www.kakaocorp.com/page/detail/12023", "body": "연결 기준 1분기 매출 1조9,421억원, 영업이익 2,114억원으로 역대 1분기 최대 실적을 냈다. 플랫폼·콘텐츠 전 부문이 고르게 성장하며 영업이익률이 11%까지 개선됐다."}, {"h": "카카오, 플랫폼 전반 성장에 '최대 실적'…1분기 영업익 2,114억", "src": "인포스탁데일리", "date": "2026.05.07", "sent": "pos", "url": "https://www.infostockdaily.co.kr/news/articleView.html?idxno=215705", "body": "톡비즈 광고가 16% 늘고 모빌리티·페이 등 플랫폼 기타가 30% 증가하며 실적을 견인했다. 카카오페이 매출이 처음으로 분기 3,000억원을 넘어섰다."}, {"h": "카카오 \"챗GPT 포 카카오 누적 가입자 1,100만명 돌파\"", "src": "뉴시스", "date": "2026.05.07", "sent": "pos", "url": "https://www.newsis.com/view/NISX20260507_0003619610", "body": "오픈AI와 협력한 '챗GPT 포 카카오'의 누적 가입자가 1,100만명을 돌파했다. 전 분기 대비 월간 활성 이용자가 2배 이상 늘었다."}, {"h": "[실적 후] 카카오, 최대 실적에도 목표가 엇갈려…AI 수익화가 핵심 변수", "src": "인포스탁데일리", "date": "2026.05.08", "sent": "mix", "url": "https://www.infostockdaily.co.kr/news/articleView.html?idxno=215730", "body": "역대급 실적에도 증권가 목표주가는 6만원에서 8만2,000원까지 엇갈렸다. AI 에이전트의 실제 수익화 시점이 리레이팅의 관건이라는 평가가 공통적이다."}, {"h": "카카오, 역대 1분기 최대 실적…'구조적 개선' 본격화", "src": "딜사이트", "date": "2026.05.07", "sent": "pos", "url": "https://dealsite.co.kr/articles/161394", "body": "자회사 매각과 비용 효율화로 수익성 구조가 구조적으로 개선되고 있다. 하반기 AI 기반 커머스 본격화가 다음 성장 동력으로 지목됐다."}, {"h": "카카오 \"AI가 대화 맥락 파악해 선물하기까지 연결\"…게임즈 매각 긍정 효과", "src": "디일렉", "date": "2026.05.07", "sent": "pos", "url": "https://www.thelec.kr/news/articleView.html?idxno=56176", "body": "카나나 인 카카오톡이 대화 맥락을 파악해 상품 추천부터 결제까지 채팅방에서 연결하는 에이전트 커머스를 확대한다. 카카오게임즈 연결 제외로 수익성 개선 효과가 기대된다."}, {"h": "[현장] 카카오, 보고 듣고 말하는 멀티모달 AI '카나나-o' 공개", "src": "비즈한국", "date": "2026.04.22", "sent": "pos", "url": "https://www.bizhankook.com/bk/article/32196", "body": "월드IT쇼에서 시각·청각·음성을 처리하는 멀티모달 AI '카나나-o'를 공개했다. 일상 속 에이전틱 AI 구현을 목표로 부스를 운영했다."}, {"h": "AI 한다더니 주가는 바닥…카카오 무슨 일", "src": "메트로신문", "date": "2026.05.26", "sent": "neg", "url": "https://www.metroseoul.co.kr/article/20260526500141", "body": "최대 실적에도 카카오 주가는 4만원대 초반으로 52주 최저가에 근접했다. AI 투자 성과가 실적으로 확인되기까지 시간이 걸린다는 우려가 주가를 짓눌렀다."}];
+const PERSONAS = [{"name": "워런 버핏", "type": "가치 투자·경제적 해자", "rating": "hold", "desc": "버크셔 해서웨이 회장. 60년간 연평균 +19.8%를 달성한 가치 투자의 살아있는 전설", "eval": "영업이익이 1년 만에 2배로 뛴 건 반갑지만, 순이익이 영업이익을 웃도는 이익 구조는 본업이 아닌 일회성 요인이 섞였을 가능성을 의심하게 만든다. 카카오는 규제와 지배구조가 얽혀 내 이해 범위 밖이라, 확실한 안전마진 없이는 손을 대지 않고 지켜보겠다."}, {"name": "피터 린치", "type": "생활 속 성장주·GARP", "rating": "hold", "desc": "마젤란 펀드를 13년간 연평균 +29% 운용. 생활 속에서 열 배 오를 종목을 찾은 대가", "eval": "모두가 매일 쓰는 메신저라 이해하기 쉽고 이익률이 5.7%에서 10.9%로 뛴 건 좋은 그림이지만, 매출 성장이 +4%로 식은 성장주는 텐배거가 되기 어렵다. AI 카나나가 실제 매출로 잡히는 걸 눈으로 확인하기 전까지는 지켜볼 종목이다."}, {"name": "벤저민 그레이엄", "type": "안전마진·정량 가치", "rating": "hold", "desc": "가치 투자의 창시자. 증권분석과 현명한 투자자의 저자, 안전마진 개념의 아버지", "eval": "자본이 143조에서 154조로 늘고 순이익이 안정적으로 흑자인 점은 재무 건전성 면에서 나쁘지 않다. 다만 단 한 분기의 이익 급증은 안정적 이익 이력이라 부를 수 없고, 밸류에이션이 보수적 가치 대비 충분한 할인을 주는지 확인되기 전까지는 투기가 아니라 관망이다."}, {"name": "필립 피셔", "type": "성장주·경영진 품질", "rating": "hold", "desc": "위대한 기업에 장기 투자하라의 저자. 스커틀벗 리서치로 성장주 투자의 틀을 세운 인물", "eval": "수익성 개선은 경영진의 비용 규율이 작동하고 있다는 신호로 반갑다. 그러나 AI 비서 카나나가 R&D 투자를 지속 성장으로 전환할 수 있는지, 그 제품 파이프라인의 질을 현장에서 확인하기 전에는 프리미엄을 지불할 근거가 부족하다."}, {"name": "찰리 멍거", "type": "품질·다분야 사고", "rating": "hold", "desc": "버크셔 부회장. 멀티디서플린 사고와 인버전으로 버핏의 투자를 완성한 지혜의 대가", "eval": "이익률이 두 배로 개선된 사업을 미워할 이유는 없지만, 지배구조와 규제가 얽힌 한국 플랫폼은 인센티브 구조가 지저분해 정직하게 판단하기 어렵다. 너무 어려운 사업은 그냥 안 하는 게 상책이니, 싼 가격도 아닌 지금은 패스다."}, {"name": "캐시 우드", "type": "파괴적 혁신", "rating": "buy", "desc": "ARK Invest 창립자. 파괴적 혁신 기업에 집중 투자하는 성장주 투자의 아이콘", "eval": "AI 비서 카나나와 커머스, 핀테크가 결합된 플랫폼은 여러 해에 걸친 지수적 성장의 초입에 서 있고, 지금의 매출 둔화는 AI 대전환을 앞둔 일시적 정체일 뿐이다. 이익률이 이미 두 배로 뛴 실행력을 보면 시장은 AI 수익화 옵션 가치를 지나치게 낮게 매기고 있다."}, {"name": "빌 애크먼", "type": "집중 행동주의", "rating": "hold", "desc": "퍼싱스퀘어 창립자. 소수 고품질 기업에 집중 투자하는 행동주의 투자의 대표주자", "eval": "이익률이 두 배로 뛴 건 자본 배분과 비용 규율이 개선되고 있다는 강한 촉매 신호다. 다만 복잡한 지배구조와 규제 리스크가 가치 실현을 막는 구조적 걸림돌이라, 이 매듭이 풀리는 촉매가 보일 때까지는 집중 투자를 유보한다."}, {"name": "마이클 버리", "type": "역발상·딥 밸류", "rating": "hold", "desc": "사이언 캐피털 창립자. 서브프라임 붕괴를 예측한 빅쇼트의 주인공, 역발상 딥밸류 투자자", "eval": "자본이 두꺼워지고 순이익이 흑자인 점은 하방을 어느 정도 받쳐주지만, 순이익이 영업이익을 넘는 이익 구성은 지분법이나 평가이익 같은 소프트한 숫자를 의심하게 만든다. 하드 넘버로 확실히 싸다는 확신이 서기 전까지 역발상 베팅을 걸 이유는 없다."}, {"name": "나심 탈렙", "type": "꼬리 위험·안티프래질", "rating": "hold", "desc": "블랙스완의 저자. 꼬리 위험과 안티프래질 개념으로 리스크를 재정의한 사상가", "eval": "자본 대비 부채 부담이 크지 않고 순현금 창출이 되는 점은 취약하지 않다는 신호지만, 규제와 지배구조라는 정치적 꼬리 위험이 언제든 비선형으로 터질 수 있는 구조다. 한 분기의 매끄러운 이익 급등이 오히려 숨은 취약성을 가릴 수 있으니 열광하지 않는다."}, {"name": "모니시 파브라이", "type": "단도 투자·비대칭", "rating": "hold", "desc": "파브라이 펀드 운용자. 단도 투자로 하방은 막고 상방은 여는 비대칭 베팅의 대가", "eval": "두꺼운 자본과 흑자 현금흐름 덕에 앞면이 나오면 이기고 뒷면이 나와도 크게 잃지 않는 하방 보호는 어느 정도 갖췄다. 다만 지금 밸류에이션에서 자본을 두 배로 불릴 만한 명확한 상방 비대칭이 보이지 않아, 단순하고 싼 다른 기회를 기다리겠다."}, {"name": "스탠리 드러켄밀러", "type": "거시·비대칭 베팅", "rating": "buy", "desc": "듀케인 패밀리오피스 회장. 30년 무손실, 매크로와 추세를 읽는 헤지펀드의 전설", "eval": "영업이익률이 5.7%에서 10.9%로 점프하는 이익 모멘텀의 변곡점은 내가 좋아하는 비대칭 셋업이고, AI 카나나라는 내러티브 전환이 붙으면 큰 폭의 재평가가 가능하다. 다만 매출 성장이 다시 꺾이거나 규제가 악화되면 즉시 손절할 준비를 하고 올라탄다."}, {"name": "라케시 준준왈라", "type": "장기 성장·인도 시장", "rating": "hold", "desc": "인도의 워런 버핏. 5천 달러로 시작해 수십억 자산을 일군 장기 성장 투자의 전설", "eval": "국민 메신저라는 해자와 두 배로 개선된 이익률, 튼튼해진 자본은 장기 부의 창출 후보로서 매력적이다. 그러나 매출 성장이 +4%로 둔화되고 밸류에이션이 이 개선을 이미 반영했을 수 있어, 충분한 안전마진이 확인될 때까지는 서두르지 않는다."}, {"name": "애스워스 다모다란", "type": "내재가치·스토리와 숫자", "rating": "hold", "desc": "뉴욕대 스턴 교수. 밸류에이션의 세계적 권위자, 스토리와 숫자를 잇는 내재가치 분석의 대가", "eval": "이익률이 두 배로 뛴 숫자는 인상적이지만, 매출이 +4%밖에 못 크는 스토리에서 이 마진 개선이 지속 가능한지가 밸류에이션을 가르는 핵심 가정이다. 지금 주가가 AI 수익화 성공을 이미 얼마나 반영했는지가 관건이며, 그 기대치가 스토리보다 앞서 있다면 중립이 정직한 결론이다."}];
 
 /* ═══════════════ HELPERS ═══════════════ */
 const pv  =(a,b)=>a?(b-a)/a*100:null;
