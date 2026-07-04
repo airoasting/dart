@@ -129,9 +129,9 @@ output/카카오_20260704_02.html   ← 같은 날 재실행 시
 
 ## 투자자 페르소나
 
-[monarchjuno/vibe-investing](https://github.com/monarchjuno/vibe-investing) 의 13인 투자자 철학 파일을 사용합니다. 각 파일은 **Core Principles → Required Analysis Sequence → Decision Rules → Anti-Hallucination Rules** 구조로 되어 있습니다.
+`investor_persona/`에 13인의 투자자 철학 파일이 있습니다. 각 파일은 **Overview → Core Principles → Required Analysis Sequence → Decision Rules → Risk and Uncertainty Rules → Anti-Hallucination Rules** 구조로, 그 투자자의 원칙·판단 절차와 지어내지 않기 위한 규칙을 담습니다. 스킬은 이 13개를 합친 통합본 `investor_persona/_ALL.md` 한 파일을 읽어 적용합니다.
 
-rating은 고정이 아닙니다. 각 투자자의 Decision Rules를 실제 기업 데이터에 적용해 동적으로 결정됩니다.
+rating(매수·보유·매도)은 고정이 아닙니다. 각 투자자의 Decision Rules를 실제 기업 데이터에 적용해 동적으로 결정됩니다.
 
 피터 린치 · 캐시 우드 · 마이클 버리 · 스탠리 드러켄밀러 · 라케시 중주왈라 · 워런 버핏 · 찰리 멍거 · 필립 피셔 · 빌 애크먼 · 애스워스 다모다란 · 모니시 파브라이 · 벤저민 그레이엄 · 나심 탈렙
 
