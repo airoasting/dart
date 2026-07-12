@@ -1,5 +1,7 @@
 # dart
 
+![DART 실적 리포트 스킬](assets/thumbnail.png)
+
 > 상장사 이름만 넣으면, 금융감독원 공시 데이터로 만든 애널리스트급 실적 리포트가 몇 분 만에 나옵니다.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)

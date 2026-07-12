@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1200px; height:630px; overflow:hidden; }
+  body {
+    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    background:#0B0B0D;
+    color:#F2F2F2;
+    position:relative;
+  }
+
+  /* ── 그라디언트 배경 ── */
+  .bg {
+    position:absolute; inset:0;
+    background:
+      radial-gradient(120% 120% at 88% 8%, rgba(224,112,80,.22) 0%, rgba(224,112,80,0) 46%),
+      radial-gradient(120% 130% at 6% 100%, rgba(90,115,150,.20) 0%, rgba(90,115,150,0) 50%),
+      radial-gradient(90% 90% at 50% -20%, rgba(255,255,255,.05) 0%, rgba(255,255,255,0) 40%),
+      linear-gradient(150deg, #0C0C0F 0%, #141417 48%, #0B0B0E 100%);
+  }
+  /* 미세 그리드 */
+  .grid {
+    position:absolute; inset:0; opacity:.045;
+    background-image:
+      linear-gradient(to right, #fff 1px, transparent 1px),
+      linear-gradient(to bottom, #fff 1px, transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(120% 90% at 30% 40%, #000 0%, transparent 75%);
+            mask-image:radial-gradient(120% 90% at 30% 40%, #000 0%, transparent 75%);
+  }
+  /* 상단 코랄 헤어라인 */
+  .hairline {
+    position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, rgba(224,112,80,0) 0%, #E07050 22%, #C05A3C 50%, #5A7396 82%, rgba(90,115,150,0) 100%);
+    opacity:.9;
+  }
+
+  .stage { position:relative; height:100%; display:flex; align-items:center; padding:0 72px; gap:40px; }
+
+  /* ── 좌측 텍스트 ── */
+  .left { width:590px; flex-shrink:0; }
+  .eyebrow {
+    display:inline-flex; align-items:center; gap:9px;
+    font-size:13px; font-weight:700; letter-spacing:2.2px; text-transform:uppercase;
+    color:#E58060;
+  }
+  .eyebrow .dot { width:6px; height:6px; border-radius:50%; background:#E07050; box-shadow:0 0 10px rgba(224,112,80,.9); }
+  .wordmark {
+    margin-top:26px;
+    font-size:112px; font-weight:800; letter-spacing:-4px; line-height:.9;
+    background:linear-gradient(180deg,#FFFFFF 30%,#D8D8DC 100%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .wordmark b { color:#E07050; -webkit-text-fill-color:#E07050; font-weight:800; }
+  .headline {
+    margin-top:22px;
+    font-size:30px; font-weight:700; letter-spacing:-.8px; line-height:1.42;
+    color:#F2F2F2;
+  }
+  .headline .mut { color:#9A9A9A; font-weight:600; }
+  .sub {
+    margin-top:20px;
+    font-size:16.5px; font-weight:500; letter-spacing:-.2px; line-height:1.6;
+    color:#8C8C93;
+  }
+  .cmd {
+    margin-top:30px; display:inline-flex; align-items:center; gap:11px;
+    padding:12px 20px; border-radius:12px;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10);
+    font-family:'SF Mono',ui-monospace,'JetBrains Mono',Menlo,monospace;
+    font-size:17px; font-weight:600; color:#EDEDED;
+    box-shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  .cmd .caret { color:#E07050; font-weight:700; }
+  .cmd .co { color:#E07050; }
+
+  /* ── 우측 리포트 목업(글래스 카드) ── */
+  .right { flex:1; display:flex; justify-content:center; align-items:center; }
+  .card {
+    width:388px;
+    background:linear-gradient(165deg, rgba(28,28,32,.92) 0%, rgba(20,20,24,.92) 100%);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:20px;
+    box-shadow:0 30px 70px -20px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.02) inset;
+    padding:24px 24px 26px;
+    transform:rotate(2.4deg);
+  }
+  .card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .card-co { font-size:17px; font-weight:800; letter-spacing:-.3px; }
+  .card-co span { color:#7A7A82; font-weight:600; font-size:13px; margin-left:6px; }
+  .card-badge {
+    font-size:12.5px; font-weight:800; color:#E07050;
+    background:rgba(224,112,80,.14); border:1px solid rgba(224,112,80,.28);
+    padding:4px 11px; border-radius:20px;
+  }
+  .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px; }
+  .kpi { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:11px; padding:12px 11px; }
+  .kpi .l { font-size:10px; font-weight:700; color:#6E6E76; letter-spacing:.5px; text-transform:uppercase; margin-bottom:7px; }
+  .kpi .v { font-size:19px; font-weight:800; letter-spacing:-1px; }
+  .kpi .v i { font-size:11px; font-style:normal; color:#8C8C93; font-weight:600; margin-left:1px; }
+  .kpi .y { font-size:11px; font-weight:700; margin-top:5px; }
+  .kpi .y.up { color:#E07050; }
+
+  .chart-lbl { font-size:10.5px; font-weight:700; color:#6E6E76; letter-spacing:.6px; text-transform:uppercase; margin-bottom:13px; }
+  .bars { display:flex; align-items:flex-end; gap:11px; height:96px; padding-bottom:2px; }
+  .bar { flex:1; border-radius:5px 5px 2px 2px; position:relative; }
+  .bar.up { background:linear-gradient(180deg,#E07050 0%,#C05A3C 100%); }
+  .bar.st { background:linear-gradient(180deg,#6E88AB 0%,#4E668A 100%); }
+  .bar.gh { background:rgba(255,255,255,.07); border:1px dashed rgba(255,255,255,.14); }
+  .axis { height:1px; background:rgba(255,255,255,.09); margin-top:0; }
+  .bar-x { display:flex; gap:11px; margin-top:9px; }
+  .bar-x span { flex:1; text-align:center; font-size:9.5px; color:#5E5E66; font-weight:600; }
+</style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="grid"></div>
+  <div class="hairline"></div>
+
+  <div class="stage">
+    <div class="left">
+      <div class="eyebrow"><span class="dot"></span>금융감독원 전자공시 · 실적 리포트</div>
+      <div class="wordmark">DART<b>.</b></div>
+      <div class="headline">상장사 이름만 넣으면,<br><span class="mut">애널리스트급 </span>실적 리포트.</div>
+      <div class="sub">공시 재무 · KRX 종가 · 인터랙티브 차트 · 13인 투자자 시각을<br>몇 분 만에 하나의 HTML 리포트로.</div>
+      <div class="cmd"><span class="caret">$</span> /dart <span class="co">카카오</span></div>
+    </div>
+
+    <div class="right">
+      <div class="card">
+        <div class="card-top">
+          <div class="card-co">카카오<span>1Q2026</span></div>
+          <div class="card-badge">영업익 +100.6%</div>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><div class="l">매출</div><div class="v">1.94<i>조</i></div><div class="y up">+4.2%</div></div>
+          <div class="kpi"><div class="l">영업익</div><div class="v">2,114<i>억</i></div><div class="y up">+100.6%</div></div>
+          <div class="kpi"><div class="l">순익</div><div class="v">2,268<i>억</i></div><div class="y up">+13.2%</div></div>
+        </div>
+        <div class="chart-lbl">성장 기여도 · 워터폴</div>
+        <div class="bars">
+          <div class="bar st" style="height:46%"></div>
+          <div class="bar up" style="height:72%"></div>
+          <div class="bar up" style="height:58%"></div>
+          <div class="bar up" style="height:88%"></div>
+          <div class="bar st" style="height:38%"></div>
+          <div class="bar gh" style="height:96%"></div>
+        </div>
+        <div class="axis"></div>
+        <div class="bar-x"><span>톡비즈</span><span>미디어</span><span>페이</span><span>클라우드</span><span>기타</span><span>합계</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
