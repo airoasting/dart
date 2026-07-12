@@ -73,17 +73,38 @@
 
 ## 쓰는 법 (설치는 한 번만)
 
-1. **스킬 설치**: 터미널에서 아래 한 줄을 실행합니다.
+터미널이 익숙하면 방법 A, 대화로 끝내고 싶으면 방법 B를 고르면 됩니다. 준비물은 둘 다 같습니다. [opendart.fss.or.kr](https://opendart.fss.or.kr)에서 무료로 받는 DART API 키, 그리고 Python(`requests`, `pandas`)입니다.
+
+### 방법 A. 터미널에서 직접 설치
+
+1. **스킬 내려받기**
    ```bash
    git clone https://github.com/airoasting/dart ~/.claude/skills/dart
    ```
-2. **DART API 키 발급**: [opendart.fss.or.kr](https://opendart.fss.or.kr)에서 무료로 받아 프로젝트 `.env`에 넣습니다.
+2. **DART API 키 넣기**: `~/.claude/skills/dart/.env` 파일에 발급받은 키를 넣습니다.
    ```env
    DART_API_KEY=발급받은_키
    ```
-3. **필요한 패키지 설치**: `pip install requests pandas`
+3. **패키지 설치**: `pip install requests pandas`
 
-이제 Claude Code에서 이렇게 부르면 됩니다.
+### 방법 B. Claude Desktop에서 자연어로 설치
+
+Claude Desktop 대화창에 아래 문장을 그대로 붙여넣으면, 클로드가 저장소를 내려받고 패키지를 깔고 API 키 설정까지 안내합니다.
+
+```
+아래 스킬을 설치해줘.
+- 저장소: https://github.com/airoasting/dart
+- 설치 위치: ~/.claude/skills/dart (git clone)
+- 그다음 pip install requests pandas
+- ~/.claude/skills/dart/.env 에 DART_API_KEY 넣는 것까지 도와줘
+DART API 키는 https://opendart.fss.or.kr 에서 무료로 발급받아 알려줄게.
+```
+
+> 클로드가 파일과 터미널에 접근할 수 있는 상태여야 실제로 실행됩니다(로컬 실행 권한 허용). 권한이 없으면 클로드가 명령을 대신 실행하지는 못하고, 위 방법 A의 단계를 그대로 안내해 줍니다.
+
+### 부르는 법
+
+설치가 끝나면 Claude Code나 Claude Desktop에서 이렇게 부르면 됩니다.
 
 ```
 /dart 카카오
