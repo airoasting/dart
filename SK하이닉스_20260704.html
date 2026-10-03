@@ -492,13 +492,76 @@ tr.link-row:hover td { background:var(--row-hover) !important; }
 }
 .invest-disclaimer strong { color:var(--t2); font-weight:600; }
 
-/* ─── print ─── */
+/* ─── print / PDF ─────────────────────────────────
+   화면용 연출(등장 애니메이션, 다크 토큰, 스티키 UI)이 인쇄 스냅샷에
+   그대로 남으면 opacity:0 상태가 굳어 빈 페이지가 나온다.
+   인쇄 경로에서는 그 연출을 전부 걷어낸다. */
+@page { size: A4; margin: 12mm 10mm 14mm; }
+
 @media print {
-  .sticky-nav,.theme-btn,.skip-link,.ctrls,.tt-btn,.dp { display:none !important; }
-  .sc { break-inside:avoid; box-shadow:none !important; }
+  /* 1. 다크 모드로 저장돼 있어도 인쇄는 항상 라이트 팔레트 */
+  :root, :root[data-theme="dark"] {
+    --bg:#FFFFFF; --bg-s:#FFFFFF; --bg-e:#F3F4F6;
+    --bdr:rgba(0,0,0,.16); --bdr-h:rgba(0,0,0,.28);
+    --t1:#111111; --t2:#4B5563; --t3:#6B7280;
+    --coral:#C0522F; --coral-d:#A24428; --coral-l:rgba(192,82,47,.80);
+    --coral-a22:rgba(192,82,47,.22); --coral-a35:rgba(192,82,47,.35);
+    --up:#C0522F; --dn:#C02626; --grn:#047857;
+    --card-shadow:none; --row-hover:transparent;
+    --td-border:rgba(0,0,0,.10); --q-bg:rgba(0,0,0,.06);
+    --prog-track:rgba(0,0,0,.10);
+    --tooltip-bg:#FFFFFF; --tooltip-c:#111111;
+  }
+
+  /* 2. 배경색·테두리색을 프린터에서도 유지 (기본값은 배경 그래픽 제거) */
+  html, body, .sc, .nr, .ni, .ni-sm, .kpi-card, .stat-card, .bb-card,
+  .persona-card, .news-card, .chip, .cw, .lb, .persona-rating,
+  .persona-section-hdr, .cons-bw, .cons-bf, th, td {
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+
+  /* 3. 등장 애니메이션 해제. 빈 페이지의 직접 원인이다. */
+  *, *::before, *::after { animation:none !important; transition:none !important; }
+  .sc, .sc.sc-anim, .sc.sc-anim.sc-visible,
+  .kpi-card, .stat-card, .bb-card, .persona-card, .news-card {
+    opacity:1 !important; transform:none !important; filter:none !important;
+  }
+
+  /* 4. 화면 전용 UI 제거 (범례 .lb 는 차트 판독에 필요하므로 남긴다) */
+  .sticky-nav, .theme-btn, .skip-link, .ctrls, .tt-btn, .dp,
+  .persona-q, .dp-close { display:none !important; }
+  .dt-wrap { display:block !important; overflow:visible !important; }
+  /* 화면에서는 가로 스크롤로 넘기던 표가 지면에서는 잘려 나간다.
+     열 너비를 고정해 지면 폭 안에 접어 넣는다. */
+  .dt-wrap table { table-layout:fixed; width:100%; font-size:.70rem; }
+  .dt-wrap th, .dt-wrap td { padding:7px 6px; word-break:break-word; }
+  table { max-width:100%; }
+
+  /* 5. 페이지 나눔 */
   body { background:#fff !important; color:#111 !important; }
-  .nr { box-shadow:none !important; border:1px solid #ddd !important; }
-  .invest-disclaimer { border-top:1px solid #ddd; }
+  .wrap, .sc { margin-top:0; }
+  .sec-label { break-after:avoid; page-break-after:avoid;
+               break-inside:avoid; padding-top:22px; }
+  .sc { box-shadow:none !important; padding:20px 20px 18px; margin:12px auto; }
+  .kpi-card, .stat-card, .bb-card, .persona-card, .news-card,
+  .cw, .cons-wrap { break-inside:avoid; page-break-inside:avoid; }
+  /* 페이지보다 긴 그룹에 break-inside:avoid 를 걸면 통째로 밀려 여백만 커진다.
+     묶는 단위는 카드로 두고, 그룹 머리말만 뒤 내용과 붙인다. */
+  .persona-section-hdr { break-after:avoid; page-break-after:avoid; }
+  tr, th, td { break-inside:avoid; }
+  thead { display:table-header-group; }
+  .nr { box-shadow:none !important; border:1px solid rgba(0,0,0,.16) !important; }
+  .invest-disclaimer { border-top:1px solid rgba(0,0,0,.16); padding-bottom:0; }
+  canvas { max-width:100% !important; }
+  /* 화면용 차트 높이(360~420px)는 A4 한 장을 거의 다 먹는다.
+     지면에서는 낮춰서 섹션이 앞 페이지에 같이 들어가게 한다. */
+  .cw { height:300px !important; }
+  #segWrap { height:380px !important; }
+  /* 차트를 화면 높이로 먼저 그린 경우(시스템 Chrome 경로) 캔버스가
+     줄어든 상자를 넘쳐 다음 요소를 덮는다. 상자에 맞춰 가둔다. */
+  .cw { overflow:hidden; }
+  .cw canvas { width:100% !important; height:100% !important; }
+  a { text-decoration:none; color:inherit; }
 }
 
 /* ─── chip hover ─── */
@@ -1177,23 +1240,64 @@ function initScrollAnim(){
   document.querySelectorAll('.sc.sc-anim').forEach(el=>io.observe(el));
 }
 
+/* ═══════════════ PRINT / PDF 준비 ═══════════════
+   인쇄 스냅샷은 스크롤도 애니메이션 완료도 기다려주지 않는다.
+   인쇄 직전에 숨은 섹션을 펼치고 차트를 무애니메이션으로 다시 그린다. */
+function prepareForPrint(){
+  /* 1. 스크롤 등장 대기 중인 섹션을 전부 노출 */
+  document.querySelectorAll('.sc').forEach(el=>{
+    el.classList.remove('sc-anim');
+    el.classList.add('sc-visible');
+  });
+  /* 2. 차트는 애니메이션 없이 즉시 완성본으로 */
+  if(window.Chart){
+    Chart.defaults.animation=false;
+    Chart.defaults.animations=false;
+    try{ rebuildCharts(); }catch(e){ console.error('[print] 차트 재생성 실패:',e); }
+  }
+  /* 3. 데이터 테이블을 펼쳐 숫자를 지면에 남긴다 */
+  try{
+    const w=document.getElementById('dtW');
+    if(w&&!w.classList.contains('on')){ w.classList.add('on'); renderTbl(); }
+  }catch(e){ console.error('[print] 테이블 렌더 실패:',e); }
+  return true;
+}
+window.prepareForPrint=prepareForPrint;
+window.addEventListener('beforeprint',prepareForPrint);
+
 /* ═══════════════ INIT ═══════════════ */
 window.addEventListener('DOMContentLoaded',()=>{
-  /* load saved theme */
-  const saved=localStorage.getItem('theme');
-  if(saved==='dark'){
-    document.documentElement.setAttribute('data-theme','dark');
-    document.getElementById('themeBtnIcon').textContent='☀️';
-    document.getElementById('themeBtn').setAttribute('aria-label','라이트 모드로 전환');
-  }
+  /* load saved theme (file:// 에서 localStorage 가 막히면 무시) */
+  try{
+    if(localStorage.getItem('theme')==='dark'){
+      document.documentElement.setAttribute('data-theme','dark');
+      document.getElementById('themeBtnIcon').textContent='☀️';
+      document.getElementById('themeBtn').setAttribute('aria-label','라이트 모드로 전환');
+    }
+  }catch(e){ /* 저장된 테마 없음 */ }
 
-  buildChips();
-  buildDeltaChart();
-  drawSeg();
-  buildMarket();
-  buildNews();
-  buildPersonas();
-  initScrollAnim();
+  /* 한 단계가 실패해도 나머지 섹션은 그린다.
+     (CDN 차단 시 Chart 미정의로 전체 렌더가 죽던 문제) */
+  [['chips',buildChips],['delta',buildDeltaChart],['segment',drawSeg],
+   ['market',buildMarket],['news',buildNews],['persona',buildPersonas],
+   ['scroll',initScrollAnim]].forEach(([name,fn])=>{
+    try{ fn(); }catch(e){ console.error('['+name+'] 렌더 실패:',e); }
+  });
+
+  /* Chart.js 를 못 불러온 경우 차트 자리에 안내 + 테이블 대체 */
+  if(!window.Chart){
+    document.querySelectorAll('.cw').forEach(el=>{
+      el.insertAdjacentHTML('beforeend',
+        '<div style="position:absolute;inset:0;display:flex;align-items:center;'+
+        'justify-content:center;text-align:center;padding:20px;font-size:.85rem;'+
+        'color:var(--t2);line-height:1.7">차트 라이브러리(CDN)를 불러오지 못했습니다.<br>'+
+        '네트워크 연결을 확인하거나 아래 데이터 테이블을 참고하세요.</div>');
+    });
+    try{
+      const w=document.getElementById('dtW');
+      if(w){ w.classList.add('on'); renderTbl(); }
+    }catch(e){}
+  }
 });
 </script>
 </body>

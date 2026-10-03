@@ -16,7 +16,8 @@ KPI 차트 · 성장 기여도 · 사업별 매출 · 애널리스트 시각 · 
 
 1. `assets/template.html` — 보일러플레이트가 고정된 템플릿 (건드리지 않는다)
 2. **너의 일** — 재무 데이터를 모아 `data.json` 하나를 쓴다 (약 200줄)
-3. `assets/build_report.py` — 템플릿 + data.json → 최종 HTML (결정론적, 1초)
+3. `assets/verify_report.py` — **숫자 검증 게이트.** data.json의 모든 숫자를 원천과 다시 대조한다. PASS 전에는 빌드되지 않는다
+4. `assets/build_report.py` — 템플릿 + data.json → 최종 HTML (결정론적, 1초)
 
 HTML 전체를 토큰 단위로 뱉던 과거 방식은 한 리포트에 10분이 걸렸다. 데이터만 쓰면 출력량이 1/10로 줄어 **2분 안쪽**이면 끝난다. 절대 `template.html`을 복붙해 손으로 채우지 마라. 반드시 빌더를 써라.
 
@@ -26,8 +27,9 @@ HTML 전체를 토큰 단위로 뱉던 과거 방식은 한 리포트에 10분�
 
 1. DART API로 당해·전년 재무 수집 — Step 1~4
 2. 재무 숫자만 나오면 뉴스·애널리스트·페르소나·강세약세를 **서브에이전트로 병렬** 수집 — Step 4.5 (주가는 `price.py`)
-3. `data.example.json` 형식 그대로 `data.json` 작성 — Step 5
-4. `build_report.py` 실행 → `output/`에 HTML, 경로를 사용자에게 전달 — Step 6~7
+3. `data.example.json` 형식 그대로 `data.json` 작성, 출처 검증 에이전트가 `audit` 장부 기록 — Step 5~5.5
+4. `verify_report.py` 숫자 검증 게이트. FAIL이면 고쳐서 재검증, **최대 3회차** — Step 6
+5. PASS 후 `build_report.py` 실행 → `output/`에 HTML, 경로를 사용자에게 전달 — Step 7~8
 
 ---
 
@@ -38,10 +40,12 @@ dart/
 ├── SKILL.md                          ← 이 파일 (워크플로우)
 ├── assets/
 │   ├── template.html                 ← 고정 보일러플레이트 (수정 금지)
-│   ├── build_report.py               ← data.json + template → HTML 빌더
+│   ├── verify_report.py              ← 숫자 검증 게이트 (빌드 전 필수, 최대 3회차)
+│   ├── build_report.py               ← data.json + template → HTML 빌더 (게이트 PASS 확인)
 │   ├── data.example.json             ← 데이터 계약(스키마) + 카카오 예시 ★반드시 참고
 │   ├── dart_client.py                ← DartClient 클래스
 │   ├── price.py                      ← 전일 종가·52주 (KRX, 웹검색 대신 필수)
+│   ├── html2pdf.py                   ← 리포트 HTML → PDF (인쇄용 보정 포함)
 │   └── corp_codes_listed.csv         ← 3,963개 상장사 오프라인 조회
 ├── investor_persona/
 │   ├── _ALL.md                       ← 13인 페르소나 통합본 (이 파일 하나만 읽어라)
@@ -180,6 +184,7 @@ def extract(items, sj_div, keyword):
 
 - **`meta`** — 헤더·KPI 카드·컨센서스·목표가 등 화면에 박히는 스칼라 텍스트. `data.example.json`의 모든 `meta` 키를 그대로 채운다.
 - **`js`** — 차트·표·페르소나에 쓰이는 배열/객체 데이터.
+- **`audit`** — 검증 장부. `src`는 메인이 Step 5에서 채우고, `web`·`claims`는 Step 5.5의 검증 에이전트가 채운다. 화면에는 나오지 않는다.
 
 `js`의 필수 키와 규칙:
 
@@ -199,7 +204,80 @@ def extract(items, sj_div, keyword):
 
 **절대 규칙**: 모든 차트 Y축은 데이터에서 자동 계산된다(템플릿이 처리). data.json에 축 수치를 넣지 마라. `meta`의 숫자 텍스트(예: `rev_yoy`)는 Step 4에서 계산한 값과 일치시켜라.
 
-### Step 6. 빌드
+`audit.src`는 Step 3에서 실제로 호출한 값 그대로 쓴다. 게이트가 이 값으로 DART를 다시 부른다.
+
+```json
+"audit": {
+  "src": {"corp_code": "00258801", "year": "2026", "reprt_code": "11012", "fs_div": "CFS"},
+  "web": [], "claims": []
+}
+```
+
+| `src` 선택 키 | 언제 |
+|---|---|
+| `np_basis: "parent"` | 순이익을 지배주주순이익으로 표기할 때 (기본은 연결 총 당기순이익) |
+| `scope: "annual"` | 4Q가 아니라 연간(FY) 리포트일 때. 11011의 기본은 4Q 단독(연간 − 3Q 누적) |
+| `kind: "provisional"`, `rcept_no` | status=013 잠정실적 폴백을 썼을 때. 공시 원문에서 숫자를 찾는다 |
+
+### Step 5.5. 출처 검증 에이전트 (RED)
+
+웹에서 온 숫자는 스크립트가 원천을 다시 부를 수 없다. 그래서 **작성한 에이전트와 다른 에이전트**가 다시 연다. `data.json` 작성 직후 Sonnet 서브에이전트 하나를 띄운다.
+
+- 입력: `data.json` 경로
+- 할 일: `ANALYSTS` 각 증권사, `est:false`인 `SEGS` 각 부문, `NEWS` 각 URL, `CONS` 집계, 그리고 CHIPS·BULLS·BEARS·페르소나 `eval` 속 **재무제표로 계산되지 않는 숫자**를 WebFetch/WebSearch로 원문에서 확인한다.
+- 반환: 순수 JSON `{"web":[...], "claims":[...]}`. 메인은 이를 `audit`에 넣고, `corrected` 항목은 `note`대로 data.json 본문도 고친다.
+
+```json
+{"sec": "ANALYSTS", "key": "하나증권", "status": "corrected", "url": "<원문 URL>", "note": "tp 58000 → 50000 (08.24 하향)"}
+{"sec": "SEGS", "key": "톡비즈", "status": "confirmed", "url": "<IR URL>"}
+{"sec": "NEWS", "key": "<기사 URL>", "status": "confirmed", "url": "<기사 URL>"}
+{"sec": "CONS", "key": "coverage", "status": "unverified", "note": "전체 커버리지 집계 출처 없음"}
+{"sec": "meta", "key": "tp_avg", "status": "confirmed", "url": "<컨센 출처>"}
+```
+
+`claims`는 `{"text": "580억", "url": "<원문>", "status": "confirmed"}`. `text`는 본문에 쓴 표기 그대로다.
+
+**검증 에이전트 규칙**: 원문을 직접 열어 본 것만 `confirmed`다. 검색 결과 요약만 봤거나 링크가 열리지 않으면 `unverified`. 확인하지 않은 항목을 `confirmed`로 적는 것은 게이트 전체를 무력화하므로 금지한다.
+
+### Step 6. 숫자 검증 게이트 ★ 빌드 전 필수
+
+```bash
+python3 ~/.claude/skills/dart/assets/verify_report.py <data.json 경로>
+```
+
+세 층을 대조한다. 숫자는 하나라도 틀리면 FAIL이다.
+
+| 층 | 대조 대상 | 정답 |
+|---|---|---|
+| A 산술 | YoY·증감액·OPM/NPM·방향, TOT ↔ 부문 합계, DELTA ↔ 부문 차이, g_net/up/dn, 컨센 %, 업사이드 | 재계산값 |
+| B 원천 | 매출·영업이익·순이익 당기/전년(재작성치), 분기 라벨, 종가·등락률·52주 | DART API 재조회, KRX 일봉 |
+| C 출처 | 증권사·부문·뉴스·컨센의 `audit.web` 기록, 목표가 범위, 서술 속 모든 `억·조·%·pp·원·만·배` 숫자 | A·B에서 나온 값 또는 `audit.claims` |
+
+종료 코드와 행동:
+
+| 결과 | 코드 | 행동 |
+|---|:---:|---|
+| ✅ PASS | 0 | Step 7 빌드로 간다 |
+| ❌ FAIL | 1 | 찍힌 항목을 모두 고치고 다시 실행한다 |
+| ⛔ BLOCKED | 2 | **멈춘다.** 사용자에게 보고한다 (아래) |
+| ⚠️ INCOMPLETE | 3 | 네트워크 장애. 회차를 쓰지 않았다. 한 번 더 실행하고, 또 실패하면 사용자에게 알린다 |
+
+**회차 규칙 (무한 반복 방지)**
+- data.json 내용이 바뀐 채 실행할 때만 1회차를 쓴다. **최대 3회차**(첫 검증 + 수정 2번)다. 3회차에도 FAIL이면 BLOCKED로 잠긴다.
+- 회차가 귀하니 **한 회차에 찍힌 불일치를 전부** 고친다. 하나 고치고 돌리고를 반복하지 마라.
+- 숫자 하나를 고치면 그 숫자를 인용한 문장(CHIPS·BULLS·BEARS·페르소나 `eval`)도 같이 고친다. 게이트는 서술 속 숫자도 대조한다.
+- 정답은 원천(DART·KRX·원문)이다. 원천에 맞춰 data.json을 고친다. 확인할 수 없는 숫자는 지어내지 말고 문장에서 빼거나, 부문은 `est:true`, 증권사는 note에 `(추정)`을 붙인다.
+
+**BLOCKED일 때**: 자동 수정을 멈추고 `<data>.verify.md`의 남은 불일치 표를 그대로 보여 준 뒤 사용자에게 묻는다.
+1. 사용자가 값을 확인해 준다 → 반영 후 `verify_report.py <data> --reset`으로 재검증
+2. 미통과 표시를 붙여 빌드한다 → `build_report.py <data> --allow-unverified` (리포트 상단에 경고 배너)
+3. 이번 리포트를 중단한다
+
+`--reset`과 `--allow-unverified`는 **사용자가 그 선택지를 고른 경우에만** 쓴다. 스스로 쓰지 마라.
+
+산출물: `<data>.verify.json`(게이트 상태, 빌더가 읽는다)과 `<data>.verify.md`(회차 기록·불일치·통과 목록). `--status`로 현재 상태만 볼 수 있다.
+
+### Step 7. 빌드
 
 ```bash
 cd <프로젝트 루트>          # output/ 이 생길 위치
@@ -207,15 +285,40 @@ python3 ~/.claude/skills/dart/assets/build_report.py <data.json 경로>
 ```
 
 빌더가 하는 일:
+- **게이트 확인**: `verify.json`이 PASS이고 그 뒤로 data.json이 바뀌지 않았을 때만 빌드한다. 아니면 exit 2로 멈춘다
+- 헤더 기준일 옆에 "숫자 검증 통과 (N개 항목 · R회차)"를 찍는다
 - `js` 전체를 `const` 선언으로 주입, `meta` 토큰 치환, 세그먼트 필터 버튼 생성
 - 검증: 미치환 토큰·데이터 누락·**페르소나 13인**·Chart.js 4.4.4 로드 확인 (실패 시 경고/중단)
 - `output/{종목명}_{YYYYMMDD}_{NN}.html` 저장 (같은 날 재실행 시 NN 자동 증가)
 
 `--stdout`으로 파일 대신 표준출력, `-o <dir>`로 출력 폴더 지정 가능.
 
-### Step 7. 확인·전달
+### Step 8. 확인·전달
 
-빌더가 성공(✅)하면 **생성된 파일 경로를 사용자에게 알린다**(가능하면 열어서 보여준다). 빌더가 경고를 내면 그 항목만 `data.json`에서 고쳐 다시 빌드한다. **HTML을 직접 수정하지 마라** — 항상 data.json → 빌드.
+빌더가 성공(✅)하면 **생성된 파일 경로를 사용자에게 알린다**(가능하면 열어서 보여준다). 빌더가 경고를 내면 그 항목만 `data.json`에서 고쳐 **Step 6 검증부터 다시** 한다(내용이 바뀌면 PASS가 풀린다). **HTML을 직접 수정하지 마라** — 항상 data.json → 빌드.
+
+### Step 9. PDF 변환 (요청 시에만)
+
+사용자가 PDF나 인쇄본을 요청하면 전용 변환기를 쓴다. HTML을 그냥 인쇄하면 안 된다.
+
+```bash
+python3 ~/.claude/skills/dart/assets/html2pdf.py output/카카오_20260704_01.html
+python3 ~/.claude/skills/dart/assets/html2pdf.py output/*.html -o output/pdf
+```
+
+리포트는 화면용이라 섹션이 스크롤할 때 나타나고(IntersectionObserver), KPI 카드는 지연 애니메이션으로 뜨고, 차트는 Chart.js가 CDN에서 내려온 뒤 그려진다. 브라우저의 인쇄 스냅샷은 이 셋 중 어느 것도 기다려주지 않아서, 그냥 인쇄하면 절반이 빈 페이지로 나온다. `html2pdf.py`는 인쇄 직전에 숨은 섹션을 펼치고 차트를 무애니메이션으로 다시 그린 뒤 A4로 굽는다. 데이터 테이블도 함께 펼쳐 숫자를 지면에 남긴다.
+
+**추가 설치는 필요 없다.** 엔진은 세 단계로 자동 선택된다.
+
+| 순위 | 엔진 | 조건 | 결과 |
+|:---:|------|------|------|
+| 1 | Playwright | `pip install playwright` 완료 | A4 + 페이지 번호 꼬리말 |
+| 2 | 시스템 Chrome/Edge/Brave | 브라우저가 깔려 있음 (대부분) | A4, 페이지 번호 없음 |
+| 3 | 수동 | 위 둘 다 없음 | 브라우저에서 `Cmd+P`, 인쇄 설정에서 "배경 그래픽" 켜기 |
+
+3번이 가능한 이유는 `template.html`에 인쇄 보정과 `beforeprint` 훅이 들어 있기 때문이다. 즉 **스킬을 설치한 사람은 아무것도 더 깔지 않아도 PDF를 뽑을 수 있다.** 엔진을 직접 고르려면 `--engine playwright|chrome`을 쓴다.
+
+`wkhtmltopdf`나 `weasyprint`는 쓰지 마라. 둘 다 이 리포트가 쓰는 CSS 변수, `:has()`, Canvas 차트를 처리하지 못한다.
 
 ---
 
@@ -261,6 +364,8 @@ DART 공시+개황+재무 기반, 각 5개. 주술 정합, em dash 없음, 투�
 | API 전체 실패 | 오류 코드+해결법 안내 후 중단 |
 | CFS 없음 | OFS 재시도, 제목에 "(개별)" |
 | status=013 | 잠정실적 XML 폴백 (Step 3) |
+| 빌더 "숫자 검증 게이트 미통과" | Step 6 `verify_report.py`를 먼저 돌린다. PASS 뒤 data.json을 고쳤다면 다시 검증 |
+| 게이트 BLOCKED | 3회차 소진. 자동 수정 중단, 사용자에게 `verify.md` 보고 후 선택을 받는다 |
 | 빌더 "미치환 토큰" 경고 | `data.json`의 `meta`에 그 키 추가 후 재빌드 |
 | 빌더 "페르소나 13인 아님" | `PERSONAS` 배열을 13개로 맞춤 |
 | 세그먼트/주가 데이터 부족 | 대표 항목만 채우고 `est:true` / `price_disc`에 명기 |
@@ -273,9 +378,16 @@ DART 공시+개황+재무 기반, 각 5개. 주술 정합, em dash 없음, 투�
 |------|------|------|
 | 빌더가 exit 1 | 미치환 토큰 또는 데이터 미주입 | 경고에 찍힌 키를 `data.json`에 채운다 |
 | 차트가 안 그려짐 | 해당 `js` 배열이 비었거나 필드명 오타 | `data.example.json`과 필드명 대조 |
-| 값이 화면과 안 맞음 | `meta` 텍스트와 `js` 숫자 불일치 | Step 4 계산값으로 양쪽 동기화 |
+| 값이 화면과 안 맞음 | `meta` 텍스트와 `js` 숫자 불일치 | 게이트 A층이 잡는다. `verify.md`의 항목대로 동기화 |
+| 게이트 B층 전년동기 불일치 | 작년 보고서 숫자를 씀 | 이번 보고서의 `frmtrm_q_amount`(재작성치)를 쓴다 |
+| 게이트 C층 "데이터에서 나오지 않는 숫자" | 서술에 출처 없는 숫자 | 계산 오류면 고치고, 기사 숫자면 `audit.claims`에 출처, 확인 불가면 숫자를 뺀다 |
 | API 키 실패 | `.env` 위치/형식 | 프로젝트 루트 `DART_API_KEY=...` 한 줄 |
 | 템플릿을 고치고 싶다 | 디자인 변경 필요 | `template.html` 수정은 신중히. 이후 `data.example.json`으로 회귀 테스트(빌드→렌더) |
+| PDF가 절반쯤 빈 페이지 | 브라우저 인쇄로 직접 뽑음 | Step 9의 `html2pdf.py`를 쓴다 (`Cmd+P`는 배경 그래픽 켜기 필요) |
+| PDF에 차트만 빠짐 | Chart.js CDN 차단·오프라인 | 네트워크 확인. 끊긴 상태에서도 데이터 테이블은 지면에 남는다 |
+| `Chart is not defined` | 위와 같음 | 리포트는 나머지 섹션을 그대로 그린다. 차트 자리에 안내 문구가 뜬다 |
+| `html2pdf.py` 실행 실패 | Playwright도 Chrome도 없음 | 브라우저에서 `Cmd+P` (배경 그래픽 켜기). 또는 `pip install playwright && python3 -m playwright install chromium` |
+| PDF에 페이지 번호가 없다 | 시스템 Chrome 폴백으로 변환됨 | Playwright를 설치하면 꼬리말이 붙는다 |
 
 ---
 

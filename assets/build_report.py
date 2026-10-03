@@ -17,6 +17,8 @@ data.json 구조:
     }
 
 동작:
+  0. 숫자 검증 게이트: verify_report.py가 PASS를 남겼고 data.json이 그 뒤로 안 바뀌었을 때만 빌드
+     (--allow-unverified는 사용자 지시가 있을 때만. 상단에 경고 배너가 붙는다)
   1. js 객체의 모든 키를 `const KEY = <json>;` 로 직렬화해 /*__REPORT_DATA__*/ 위치에 주입
   2. meta.filter_cats → 세그먼트 필터 버튼 HTML 생성 → {{filter_buttons}}
   3. meta 나머지 → {{token}} 치환
@@ -90,6 +92,31 @@ def validate(out, js):
     return problems
 
 
+def gate_status(data_path):
+    """verify_report.py가 남긴 게이트 상태를 읽는다. (ok, 설명, state)"""
+    from verify_report import state_paths, sha256
+    state_p, md_p = state_paths(data_path)
+    if not state_p.exists():
+        return False, "숫자 검증을 한 번도 돌리지 않았다", None
+    state = json.loads(state_p.read_text(encoding="utf-8"))
+    if state.get("status") != "PASS":
+        return False, f"검증 상태 {state.get('status')} ({md_p.name} 참고)", state
+    if state.get("sha") != sha256(data_path):
+        return False, "PASS 이후 data.json이 바뀌었다. 다시 검증해야 한다", state
+    return True, "PASS", state
+
+
+def gate_markup(ok, why, state):
+    if ok:
+        n = len(state["rounds"])
+        return (f' &nbsp;|&nbsp; <span style="color:var(--grn)">숫자 검증 통과</span> '
+                f'<span style="color:var(--t3)">({state.get("checks", 0)}개 항목 · {n}회차 · {state.get("verified_at", "")})</span>'), ""
+    banner = ('<div role="alert" style="background:var(--dn);color:#fff;padding:10px 16px;font-size:.88rem;'
+              'font-weight:600;text-align:center">⚠ 숫자 검증 미통과 리포트입니다. 일부 수치가 원천과 대조되지 않았습니다. '
+              f'({html.escape(why)})</div>\n')
+    return ' &nbsp;|&nbsp; <span style="color:var(--dn)">숫자 검증 미통과</span>', banner
+
+
 def next_output_path(out_dir, corp_name, today):
     out_dir.mkdir(parents=True, exist_ok=True)
     pat = re.compile(rf"^{re.escape(corp_name)}_{today}_(\d{{2}})\.html$")
@@ -107,7 +134,17 @@ def main():
     ap.add_argument("-o", "--out-dir", default="output", help="출력 디렉터리 (기본: ./output)")
     ap.add_argument("--stdout", action="store_true", help="파일 저장 대신 표준출력으로")
     ap.add_argument("--date", default=None, help="파일명 날짜 YYYYMMDD (기본: 오늘)")
+    ap.add_argument("--allow-unverified", action="store_true",
+                    help="검증 게이트 미통과여도 빌드 (사용자 지시가 있을 때만). 상단에 경고 배너가 붙는다")
     args = ap.parse_args()
+
+    # 숫자 검증 게이트: verify_report.py PASS + data.json 해시 일치가 아니면 빌드하지 않는다
+    sys.path.insert(0, str(here))
+    ok, why, state = gate_status(pathlib.Path(args.data).resolve())
+    if not ok and not args.allow_unverified:
+        sys.stderr.write(f"⛔ 숫자 검증 게이트 미통과: {why}\n"
+                         f"   먼저 실행: python3 {here / 'verify_report.py'} {args.data}\n")
+        sys.exit(2)
 
     data = json.loads(pathlib.Path(args.data).read_text(encoding="utf-8"))
     template = pathlib.Path(args.template).read_text(encoding="utf-8")
@@ -115,6 +152,7 @@ def main():
     # 기준일(base_date)은 항상 빌드 실행일(= 스킬 돌린 오늘)로 스탬프. 주가(전일 종가)와 별개다.
     _run = args.date or datetime.date.today().strftime("%Y%m%d")
     data.setdefault("meta", {})["base_date"] = f"{_run[:4]}.{_run[4:6]}.{_run[6:]}"
+    data["meta"]["verify_badge"], data["meta"]["verify_banner"] = gate_markup(ok, why, state)
 
     out = render(template, data)
 

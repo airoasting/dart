@@ -54,9 +54,12 @@ def get_prev_close(stock_code: str) -> dict | None:
             rows = None
     if not rows:
         return None
-    highs = [r[2] for r in rows]
-    lows = [r[3] for r in rows]
     last_date, last_close = rows[-1][0], rows[-1][1]
+    # 52주 = 마지막 거래일로부터 365일. 조회 창(400일)을 그대로 쓰면 57주 범위가 된다.
+    start = (datetime.datetime.strptime(last_date, "%Y%m%d") - datetime.timedelta(days=365)).strftime("%Y%m%d")
+    win = [r for r in rows if r[0] >= start]
+    highs = [r[2] for r in win]
+    lows = [r[3] for r in win]
     prev = rows[-2][1] if len(rows) >= 2 else last_close
     chg = (last_close - prev) / prev * 100 if prev else 0.0
     d = last_date

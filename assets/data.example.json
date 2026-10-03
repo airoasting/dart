@@ -3,46 +3,46 @@
     "name": "카카오",
     "base_date": "2026.05.10",
     "code": "035720",
-    "period_full": "1Q 2025 vs 1Q 2026",
-    "basis": "연결",
-    "price": "46,300",
-    "price_chg": "+2.32% (5/8 종가)",
+    "period_full": "1Q 2025(재작성) vs 1Q 2026",
+    "basis": "연결 · 전년은 중단영업 재분류 후 재작성치",
+    "price": "46,000",
+    "price_chg": "+1.66% (5/8 종가)",
     "w52_range": "36,300 ~ 71,600",
     "nav_label": "26 1Q 실적",
     "kpi_label": "26 1Q 실적 요약",
     "rev_val": "19,421",
     "rev_dir": "up",
-    "rev_yoy": "+784억 &nbsp;(+4.2% YoY)",
-    "rev_sub": "1Q25 &nbsp;18,637억",
+    "rev_yoy": "+1,942억 &nbsp;(+11.1% YoY)",
+    "rev_sub": "1Q25(재작성) &nbsp;17,479억",
     "op_val": "2,114",
     "op_dir": "up",
-    "op_yoy": "+841억 &nbsp;(+66.1% YoY)",
-    "op_sub": "OPM &nbsp;6.8%<span class=\"arr\"> → </span><span class=\"b\">10.9%</span>",
-    "np_val": "712",
+    "op_yoy": "+840억 &nbsp;(+66.0% YoY)",
+    "op_sub": "OPM &nbsp;7.3%<span class=\"arr\"> → </span><span class=\"b\">10.9%</span>",
+    "np_val": "2,268",
     "np_dir": "up",
-    "np_yoy": "+204억 &nbsp;(+40.2% YoY)",
-    "np_sub": "NPM &nbsp;2.7%<span class=\"arr\"> → </span><span class=\"b\">3.7%</span>",
-    "g_net": "+784억",
-    "g_up": "+2,077억",
-    "g_dn": "-1,293억",
+    "np_yoy": "+265억 &nbsp;(+13.2% YoY)",
+    "np_sub": "NPM &nbsp;11.5%<span class=\"arr\"> → </span><span class=\"b\">11.7%</span>",
+    "g_net": "+1,942억",
+    "g_up": "+2,311억",
+    "g_dn": "-370억",
     "q_prev_full": "1Q 2025",
     "q_cur_full": "1Q 2026",
     "q_prev_short": "1Q25",
     "q_cur_short": "1Q26",
     "mix_prev": "비중25",
     "mix_cur": "비중26",
-    "coverage_note": "총 27명 커버리지 (2026.05 기준)",
-    "cons_buy_pct": "77.8%",
-    "cons_buy": "21",
-    "cons_hold_pct": "22.2%",
-    "cons_hold": "6",
-    "cons_sell_pct": "0%",
+    "coverage_note": "표의 4개 증권사 기준 (전체 커버리지 집계는 미확인)",
+    "cons_buy_pct": "100.0%",
+    "cons_buy": "4",
+    "cons_hold_pct": "0.0%",
+    "cons_hold": "0",
+    "cons_sell_pct": "0.0%",
     "cons_sell": "0",
-    "tp_cur": "46,300원",
-    "tp_low": "59,000원",
-    "tp_avg": "74,500원",
-    "tp_high": "87,000원",
-    "tp_upside": "+60.9%",
+    "tp_cur": "46,000원",
+    "tp_low": "70,000원",
+    "tp_avg": "71,250원",
+    "tp_high": "75,000원",
+    "tp_upside": "+54.9%",
     "filter_cats": [
       [
         "platform",
@@ -59,12 +59,12 @@
       {
         "cls": "co",
         "dot": "var(--coral)",
-        "txt": "카카오페이 최고 성장 +41.7% YoY"
+        "txt": "플랫폼 기타(페이·모빌리티) +30.2% YoY"
       },
       {
         "cls": "gn",
         "dot": "var(--grn)",
-        "txt": "OPM 6.8% → 10.9% (+4.1pp)"
+        "txt": "OPM 7.3% → 10.9% (+3.6pp)"
       },
       {
         "cls": "co",
@@ -74,7 +74,7 @@
       {
         "cls": "dn",
         "dot": "var(--dn)",
-        "txt": "콘텐츠 사업 구조 재편 진행 중"
+        "txt": "지배주주순이익 1,717억, 전년 수준"
       }
     ],
     "SEGS": [
@@ -82,116 +82,95 @@
         "name": "톡비즈",
         "sub": "플랫폼",
         "cat": "platform",
-        "q25": 5533,
+        "q25": 5590,
         "q26": 6086,
         "est": false
       },
       {
-        "name": "카카오페이",
+        "name": "포털비즈",
         "sub": "플랫폼",
         "cat": "platform",
-        "q25": 2119,
-        "q26": 3003,
+        "q25": 740,
+        "q26": 676,
         "est": false
       },
       {
-        "name": "카카오모빌리티",
+        "name": "플랫폼 기타 (페이·모빌리티)",
         "sub": "플랫폼",
         "cat": "platform",
-        "q25": 2278,
-        "q26": 2062,
-        "est": true
+        "q25": 3890,
+        "q26": 5065,
+        "est": false
       },
       {
         "name": "뮤직",
         "sub": "콘텐츠",
         "cat": "content",
-        "q25": 4379,
+        "q25": 4380,
         "q26": 4846,
         "est": false
       },
       {
-        "name": "스토리 (픽코마)",
+        "name": "스토리 (픽코마·엔터)",
         "sub": "콘텐츠",
         "cat": "content",
-        "q25": 1018,
-        "q26": 926,
-        "est": true
-      },
-      {
-        "name": "스토리 (카카오엔터)",
-        "sub": "콘텐츠",
-        "cat": "content",
-        "q25": 1108,
-        "q26": 898,
-        "est": true
+        "q25": 2130,
+        "q26": 1824,
+        "est": false
       },
       {
         "name": "미디어",
         "sub": "콘텐츠",
         "cat": "content",
-        "q25": 751,
+        "q25": 750,
         "q26": 924,
         "est": false
-      },
-      {
-        "name": "기타·재편",
-        "sub": "기타",
-        "cat": "other",
-        "q25": 1451,
-        "q26": 0,
-        "est": true
       }
     ],
-    "TOT25": 18637,
+    "TOT25": 17479,
     "TOT26": 19421,
     "DELTA": [
       {
-        "name": "톡비즈",
-        "d": 553,
+        "name": "플랫폼 기타 (페이·모빌리티)",
+        "d": 1175,
         "est": false
       },
       {
-        "name": "카카오페이",
-        "d": 884,
+        "name": "톡비즈",
+        "d": 496,
         "est": false
       },
       {
         "name": "뮤직",
-        "d": 467,
+        "d": 466,
         "est": false
       },
       {
         "name": "미디어",
-        "d": 173,
+        "d": 174,
         "est": false
       },
       {
-        "name": "카카오모빌리티",
-        "d": -216,
-        "est": true
+        "name": "포털비즈",
+        "d": -64,
+        "est": false
       },
       {
-        "name": "스토리\n(엔터+픽코마)",
-        "d": -302,
-        "est": true
-      },
-      {
-        "name": "기타·조정",
-        "d": -775,
-        "est": true
+        "name": "스토리 (픽코마·엔터)",
+        "d": -306,
+        "est": false
       },
       {
         "name": "합계",
-        "d": 784,
+        "d": 1942,
         "tot": true
       }
     ],
-    "CURR": 46300,
+    "CURR": 46000,
     "NAME": "카카오",
     "CONS": {
-      "buy": 21,
-      "hold": 6,
+      "buy": 4,
+      "hold": 0,
       "sell": 0
     },
     "ANALYSTS": [
@@ -201,31 +180,23 @@
         "tp": 75000,
         "from": 75000,
         "date": "2026.05.08",
-        "note": "\"주가 바닥 통과, 에이전트 커머스 핵심 변수\""
-      },
-      {
-        "firm": "미래에셋증권",
-        "r": "Buy",
-        "tp": 82000,
-        "from": 82000,
-        "date": "2026.05.07",
-        "note": "최고 목표가 유지"
-      },
-      {
-        "firm": "NH투자증권",
-        "r": "Buy",
-        "tp": 60000,
-        "from": 58000,
-        "date": "2026.05.07",
-        "note": "목표가 상향, AI 구독 성장 긍정적"
+        "note": "\"주가 바닥 통과, 에이전틱 커머스 성공이 핵심\""
       },
       {
         "firm": "한국투자증권",
         "r": "Buy",
         "tp": 70000,
-        "from": 75000,
-        "date": "2026.05.07",
-        "note": "목표가 소폭 하향, 매수 유지"
+        "from": 70000,
+        "date": "2026.05.08",
+        "note": "목표가 7만원 유지 (4/3에 7.5만→7만 하향)"
+      },
+      {
+        "firm": "한화투자증권",
+        "r": "Buy",
+        "tp": 70000,
+        "from": 85000,
+        "date": "2026.05.08",
+        "note": "목표가 8.5만→7만, 글로벌 피어 밸류에이션 압축 반영"
       },
       {
         "firm": "다올투자증권",
@@ -233,51 +204,43 @@
         "tp": 70000,
         "from": 80000,
         "date": "2026.04.08",
-        "note": "AI 모네타이제이션 타임라인 불확실"
-      },
-      {
-        "firm": "한화투자증권",
-        "r": "Buy",
-        "tp": 70000,
-        "from": 75000,
-        "date": "2026.05.07",
-        "note": "글로벌 피어 밸류에이션 압축 반영"
+        "note": "1Q26 프리뷰. AI 모네타이제이션 타임라인 불확실"
       }
     ],
     "BULLS": [
       {
-        "t": "OPM 6.8% → 10.9%, 영업 레버리지 확인",
-        "d": "비핵심 자회사 정리(카카오게임즈 연결 제외, 다음 매각)로 P&L 질이 개선됐다. 1Q 2026 영업이익 +66% YoY는 구조적 수익성 전환 신호다."
+        "t": "OPM 7.3% → 10.9%, 영업 레버리지 확인",
+        "d": "비핵심 자회사 정리(카카오게임즈 중단영업 분류, 다음 사업 양도)로 손익 구조가 가벼워졌다. 1Q 2026 영업이익 +66% YoY는 수익성 전환 신호다."
       },
       {
-        "t": "ChatGPT for Kakao 1,100만 구독, MAU QoQ 2배",
-        "d": "국내 소비자 AI 서비스 중 가장 빠르게 성장하고 있다. 5,000만 카카오톡 유저를 AI 에이전트 허브로 전환하는 플랫폼 전략의 초기 성과가 수치로 나타났다."
+        "t": "챗GPT 포 카카오 누적 가입자 1,100만",
+        "d": "서비스 MAU가 전 분기 대비 2배 가까이 늘었다. 5,000만 이용자를 에이전틱 AI 플랫폼으로 옮기겠다는 전략의 초기 지표다."
       },
       {
-        "t": "에이전트 커머스 파일럿 본격화",
-        "d": "2026.04부터 카카오톡 Kanana 에이전트와 선물하기를 통합 테스트 중이다. 수수료 기반 고마진 비즈니스 모델로 2H26 본격 확장이 계획돼 있다."
+        "t": "에이전트 커머스 실험 시작",
+        "d": "4월부터 카카오톡 카나나와 선물하기 연동을 실험하고 있다. 5월 중 외부 커머스 파트너를 연동하고 하반기에 에이전트 커머스를 본격화할 계획이다."
       },
       {
         "t": "구글 전략적 파트너십, 온디바이스 AI",
-        "d": "Android 기기 탑재 방식으로 카카오 AI 에이전트의 하드웨어 접점이 확보됐다. 독자 Kanana 모델 선제 전송 기능에 대한 긍정 피드백이 70%다."
+        "d": "Android 기기 탑재 방식으로 카카오 AI 에이전트의 하드웨어 접점이 확보됐다. 카나나가 먼저 말을 거는 '선톡'에 이용자 약 70%가 긍정 피드백을 줬다."
       },
       {
         "t": "포트폴리오 구조조정, 밸류에이션 재평가 기대",
-        "d": "다음·게임즈 정리 후 핵심 사업 집중도가 높아졌다. 메리츠증권 추정 2027E P/E 약 21배는 한국 테크 피어 대비 합리적인 수준이다."
+        "d": "다음·게임즈 정리 후 핵심 사업 집중도가 높아졌다. 메리츠증권은 2027년 지배순이익 기준 PER이 약 21배까지 낮아진다고 봤다."
       }
     ],
     "BEARS": [
       {
         "t": "AI 모네타이제이션 타임라인이 불투명하다",
-        "d": "에이전트 커머스는 아직 파일럿 단계다. 4~5월 10개 이상 증권사가 목표가를 하향 조정했다. AI가 의미 있는 매출로 이어지는 시점에 대한 가시성이 부족하다."
+        "d": "에이전트 커머스는 아직 실험 단계다. 4~5월 한국투자·다올·한화 등 여러 증권사가 목표가를 낮췄다. AI가 의미 있는 매출로 이어지는 시점에 대한 가시성이 부족하다."
       },
       {
         "t": "지배주주순이익이 제자리, 실적 품질 이슈",
-        "d": "연결 순이익이 +40% YoY 늘었지만 지배주주 귀속분은 사실상 전년 수준이다. 비지배 지분 이익이 급증(YoY 약 2배)해 카카오 주주의 몫이 제한적이다."
+        "d": "연결 순이익은 +13% YoY 늘었지만 지배주주 귀속분은 사실상 전년 수준이다. 비지배 지분 이익이 약 2배로 늘어 카카오 주주의 몫이 제한적이다."
       },
       {
-        "t": "카카오모빌리티 경쟁 심화, 우버 딜 불확실",
-        "d": "우버 모빌리티 지분 인수 검토 보도에도 주가 반응이 미미했다(-5.9%). 국내 모빌리티 경쟁 심화로 분기 매출 하락 추세가 이어지고 있다."
+        "t": "카카오모빌리티 지분 거래 불확실성",
+        "d": "4월 우버의 카카오모빌리티 지분 인수 검토 보도가 나왔지만 카카오모빌리티는 근거 없다고 부인했다. 거래 방향이 정해지기 전까지 기업가치 재평가 요인으로 쓰기 어렵다."
       },
       {
         "t": "SM엔터 거버넌스 리스크가 남아 있다",
@@ -285,7 +248,7 @@
       },
       {
         "t": "목표가 대비 괴리 지속, Value Trap 우려",
-        "d": "컨센 평균 목표가 74,500원(implied +60.9%)에도 시장은 re-rating을 허용하지 않는 상태다. 52주 고점(71,600원)이 현재 목표가 수준으로, 신규 매수세 유입 근거가 약하다."
+        "d": "표의 4개 증권사 평균 목표가 71,250원(현재가 대비 +54.9%)에도 시장은 재평가를 허용하지 않는 상태다. 52주 고점(71,600원)이 평균 목표가 수준이라 신규 매수 근거가 약하다."
       }
     ],
     "NEWS": [
@@ -295,7 +258,7 @@
         "date": "2026.05.08",
         "sent": "mix",
         "url": "https://www.insight.co.kr/news/553232",
-        "body": "영업이익 +66% 서프라이즈에도 지배주주순이익 정체와 AI 모네타이제이션 불확실성으로 발표 당일 -2.27% 마감."
+        "body": "영업이익 +66%에도 지배주주순이익이 1,717억원으로 전년 수준에 머물렀다. 실적 발표일 주가는 -2.27%(45,250원) 마감."
       },
       {
         "h": "메리츠증권 \"카카오, 주가 바닥 통과… 에이전틱 커머스 성공이 핵심\"",
@@ -308,18 +271,18 @@
       {
         "h": "[카카오 전환기] \"돈 안 되니 매각\"…다음 포기 후 업스테이지 지분 30% 확보",
         "src": "딜사이트",
-        "date": "2026.05.07",
-        "sent": "pos",
+        "date": "2026.02.06",
+        "sent": "mix",
         "url": "https://dealsite.co.kr/articles/156392",
-        "body": "주식 스왑 방식으로 다음 브랜드·서비스 이전 확정. 카카오는 업스테이지 지분 확보, 비핵심 사업 정리 완료."
+        "body": "카카오가 다음 사업 정리와 함께 업스테이지 지분 확보를 추진 중이다. 지분율과 기업가치는 공개되지 않았다."
       },
       {
-        "h": "\"카톡 기반 챗GPT 1,100만\"…카카오, 1분기에도 역대 최대 실적",
+        "h": "\"카톡 기반 챗GPT 1,100만\"…카카오, 1분기에도 최대 실적(종합)",
         "src": "뉴스1",
         "date": "2026.05.07",
         "sent": "pos",
         "url": "https://www.news1.kr/it-science/general-it/6159249",
-        "body": "CEO 정신아, 1Q 실적 발표 컨퍼런스콜에서 카카오톡 5,000만 유저 AI 에이전트 전환 전략 발표."
+        "body": "정신아 대표가 컨퍼런스콜에서 챗GPT 포 카카오 누적 가입자 1,100만 돌파와 5,000만 이용자 대상 에이전틱 AI 전환 전략을 밝혔다."
       },
       {
         "h": "1분기 최대 실적 쓴 카카오… \"AI 에이전트 커머스 본격화\"",
@@ -327,15 +290,15 @@
         "date": "2026.05.07",
         "sent": "pos",
         "url": "https://www.fnnews.com/news/202605071040174234",
-        "body": "카카오톡 내 Kanana와 선물하기 연동 테스트 시작. 5월 이후 외부 커머스 파트너 확대, 고마진 수수료 모델 본격화."
+        "body": "지난달부터 카나나와 선물하기 연동을 실험 중이다. 이달 중 외부 커머스 파트너를 연동하고 하반기 에이전트 커머스를 본격화한다."
       },
       {
         "h": "카카오 순익 13% 늘었어도 주주 몫은 뒷걸음…비지배지분순익 두 배로",
         "src": "인사이트",
-        "date": "2026.05.08",
+        "date": "2026.05.07",
         "sent": "neg",
         "url": "https://www.insight.co.kr/news/553146",
-        "body": "연결 순이익 +40% YoY이나 비지배 지분 이익 급증으로 카카오 주주 귀속분은 전년 대비 개선 미미."
+        "body": "연결 순이익은 2,003억원에서 2,268억원으로 13.2% 늘었지만, 비지배지분순익이 285억원에서 551억원으로 늘어 주주 귀속분은 제자리였다."
       },
       {
         "h": "AI 사업 불확실성에… 눈높이 낮아지는 네카오",
@@ -343,15 +306,7 @@
         "date": "2026.04.10",
         "sent": "neg",
         "url": "https://www.sedaily.com/article/20031090",
-        "body": "AI 비즈니스 수익화 가시성 부족으로 국내 IT 섹터 목표가 하향 릴레이. 카카오 평균 목표가 74,500원으로 축소."
-      },
-      {
-        "h": "우버 모빌리티 거래 가능성에도 약세… 카카오 주가 -5.9%",
-        "src": "트레이더스유니온",
-        "date": "2026.04.01",
-        "sent": "mix",
-        "url": "https://tradersunion.com/ko/news/financial-news/show/1838058-kakao-drops-5-91percent-to-usd45400/",
-        "body": "우버의 전략적 투자 검토 보도에도 경쟁 심화 우려로 주가 반응 부정적."
+        "body": "이달 들어 증권사 10곳이 네이버·카카오 목표가를 낮췄다(네이버 6곳, 카카오 4곳). AI 수익화 가시성 부족이 이유다."
       }
     ],
     "PERSONAS": [
@@ -360,7 +315,7 @@
         "type": "성장주 발굴",
         "rating": "buy",
         "desc": "피델리티 마젤란 펀드 매니저. 13년간 연평균 +29% 수익률",
-        "eval": "카카오페이 +41.7% YoY, AI 구독 MAU 2배 급증. 숫자가 이미 말하고 있다. 전형적인 텐배거 후보다."
+        "eval": "플랫폼 기타 매출 +30.2% YoY, 챗GPT 포 카카오 MAU 2배 가까이 증가. 숫자가 이미 말하고 있다. 전형적인 텐배거 후보다."
       },
       {
         "name": "캐시 우드",
@@ -374,7 +329,7 @@
         "type": "역발상 투자",
         "rating": "buy",
         "desc": "Big Short 주인공. 2008년 서브프라임 위기를 미리 공매도해 수천억 수익",
-        "eval": "고점 대비 -35% 하락, 구조조정이 완료된 시점이다. 시장이 외면할 때 들어가는 게 역발상의 본질이다."
+        "eval": "고점 대비 -36% 하락, 구조조정이 완료된 시점이다. 시장이 외면할 때 들어가는 게 역발상의 본질이다."
       },
       {
         "name": "스탠리 드러켄밀러",
@@ -445,6 +400,160 @@
         "rating": "sell",
         "desc": "「블랙 스완」 저자. 극단적 위험과 불확실성 이론 연구의 권위자",
         "eval": "거버넌스 불확실성과 AI 실패 시나리오는 시장이 생각하는 것보다 훨씬 큰 꼬리 위험이다."
+      }
+    ]
+  },
+  "audit": {
+    "src": {
+      "corp_code": "00258801",
+      "year": "2026",
+      "reprt_code": "11013",
+      "fs_div": "CFS"
+    },
+    "web": [
+      {
+        "sec": "ANALYSTS",
+        "key": "메리츠증권",
+        "status": "confirmed",
+        "url": "https://www.g-enews.com/article/Securities/2026/05/20260508085811806344093b5d4e_1"
+      },
+      {
+        "sec": "ANALYSTS",
+        "key": "한국투자증권",
+        "status": "corrected",
+        "url": "https://m.news.nate.com/view/20260508n04295",
+        "note": "tp 유지, from 75000→70000, date 05.07→05.08"
+      },
+      {
+        "sec": "ANALYSTS",
+        "key": "한화투자증권",
+        "status": "corrected",
+        "url": "https://news.nate.com/view/20260508n08343",
+        "note": "from 75000→85000, date 05.07→05.08"
+      },
+      {
+        "sec": "ANALYSTS",
+        "key": "다올투자증권",
+        "status": "confirmed",
+        "url": "https://news.nate.com/view/20260408n18007"
+      },
+      {
+        "sec": "CONS",
+        "key": "coverage",
+        "status": "corrected",
+        "url": "",
+        "note": "21/6/0(출처 없음) → 표 4개사 기준"
+      },
+      {
+        "sec": "SEGS",
+        "key": "톡비즈",
+        "status": "corrected",
+        "url": "https://t1.kakaocdn.net/kakaocorp/admin/ir/results-announcement/5999.pdf",
+        "note": "IR 재작성 기준(십억원×10)"
+      },
+      {
+        "sec": "SEGS",
+        "key": "포털비즈",
+        "status": "corrected",
+        "url": "https://t1.kakaocdn.net/kakaocorp/admin/ir/results-announcement/5999.pdf",
+        "note": "IR 재작성 기준(십억원×10)"
+      },
+      {
+        "sec": "SEGS",
+        "key": "플랫폼 기타 (페이·모빌리티)",
+        "status": "corrected",
+        "url": "https://t1.kakaocdn.net/kakaocorp/admin/ir/results-announcement/5999.pdf",
+        "note": "IR 재작성 기준(십억원×10)"
+      },
+      {
+        "sec": "SEGS",
+        "key": "뮤직",
+        "status": "corrected",
+        "url": "https://t1.kakaocdn.net/kakaocorp/admin/ir/results-announcement/5999.pdf",
+        "note": "IR 재작성 기준(십억원×10)"
+      },
+      {
+        "sec": "SEGS",
+        "key": "스토리 (픽코마·엔터)",
+        "status": "corrected",
+        "url": "https://t1.kakaocdn.net/kakaocorp/admin/ir/results-announcement/5999.pdf",
+        "note": "IR 재작성 기준(십억원×10)"
+      },
+      {
+        "sec": "SEGS",
+        "key": "미디어",
+        "status": "corrected",
+        "url": "https://t1.kakaocdn.net/kakaocorp/admin/ir/results-announcement/5999.pdf",
+        "note": "IR 재작성 기준(십억원×10)"
+      },
+      {
+        "sec": "NEWS",
+        "key": "https://www.insight.co.kr/news/553232",
+        "status": "confirmed",
+        "url": "https://www.insight.co.kr/news/553232"
+      },
+      {
+        "sec": "NEWS",
+        "key": "https://www.g-enews.com/article/Securities/2026/05/20260508085811806344093b5d4e_1",
+        "status": "confirmed",
+        "url": "https://www.g-enews.com/article/Securities/2026/05/20260508085811806344093b5d4e_1"
+      },
+      {
+        "sec": "NEWS",
+        "key": "https://dealsite.co.kr/articles/156392",
+        "status": "confirmed",
+        "url": "https://dealsite.co.kr/articles/156392"
+      },
+      {
+        "sec": "NEWS",
+        "key": "https://www.news1.kr/it-science/general-it/6159249",
+        "status": "confirmed",
+        "url": "https://www.news1.kr/it-science/general-it/6159249"
+      },
+      {
+        "sec": "NEWS",
+        "key": "https://www.fnnews.com/news/202605071040174234",
+        "status": "confirmed",
+        "url": "https://www.fnnews.com/news/202605071040174234"
+      },
+      {
+        "sec": "NEWS",
+        "key": "https://www.insight.co.kr/news/553146",
+        "status": "confirmed",
+        "url": "https://www.insight.co.kr/news/553146"
+      },
+      {
+        "sec": "NEWS",
+        "key": "https://www.sedaily.com/article/20031090",
+        "status": "confirmed",
+        "url": "https://www.sedaily.com/article/20031090"
+      }
+    ],
+    "claims": [
+      {
+        "text": "1,100만",
+        "status": "confirmed",
+        "url": "https://www.news1.kr/it-science/general-it/6159249"
+      },
+      {
+        "text": "2배",
+        "status": "confirmed",
+        "url": "https://www.news1.kr/it-science/general-it/6159249"
+      },
+      {
+        "text": "5,000만",
+        "status": "confirmed",
+        "url": "https://www.kakaocorp.com/page/detail/12023?lang=ENG"
+      },
+      {
+        "text": "70%",
+        "status": "confirmed",
+        "url": "https://www.news1.kr/it-science/general-it/6159249"
+      },
+      {
+        "text": "21배",
+        "status": "confirmed",
+        "url": "https://www.g-enews.com/article/Securities/2026/05/20260508085811806344093b5d4e_1"
       }
     ]
   }
