@@ -44,7 +44,9 @@ sent 기준: 상회·긍정 pos, 급감·하락·규제 neg, 혼재 mix.
             "from": 직전 목표주가(원 단위 정수, 원문에 없으면 null, 지어내지 않는다), "date": "YYYY.MM.DD",
             "note": 원문에서 확인한 사실 한 문장(확인 안 된 인용문 금지), "url": 출처 URL}
 2) SEGS: 사업부문별 매출, 단위 억원 정수. DART 정기보고서의 사업부문별 실적 → IR 자료 순으로 찾는다.
-   각 항목: {"name": 부문명, "sub": 짧은 설명(예: 주요 제품·자회사), "cat": 필터 그룹 키(예 platform·content·
+   DART 공시 본문 표는 WebFetch로 보이지 않는다. python3 {SKILL}/assets/dart_text.py <접수번호 또는 뷰어 URL> "영업부문" "매출실적"
+   으로 읽는다(표 단위는 천원·백만원이다. 천원 ÷ 100,000, 백만원 ÷ 100으로 억원 반올림).
+   각 항목: {"name": 부문명, "sub": 짧은 설명(예: 주요 제품·자회사, 숫자는 넣지 않는다), "cat": 필터 그룹 키(예 platform·content·
             memory·auto·finance·other), "q25": 전년 동기 매출, "q26": 당기 매출, "est": 출처 숫자 그대로면 false,
             비중으로 역산·추정했으면 true, "url": 출처}
    q25·q26은 연도가 아니라 "전년 동기·당기"라는 고정 키 이름이다. q25 합계는 facts의 전년 매출, q26 합계는 당기
@@ -70,7 +72,7 @@ sent 기준: 상회·긍정 pos, 급감·하락·규제 neg, 혼재 mix.
 
 파일: {PARTS}/B.json
 형식: 정확히 13개, _ALL.md 순서 [{"name": 한글 이름, "type": 투자 스타일 짧은 이름, "rating": "buy"|"hold"|"sell",
-       "desc": 한 줄 소개(검증 안 되는 숫자 금지), "eval": 이 회사 평가 2문장 이내}]
+       "desc": 한 줄 소개(수익률·수익금 같은 성과 숫자는 쓰지 않는다. 검증할 수 없다), "eval": 이 회사 평가 2문장 이내}]
 ```
 
 ## C 강세·약세 (Sonnet)
@@ -115,4 +117,6 @@ body의 모든 숫자가 기사에 있는지 확인한다.
        "url", "note", "patch": {고칠 필드: 값}}], "claims": []}
 - corrected의 patch 예: {"tp": 270000}, {"from": null}, {"note": "원문에서 확인된 사실로 고친 문장"}, SEGS는 {"est": true}.
 - unverified: 출처가 열리지 않을 때.
+- SEGS의 sub(화면에 나오는 부문 설명)에 숫자가 있으면 원문과 대조한다. 맞으면 claims에 {"text": 표기 그대로, "url", "status": "confirmed"},
+  틀리면 patch {"sub": "숫자를 고치거나 뺀 설명"}.
 ```

@@ -150,8 +150,13 @@ class Facts(unittest.TestCase):
                                                  scope="quarter", np_basis="total", fiscal_month=12))["facts"]
         self.assertEqual(f["매출"], "매출 29,151억 → 33,888억 (+4,737억, +16.3%)")
         self.assertIn("OPM 17.9% → 15.4%", f["영업이익"])
-        self.assertEqual(f["재무상태(조)"]["자산총계"], "41.1조 → 44.7조")
+        self.assertEqual(f["재무상태"]["자산총계"], "41.1조 → 44.7조")
         self.assertIn("192,200원 (10/2 종가, +0.16%)", f["주가"])
+
+    def test_small_company_balance_sheet_in_eok(self):
+        # 1조 미만이면 '0.0조'가 아니라 억으로 쓴다 (코넥스 광동헬스바이오 실측)
+        self.assertEqual(ar._bs_fmt(52_900_000_000, 62_200_000_000), ["529억", "622억"])
+        self.assertEqual(ar._bs_fmt(900_000_000_000, 1_100_000_000_000), ["0.9조", "1.1조"])
 
 
 class PeriodAndFallback(unittest.TestCase):
@@ -292,6 +297,12 @@ class TemplateHasNoCompanyText(unittest.TestCase):
         for w in ("카카오", "픽코마", "톡비즈", "하이닉스", "삼성전자", "1Q26", "2Q26"):
             self.assertNotIn(w, t, w)
 
+    def test_no_particle_after_name_token(self):
+        # '{{name}}을'은 받침 없는 회사(SK하이닉스, 카카오)에서 틀린다. 조사가 필요 없는 문장으로 쓴다
+        import re
+        t = (ASSETS / "template.html").read_text(encoding="utf-8")
+        self.assertEqual(re.findall(r"\}\}[은는이가을를과와]", t), [])
+
 
 class SmallAndLossMaking(unittest.TestCase):
     """소형주(억 반올림이 마진을 흔든다)와 적자 회사도 조립 결과가 게이트 A층을 통과한다 (최종 리뷰에서 발견)."""
@@ -365,6 +376,48 @@ class AccountNames(unittest.TestCase):
     def test_ifrs_operating_id(self):
         it = {"sj_div": "CIS", "account_id": "ifrs-full_ProfitLossFromOperatingActivities", "account_nm": "III. 영업이익"}
         self.assertIs(vr._find([it], "op"), it)
+
+
+class SegmentSubNumbers(unittest.TestCase):
+    """부문 설명(sub)은 화면에 나온다. 원천에 없는 숫자가 있으면 게이트가 잡는다 (광동헬스바이오 실측에서 발견)."""
+
+    def ledger_fails(self, sub, claims=()):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            a2 = {"ANALYSTS": [], "filter_cats": [],
+                  "SEGS": [{"name": "본업", "sub": sub, "cat": "other", "q25": 29151, "q26": 33888, "est": True}]}
+            write_parts(d, **{"A2.json": a2, "V2.json": {"web": [], "claims": list(claims)}})
+            data = run_build(d)
+        R, pool = vr.Report(), vr.Pool()
+        vr.check_arithmetic(data, R, pool)
+        vr.check_ledger(data, R, pool, [], {})          # 증권사 0곳이라 목표가 없음
+        return [f for f in R.fails if "SEGS.sub" in f.get("item", str(f))]
+
+    def test_unverified_number_in_sub_fails(self):
+        self.assertTrue(self.ledger_fails("제품 667억 포함"))
+
+    def test_no_number_or_claimed_number_passes(self):
+        self.assertFalse(self.ledger_fails("단일 사업부문"))
+        self.assertFalse(self.ledger_fails("제품 667억 포함", [{"text": "667억", "url": "u", "status": "confirmed"}]))
+
+
+class TurnLabels(unittest.TestCase):
+    """적자가 낀 증감은 %가 아니라 흑자 전환·적자 축소로 쓴다 (광동헬스바이오 -10억 → 9억이 '+190.3%'로 나왔다)."""
+
+    def test_labels(self):
+        self.assertEqual(vr.turn_label(9, -10), "흑자 전환")
+        self.assertEqual(vr.turn_label(-5, 3), "적자 전환")
+        self.assertEqual(vr.turn_label(-6, -20), "적자 축소")
+        self.assertEqual(vr.turn_label(-30, -20), "적자 확대")
+        self.assertIsNone(vr.turn_label(10, 5))
+
+    def test_meta_uses_label_and_passes_gate(self):
+        m = SmallAndLossMaking.check(self, {"rev": (670.2, 655.1), "op": (8.6, -9.8), "np_total": (-6.4, -19.7),
+                                            "np_parent": (-6.4, -19.7)}, 655, 670)["meta"]
+        self.assertIn("흑자 전환", m["op_yoy"])
+        self.assertIn("적자 축소", m["np_yoy"])
+        self.assertNotIn("%", m["op_yoy"])
+        self.assertEqual(m["g_dn"], "0억")
 
 
 if __name__ == "__main__":

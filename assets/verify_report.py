@@ -82,6 +82,17 @@ def yoy(cur, prv):
     return None if not prv else (cur - prv) / abs(prv) * 100
 
 
+def turn_label(cur, prv):
+    """적자가 낀 증감은 %가 아니라 업계 표기로 쓴다(-10억 → 9억을 '+190%'로 쓰면 오해를 부른다). 둘 다 흑자면 None."""
+    if cur is None or prv is None or (prv >= 0 and cur >= 0):
+        return None
+    if prv < 0 <= cur:
+        return "흑자 전환"
+    if prv >= 0 > cur:
+        return "적자 전환"
+    return "적자 축소" if cur > prv else ("적자 확대" if cur < prv else "적자 지속")
+
+
 def sha256(path: pathlib.Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -145,7 +156,11 @@ def check_arithmetic(d, R: Report, pool):
         if k == "rev":
             R.eq(L, "meta.rev_yoy 증감액", diff, cur - prv, TOL_EOK, "rev_val − rev_sub 전년치")
         exp = yoy(cur, prv)
-        if pct_tok and exp is not None:
+        label = turn_label(cur, prv)
+        if label:   # 적자가 끼면 %가 아니라 흑자 전환·적자 축소 같은 표기가 맞다
+            R.add(L, label in plain(m.get(f"{k}_yoy", "")) and not pct_tok, f"meta.{k}_yoy 표기",
+                  f"표기 '{plain(m.get(f'{k}_yoy', ''))}' / 기대 '{label}'", "조립 스크립트를 다시 돌린다")
+        elif pct_tok and exp is not None:
             shown = pct_tok[0]
             rnd = (0.5 / abs(prv) + 0.5 * abs(cur) / prv ** 2) * 100   # 억 반올림 전파 오차 (정밀 대조는 B층)
             # 표기값과 '반올림하지 않은' 계산값을 비교한다. 계산값까지 반올림하면 반올림을 두 번 하게 되어
@@ -171,7 +186,7 @@ def check_arithmetic(d, R: Report, pool):
             R.eq(L, f"meta.{key} 전년 마진", to_num(shown[0]), e_prv, pct_tol(0, shown[0]) + mt(prv, rev_prv))
             R.eq(L, f"meta.{key} 당기 마진", to_num(shown[1]), e_cur, pct_tol(0, shown[1]) + mt(cur, rev_cur))
             pool.add_pct(e_prv, e_cur)
-            pool.add_pp(e_cur - e_prv)
+            pool.add_pp(e_cur - e_prv, to_num(shown[1]) - to_num(shown[0]))   # 원값 차이와 표기 마진끼리의 차이
 
     # 총매출 ↔ 부문 합계
     tot25, tot26 = js.get("TOT25"), js.get("TOT26")
@@ -458,7 +473,7 @@ def check_dart(d, R: Report, pool):
             pool.add_pct(yoy(c, p))
         if dk != "rev" and rc and rp:
             pool.add_pct(c / rc * 100, p / rp * 100)
-            pool.add_pp(c / rc * 100 - p / rp * 100)
+            pool.add_pp(c / rc * 100 - p / rp * 100, float(f"{c / rc * 100:.1f}") - float(f"{p / rp * 100:.1f}"))
 
     # 서술 대조 풀: 손익 전 계정(분기·누적, 당기·전년)과 그 YoY·매출 대비 비율, 재무상태표
     rev = vals.get("rev", (None, None))
@@ -753,6 +768,7 @@ def check_ledger(d, R: Report, pool, tps, tp):
     for sec in ("BULLS", "BEARS"):
         texts += [(sec, i, f"{x.get('t', '')} {x.get('d', '')}") for i, x in enumerate(js.get(sec, []))]
     texts += [("PERSONAS", p.get("name", i), p.get("eval", "")) for i, p in enumerate(js.get("PERSONAS", []))]
+    texts += [("SEGS.sub", sg.get("name", i), sg.get("sub", "")) for i, sg in enumerate(js.get("SEGS", []))]   # 화면에 나온다
     for sec, key, text in texts:
         seen = set()
         for kind, v, tok, n, tol in claim_tokens(text):

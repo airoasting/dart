@@ -48,7 +48,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from dart_client import REPRT_OFFSET, REPRT_Q, DartClient, fiscal_label, fiscal_label_year  # noqa: E402
-from verify_report import fetch_dart                 # noqa: E402  (게이트와 같은 숫자)
+from verify_report import fetch_dart, turn_label     # noqa: E402  (게이트와 같은 숫자·표기)
 import corp_registry                                  # noqa: E402
 from price import get_prev_close                      # noqa: E402
 
@@ -101,6 +101,25 @@ def _fetch(a):
                  "period 명령으로 최근 제출 보고서를 확인하거나, 잠정실적으로 만들려면 references/provisional.md를 따른다.")
 
 
+def pp_shown(prv, cur) -> float:
+    """화면에 찍힌 마진(소수 한 자리)끼리의 차이. 2.75% → 5.25%는 '2.7% → 5.3%'로 보이니 +2.6pp로 쓴다(원값 차이 2.5는 읽는 사람에게 틀려 보인다)."""
+    return round(float(f"{cur:.1f}") - float(f"{prv:.1f}"), 1)
+
+
+def _amt_won(v):
+    try:
+        return int(str(v).replace(",", ""))
+    except (TypeError, ValueError):
+        return None
+
+
+def _bs_fmt(*won):
+    """재무상태 표기. 1조가 넘으면 조(소수 한 자리), 아니면 억(정수). 소형사가 '0.0조'로 찍히지 않게 둘을 같은 단위로 맞춘다."""
+    if max(abs(w) for w in won) >= 1e12:
+        return [f"{w / 1e12:.1f}조" for w in won]
+    return [f"{round(w / 1e8):,}억" for w in won]
+
+
 def collect(a) -> dict:
     """DART·주가에서 리포트의 모든 숫자를 만든다. facts와 build가 같은 값을 쓴다."""
     corp = _corp(a.corp_code)
@@ -130,21 +149,23 @@ def collect(a) -> dict:
     for it in items:
         nm = it.get("account_nm", "").strip()
         if it.get("sj_div") == "BS" and nm in BS_KEYS and nm not in bs:
-            def jo(v):
-                try:
-                    return round(int(str(v).replace(",", "")) / 1e12, 1)
-                except (TypeError, ValueError):
-                    return None
-            bs[nm] = (jo(it.get("thstrm_amount")), jo(it.get("frmtrm_amount")))
+            bs[nm] = (_amt_won(it.get("thstrm_amount")), _amt_won(it.get("frmtrm_amount")))
 
     px = get_prev_close(corp["stock_code"])
     if not px:
         sys.exit("KRX 일봉을 받지 못했다(price.py). 잠시 뒤 다시 실행한다. 다른 소스로 채우지 않는다.")
 
+    def chg(k):
+        """증감률 표기: 적자가 끼면 흑자 전환·적자 축소 등, 아니면 +N.N%. 화면·facts·게이트가 같은 규칙을 쓴다."""
+        lab = turn_label(*r[k])
+        if lab:
+            return lab
+        y = _pct(*raw[k])
+        return "N/A" if y is None else f"{y:+.1f}%"
+
     def line(k, label):
         c, p = r[k]
-        y = _pct(*raw[k])
-        return f"{label} {p:,}억 → {c:,}억 ({c - p:+,}억, {y:+.1f}%)"
+        return f"{label} {p:,}억 → {c:,}억 ({c - p:+,}억, {chg(k)})"
 
     opm = (raw["op"][1] / raw["rev"][1] * 100, raw["op"][0] / raw["rev"][0] * 100)
     npm = (raw["np"][1] / raw["rev"][1] * 100, raw["np"][0] / raw["rev"][0] * 100)
@@ -153,12 +174,13 @@ def collect(a) -> dict:
         "회사": f"{corp['corp_name']} ({corp['stock_code']}, {corp['market_label']})",
         "기간": f"{prv_full} → {cur_full}" + (" (연결)" if a.fs_div == "CFS" else " (개별)"),
         "매출": line("rev", "매출"),
-        "영업이익": line("op", "영업이익") + f", OPM {opm[0]:.1f}% → {opm[1]:.1f}% ({opm[1] - opm[0]:+.1f}pp)",
+        "영업이익": line("op", "영업이익") + f", OPM {opm[0]:.1f}% → {opm[1]:.1f}% ({pp_shown(*opm):+.1f}pp)",
         "순이익": line("np", "순이익") + f", NPM {npm[0]:.1f}% → {npm[1]:.1f}%",
-        "재무상태(조)": {k: f"{v[1]}조 → {v[0]}조" for k, v in bs.items() if None not in v},
+        "재무상태": {k: f"{_bs_fmt(v[1], v[0])[0]} → {_bs_fmt(v[1], v[0])[1]}" for k, v in bs.items() if None not in v},
         "주가": f"{px['close']:,}원 ({int(d[4:6])}/{int(d[6:])} 종가, {px['change_pct']:+.2f}%), 52주 {px['w52_range']}원",
     }
     return {"corp": corp, "raw": raw, "r": r, "opm": opm, "npm": npm, "px": px, "facts": facts,
+            "chg": {k: chg(k) for k in ("rev", "op", "np")},
             "labels": {"cur_full": cur_full, "prv_full": prv_full, "cur_s": cur_s, "prv_s": prv_s, "nav": nav, "fy": fy}}
 
 
@@ -236,7 +258,8 @@ def build(a) -> None:
 
     def yoy_text(k):
         cur, prv = r[k]
-        return f"{cur - prv:+,}억 &nbsp;({_pct(*raw[k]):+.1f}% YoY)"
+        ch = c["chg"][k]
+        return f"{cur - prv:+,}억 &nbsp;({ch}{' YoY' if ch.endswith('%') else ''})"
 
     def margin(label, pair):
         return f"{label} &nbsp;{pair[0]:.1f}%<span class=\"arr\"> → </span><span class=\"b\">{pair[1]:.1f}%</span>"
@@ -256,7 +279,7 @@ def build(a) -> None:
         "op_yoy": yoy_text("op"), "op_sub": margin("OPM", c["opm"]),
         "np_val": f"{r['np'][0]:,}", "np_dir": "up" if r["np"][0] >= r["np"][1] else "down",
         "np_yoy": yoy_text("np"), "np_sub": margin("NPM", c["npm"]),
-        "g_net": f"{delta[-1]['d']:+,}억", "g_up": f"{up:+,}억", "g_dn": f"{dn:+,}억",
+        "g_net": f"{delta[-1]['d']:+,}억", "g_up": f"{up:+,}억", "g_dn": f"{dn:+,}억" if dn else "0억",
         "q_prev_full": lb["prv_full"], "q_cur_full": lb["cur_full"], "q_prev_short": lb["prv_s"], "q_cur_short": lb["cur_s"],
         "mix_prev": f"비중{(fy - 1) % 100:02d}", "mix_cur": f"비중{fy % 100:02d}",
         "coverage_note": (f"표의 {len(tps)}개 증권사 기준 (전체 커버리지 집계는 미확인)" if tps else
@@ -327,6 +350,8 @@ def period(a) -> dict:
         out = {"bsns_year": str(year), "reprt_code": reprt, "period_end": f"{year}.{pe:02d}",
                "label": ("FY" + fiscal_label(year, reprt, fm)[2:]) if a.quarter == "FY" else fiscal_label(year, reprt, fm),
                "latest_submitted": (rep or {}).get("label")}
+    if konex and out.get("label", "").startswith("4Q"):
+        out["label"] = "FY" + out["label"][2:]     # 코넥스는 연간 리포트다
     args = f"--year {out['bsns_year']} --reprt {out['reprt_code']}"
     if fm != 12:
         args += f" --fiscal-month {fm}"
