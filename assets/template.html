@@ -976,8 +976,8 @@ function drawSeg(){
   segC=new Chart(ctx,{
     type:'bar',
     data:{labels,datasets:[
-      {label:'1Q 2025',data:data.map(s=>s.q25),backgroundColor:c.seg25,borderColor:c.seg25b,borderWidth:1.5,borderRadius:5},
-      {label:'1Q 2026',data:data.map(s=>s.q26>0?s.q26:null),
+      {label:'{{q_prev_full}}',data:data.map(s=>s.q25),backgroundColor:c.seg25,borderColor:c.seg25b,borderWidth:1.5,borderRadius:5},
+      {label:'{{q_cur_full}}',data:data.map(s=>s.q26>0?s.q26:null),
        backgroundColor:data.map(s=>s.q26>s.q25?c.segUp:c.segDn),
        borderColor:data.map(s=>s.q26>s.q25?c.segUpB:c.segDnB),borderWidth:1.5,borderRadius:5},
     ]},

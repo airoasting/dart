@@ -19,14 +19,14 @@ KPI 차트 · 성장 기여도 · 사업별 매출 · 애널리스트 시각 · 
 3. `assets/verify_report.py` — **숫자 검증 게이트.** data.json의 모든 숫자를 원천과 다시 대조한다. PASS 전에는 빌드되지 않는다
 4. `assets/build_report.py` — 템플릿 + data.json → 최종 HTML (결정론적, 1초)
 
-HTML 전체를 토큰 단위로 뱉던 과거 방식은 한 리포트에 10분이 걸렸다. 데이터만 쓰면 출력량이 1/10로 줄어 **2분 안쪽**이면 끝난다. 절대 `template.html`을 복붙해 손으로 채우지 마라. 반드시 빌더를 써라.
+HTML 전체를 토큰 단위로 뱉던 과거 방식은 한 리포트에 10분이 걸렸다. 데이터만 쓰면 출력량이 1/10로 줄어 전체가 **3~4분**이면 끝난다(병렬 웹 리서치가 하한). 절대 `template.html`을 복붙해 손으로 채우지 마라. 반드시 빌더를 써라.
 
 ---
 
 ## 전체 흐름 (한눈에)
 
-1. DART API로 당해·전년 재무 수집 — Step 1~4
-2. 재무 숫자만 나오면 뉴스·애널리스트·페르소나·강세약세를 **서브에이전트로 병렬** 수집 — Step 4.5 (주가는 `price.py`)
+1. 입력 해석, 종목 확정, DART 재무 수집 — Step 1~4
+2. 재무 숫자만 나오면 뉴스·부문 매출·애널리스트·페르소나·강세약세를 **서브에이전트로 병렬** 수집 — Step 4.5 (주가는 `price.py`)
 3. `data.example.json` 형식 그대로 `data.json` 작성, 출처 검증 에이전트가 `audit` 장부 기록 — Step 5~5.5
 4. `verify_report.py` 숫자 검증 게이트. FAIL이면 고쳐서 재검증, **최대 3회차** — Step 6
 5. PASS 후 `build_report.py` 실행 → `output/`에 HTML, 경로를 사용자에게 전달 — Step 7~8
@@ -67,10 +67,7 @@ dart/
 
 ## 사전 준비 (시작 전 필독)
 
-아래 **두 파일만** 읽으면 된다:
-
-1. **`SKILL_DIR/assets/data.example.json`** — 만들어야 할 데이터의 정확한 형태(스키마)이자 카카오 실제 예시. 이 구조를 그대로 복사해 값만 바꾼다.
-2. **`SKILL_DIR/assets/dart_client.py`** — DartClient 클래스 (데이터 수집용)
+**`SKILL_DIR/assets/data.example.json` 한 파일만** 읽으면 된다. 만들어야 할 데이터의 정확한 형태(스키마)이자 카카오 실제 예시다. 이 구조를 그대로 복사해 값만 바꾼다. 스크립트(`corp_registry.py`·`dart_client.py`·`price.py`)는 이 문서에 적힌 대로 부르기만 하고 소스를 읽지 않는다.
 
 DART API 세부 응답이 헷갈릴 때만 `references/dart-api.md`를 편다. `design-system.md`·`section-templates.md`는 이미 `template.html`에 녹아 있으니 **런타임에 읽지 마라** (토큰·시간 낭비).
 
@@ -162,40 +159,31 @@ client = DartClient()
 | 전년 동기 | 동일, `year-1` |
 | 배당 | `client.get_dividend(corp_code, year, reprt_code)` |
 
-연결(CFS) 없으면 개별(OFS) 재시도 → 차트 제목에 "(개별)" 표기. `status != '000'`이면 메시지 알리고 중단.
+재무제표 응답의 `status`는 이 순서로 처리한다.
 
-**status=013(잠정) 폴백**: 분기 보고서가 미공시면 같은 분기 **잠정실적 공시**(공시명에 "실적(잠정)"/"잠정실적")의 `rcept_no`를 찾아 `document.xml` ZIP을 내려받아 정규식으로 매출·영업이익·순이익을 파싱한다.
-
-```python
-import requests, zipfile, io, re
-r = requests.get('https://opendart.fss.or.kr/api/document.xml',
-                 params={'crtfc_key': API_KEY, 'rcept_no': RCEPT_NO}, timeout=20)
-z = zipfile.ZipFile(io.BytesIO(r.content))
-text = re.sub(r'<[^>]+>', ' ', z.read(z.namelist()[0]).decode('utf-8', 'ignore'))
-text = re.sub(r'\s+', ' ', text).strip()
-```
+1. `000`: 정상. Step 4로 간다.
+2. 연결(`CFS`)이 `013`(데이터 없음): 개별(`OFS`)로 다시 부른다. 성공하면 차트 제목에 "(개별)"을 붙이고 `audit.src.fs_div="OFS"`.
+3. 개별도 `013`: 그 분기 정기보고서가 아직 안 나왔다. **잠정실적 폴백**으로 간다. `client.list_disclosures(corp_code, bgn_de=<분기말>, end_de=<오늘>, page_count=100)`에서 공시명에 "잠정"이 든 것의 `rcept_no`를 찾고, `verify_report.fetch_provisional_text(rcept_no)`로 원문 텍스트를 받아 매출·영업이익·순이익을 읽는다. `audit.src`에 `kind:"provisional"`, `rcept_no`를 넣는다. 잠정실적도 없으면 사용자에게 알리고 직전 분기로 할지 묻는다.
+4. 그 밖의 status: 오류 코드와 뜻(`references/dart-api.md` 표)을 알리고 중단한다. `020`·`800`은 `DartClient`가 이미 두 번 더 시도한 결과다.
 
 > **병렬로 보내라.** 당해·전년 재무, 개황 등 DART 호출은 서로 독립적이니 한 메시지에서 동시에 호출한다. 순차로 기다리지 마라.
 
-#### Step 3-B. 뉴스 — WebSearch (DART 공시 아님)
+### Step 4. 핵심 숫자 뽑기 — 게이트와 같은 함수를 쓴다
 
-`WebSearch`로 실적발표 전후 2주 내 국내 신문사 기사 6~8건 수집. 우선 매체: 한국경제·이데일리·전자신문·파이낸셜뉴스·서울경제·뉴스1·아이뉴스24·뉴시스. **검색에서 확인된 실제 URL만** 쓴다(추측 URL 금지, 네이버 검색 URL 금지). `sent`: 상회/긍정=`pos`, 급감/하락/규제=`neg`, 혼재=`mix`.
-
-> **웹 검색도 한 번에 병렬로.** 뉴스·부문 매출·애널리스트 목표가 검색을 하나씩 순차로 돌리지 말고, 한 메시지에 여러 `WebSearch`/`WebFetch`를 몰아 동시에 보낸다. (주가는 웹 검색 대신 `assets/price.py`를 쓴다.)
-
-### Step 4. 데이터 파싱
+매출·영업이익·순이익은 **직접 파싱하지 말고** 검증 게이트가 쓰는 함수로 뽑는다. 그래야 Step 6에서 기준이 어긋나 FAIL하지 않는다.
 
 ```python
-def extract(items, sj_div, keyword):
-    for it in items:
-        if it.get('sj_div')==sj_div and keyword in it.get('account_nm',''):
-            cur=(it.get('thstrm_amount','0') or '0').replace(',','')
-            prv=(it.get('frmtrm_amount','0') or '0').replace(',','')
-            return {'cur': int(cur), 'prv': int(prv)}
-    return {'cur': 0, 'prv': 0}
+from verify_report import fetch_dart          # SKILL_DIR/assets 가 sys.path에 있어야 한다
+vals, items, div, prev_bs = fetch_dart(src)   # src = Step 5의 audit.src와 같은 dict
+# vals = {'rev': (당기, 전년동기), 'op': (...), 'np_total': (...), 'np_parent': (...)}  단위: 억원(실수)
 ```
 
-단위: 원 → 억원 (`// 100_000_000`). YoY: `(cur-prv)/abs(prv)*100` (prv==0이면 "N/A").
+이 함수가 대신 처리하는 것:
+- **전년 동기는 이번 보고서의 재작성치**(`frmtrm_q_amount`)다. 작년 보고서 숫자를 쓰면 안 된다(중단영업 재분류 등으로 다르다).
+- **사업보고서(11011)는 4Q 단독**(연간 − 3Q 누적)으로 바꾼다. 연간 리포트면 `src.scope="annual"`.
+- 비12월 결산은 `src.fiscal_month`로 3Q 보고서의 사업연도를 맞춘다.
+
+표기는 억원 정수로 반올림한다. YoY는 억원으로 반올림하기 전 원값으로 `(cur-prv)/abs(prv)*100`(prv가 0이면 "N/A"). 그 밖의 계정(자산·부채·현금흐름)이 필요하면 `items`에서 찾는다.
 
 ### Step 4.5. 병렬 리서치·서술 ⚡ 속도 핵심
 
@@ -203,19 +191,22 @@ def extract(items, sj_div, keyword):
 
 | 에이전트 | 모델 | 넘겨줄 입력 | 반환할 JSON 조각 |
 |---|---|---|---|
-| **A. 웹 리서치** | Sonnet | 기업명·종목코드·분기·발표일 | `NEWS`(6~8), `ANALYSTS`(≥3), `CONS`, 목표가 범위(`meta.tp_*`) — **주가는 제외**(price.py로) |
+| **A. 웹 리서치** | Sonnet | 기업명·종목코드·분기·발표일·전년/당기 총매출 | `NEWS`(6~8), `SEGS`, `ANALYSTS`(≥3), `CONS`, 목표가 범위(`meta.tp_*`) — **주가는 제외**(price.py로) |
 | **B. 페르소나** | **Opus** | 재무 요약 | `PERSONAS` 13인 (`_ALL.md` 직접 읽고 평가) |
 | **C. 강세·약세** | Sonnet | 재무 요약 | `BULLS` 5, `BEARS` 5, `CHIPS` 3~4 |
 
 **모델 선택** (`Task`/`Agent`의 `model` 파라미터로 지정한다):
-- **A·C는 Sonnet** — 검색·추출·구조화 서술이라 빠르고 저렴한 Sonnet으로 충분하다. A는 세 트랙 중 가장 오래 걸려 wall-clock 병목이니 특히 Sonnet이 이득이다.
+- **A·C는 Sonnet** — 검색·추출·구조화 서술이라 빠르고 저렴한 Sonnet으로 충분하다. A는 세 트랙 중 가장 오래 걸려 전체 시간의 병목이니 특히 Sonnet이 이득이다.
 - **B(페르소나)는 Opus** — 13인 각자의 철학·판단 규칙을 실제 데이터에 적용하는 게 리포트 품질을 가르는 지점이라 여기만 Opus를 쓴다. A와 병렬로 도니 전체 시간은 늘지 않는다.
-- **메인 세션도 Sonnet으로 충분하다** — 재무 수집·`data.json` 조립·빌드는 대부분 결정론적 스크립트다. 품질이 실제로 갈리는 곳은 페르소나(B)뿐이다.
+
+**A에게 넘길 규칙** (뉴스·부문 매출은 아래 "데이터 생성 가이드"도 함께 넘긴다):
+- 뉴스: 실적발표 전후 2주 내 국내 신문사 기사 6~8건. 우선 매체는 한국경제·이데일리·전자신문·파이낸셜뉴스·서울경제·뉴스1·아이뉴스24·뉴시스. **검색에서 확인된 실제 URL만** 쓴다(추측 URL·네이버 검색 URL 금지). `sent`: 상회·긍정=`pos`, 급감·하락·규제=`neg`, 혼재=`mix`.
+- 검색은 순차로 돌리지 말고 한 메시지에 여러 `WebSearch`/`WebFetch`를 몰아 보낸다.
 
 규칙:
 - 각 에이전트에게 **"출력은 사람용 설명이 아니라 순수 JSON 조각"**임을 명시한다. 그래야 메인이 그대로 `data.json`에 꽂는다.
 - B·C는 웹이 필요 없으니 A와 정말 동시에 돈다. 세 트랙에 의존성이 없다.
-- 서브에이전트를 못 쓰는 환경이면 최소한 웹 검색만이라도 Step 3-B처럼 한 번에 병렬로 보낸다.
+- 서브에이전트를 못 쓰는 환경이면 메인이 A·B·C를 차례로 하되, 웹 검색만은 한 메시지에 몰아 병렬로 보낸다.
 
 ### Step 5. `data.json` 작성 ★ 핵심 단계
 
@@ -225,7 +216,7 @@ def extract(items, sj_div, keyword):
 - **`js`** — 차트·표·페르소나에 쓰이는 배열/객체 데이터.
 - **`audit`** — 검증 장부. `src`는 메인이 Step 5에서 채우고, `web`·`claims`는 Step 5.5의 검증 에이전트가 채운다. 화면에는 나오지 않는다.
 
-`js`의 필수 키와 규칙:
+`js`의 필수 키와 규칙. **`q25`·`q26`·`TOT25`·`TOT26`은 연도가 아니라 "전년 동기·당기"를 뜻하는 고정 키 이름이다.** 2027년 리포트에서도 이름을 바꾸지 않는다. 화면의 기간 표기는 `meta.q_prev_full`·`q_cur_full`이 정한다.
 
 | 키 | 내용 | 규칙 |
 |----|------|------|
@@ -335,7 +326,7 @@ python3 ~/.claude/skills/dart/assets/build_report.py <data.json 경로>
 
 ### Step 8. 확인·전달
 
-빌더가 성공(✅)하면 **생성된 파일 경로를 사용자에게 알린다**(가능하면 열어서 보여준다). 빌더가 경고를 내면 그 항목만 `data.json`에서 고쳐 **Step 6 검증부터 다시** 한다(내용이 바뀌면 PASS가 풀린다). **HTML을 직접 수정하지 마라** — 항상 data.json → 빌드.
+빌더가 성공(✅)하면 **생성된 파일 경로를 사용자에게 알린다**(가능하면 열어서 보여준다). 빌더가 경고를 내면 그 항목만 `data.json`에서 고쳐 **Step 6 검증부터 다시** 한다(내용이 바뀌면 PASS가 풀리고 회차를 하나 쓴다). 숫자와 무관한 빌더 경고로 회차를 쓰지 않도록, Step 6 전에 `meta` 키가 `data.example.json`과 빠짐없이 같은지 먼저 맞춘다. **HTML을 직접 수정하지 마라** — 항상 data.json → 빌드.
 
 ### Step 9. PDF 변환 (요청 시에만)
 
@@ -364,11 +355,11 @@ python3 ~/.claude/skills/dart/assets/html2pdf.py output/*.html -o output/pdf
 
 ## 데이터 생성 가이드 (섹션별)
 
-### 사업별 매출 (`SEGS`)
-1. DART 사업보고서 "사업부문별 영업실적"(연결 분기 매출) 우선 → 없으면 IR 자료 → 역산 시 `est:true`.
+### 사업별 매출 (`SEGS`) — 에이전트 A 담당
+1. DART 정기보고서 본문 "사업부문별 영업실적"(연결 분기 매출) 우선 → 없으면 IR 자료 → 역산 시 `est:true`. 부문 합계는 `TOT25`·`TOT26`(총매출)과 맞아야 한다(게이트 A층).
 2. `cat`은 필터 그룹 키(예: `platform`/`content`/`other`). `meta.filter_cats`에 표시할 필터 버튼 `[["platform","플랫폼"],...]`를 명시(전체 버튼은 자동). 세그먼트 2개 미만이면 `filter_cats: []`.
 
-### 주가 — 항상 전일 종가 (`CURR`, `meta.price`·`base_date`·`price_chg`·`w52_range`)
+### 주가 — 항상 전일 종가 (`CURR`, `meta.price`·`price_chg`·`w52_range`·`tp_cur`)
 웹 검색 현재가는 출처마다 값이 달라 부정확하다(카카오는 실측 대비 10% 틀린 적도 있다). **주가는 웹 검색을 쓰지 말고 반드시 `assets/price.py`로 가져온다**(Naver 금융 KRX 일봉):
 
 ```bash
@@ -383,7 +374,7 @@ python3 ~/.claude/skills/dart/assets/price.py <종목코드>
 - `meta.w52_range` = `w52_range`
 - `meta.tp_upside` = `(tp_avg-close)/close` 로 재계산
 
-`CURR`은 애널리스트 표의 Upside `(tp-CURR)/CURR` 계산에 쓰인다. 실패 시(비상장·해외 등)에만 다른 확인 소스를 쓰고 그 사실을 밝힌다.
+`CURR`은 애널리스트 표의 Upside `(tp-CURR)/CURR` 계산에 쓰인다. `price.py`가 실패하면(네트워크 장애) 다른 소스로 채우지 말고 잠시 뒤 다시 실행한다. 게이트가 같은 KRX 일봉으로 대조하므로 다른 소스 값은 통과하지 못한다.
 
 ### 애널리스트 (`ANALYSTS`, `CONS`, `meta.tp_*`)
 최소 3개 이상 증권사 확인. `CONS`는 전체 커버리지 집계(리스트에 안 실린 곳 포함 가능), `meta.coverage_note`·`cons_*_pct`와 정합. 목표가 범위는 `meta.tp_low/tp_avg/tp_high/tp_upside`에 넣는다. 불확실하면 note에 "(추정)".
@@ -400,18 +391,19 @@ DART 공시+개황+재무 기반, 각 5개. 주술 정합, em dash 없음, 투�
 
 | 상황 | 처리 |
 |------|------|
-| 특정 계정 없음 | 해당 `meta` 값 "데이터 없음", 나머지 정상 |
+| 매출·영업이익·순이익 중 하나가 DART에 없음 | 게이트 B층을 통과할 수 없다. 만들기 전에 사용자에게 알리고 중단한다 (`fetch_dart`의 `vals`에 키가 없으면 이 경우다) |
+| 그 밖의 계정 없음 | 해당 `meta` 값 "데이터 없음", 나머지 정상 |
 | API 전체 실패 | 오류 코드+해결법 안내 후 중단 |
 | CFS 없음 | OFS 재시도, 제목에 "(개별)" |
-| status=013 | 잠정실적 XML 폴백 (Step 3) |
+| status=013 | Step 3의 처리 순서 (OFS → 잠정실적 → 사용자 확인) |
 | status=020·800 | `DartClient`가 1초·3초 쉬고 두 번 더 시도한다. 그래도 020이면 일일 한도(2만 건) 초과다. 내일 다시 하거나 다른 키를 쓴다 |
 | 종목 `confirm`·`ambiguous` | 묻고 기다린다 (Step 2). 추측해서 고르지 않는다 |
-| 종목 `not_found` | `message`·`suggestions`를 전하고 중단한다 |
+| 종목 `not_found` | `message`·`suggestions`를 전하고 사용자가 다시 말할 때까지 멈춘다 (Step 2) |
 | 빌더 "숫자 검증 게이트 미통과" | Step 6 `verify_report.py`를 먼저 돌린다. PASS 뒤 data.json을 고쳤다면 다시 검증 |
 | 게이트 BLOCKED | 3회차 소진. 자동 수정 중단, 사용자에게 `verify.md` 보고 후 선택을 받는다 |
 | 빌더 "미치환 토큰" 경고 | `data.json`의 `meta`에 그 키 추가 후 재빌드 |
 | 빌더 "페르소나 13인 아님" | `PERSONAS` 배열을 13개로 맞춤 |
-| 세그먼트/주가 데이터 부족 | 대표 항목만 채우고 `est:true` / `price_disc`에 명기 |
+| 세그먼트 데이터 부족 | 대표 항목만 채우고 `est:true` |
 
 ---
 
