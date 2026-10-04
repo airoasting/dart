@@ -396,7 +396,7 @@ class Notes(unittest.TestCase):
         row = next(x for x in REG.listed if x["fiscal_month"] not in ("", "12") and cr.corp_kind(x) == "normal")
         res = r(row["stock_code"])
         self.assertTrue(any("결산 법인입니다" in n for n in res["notes"]))
-        self.assertTrue(any("latest_periodic_report" in a for a in res["agent"]))
+        self.assertTrue(any("assemble_report.py period" in a and "--fiscal-month" in a for a in res["agent"]))
 
     def test_reit_spac_konex(self):
         reit = next(x for x in REG.listed if x["corp_name"].endswith("리츠"))
@@ -409,7 +409,7 @@ class Notes(unittest.TestCase):
         for name in ("맥쿼리인프라", "맵스리얼티", "KB발해인프라"):
             self.assertEqual(r(name)["corp"]["kind"], "fund")
         self.assertTrue(any("스팩" in n for n in r(spac["stock_code"])["notes"]))
-        self.assertTrue(any("annual_only=True" in a for a in r(konex["stock_code"])["agent"]))
+        self.assertTrue(any("period" in a and "--scope annual" in a for a in r(konex["stock_code"])["agent"]))
 
     def test_user_text_is_polite_and_command_free(self):
         """사용자에게 가는 문장은 ~니다/~요/? 로 끝나고 명령어·API 용어가 없다 (BLUE 리뷰)."""

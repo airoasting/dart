@@ -290,14 +290,8 @@ def _eok(v):
 
 
 def _load_key():
-    if os.environ.get("DART_API_KEY"):
-        return os.environ["DART_API_KEY"]
-    for p in (pathlib.Path.cwd() / ".env", HERE / ".env", HERE.parent / ".env"):
-        if p.exists():
-            for line in p.read_text().splitlines():
-                if line.strip().startswith("DART_API_KEY="):
-                    return line.split("=", 1)[1].strip()
-    return None
+    from corp_registry import find_api_key   # 키를 찾는 규칙은 한 곳에만 둔다
+    return find_api_key()
 
 
 def q3_year(year, fiscal_month=12) -> str:
@@ -430,7 +424,7 @@ def check_dart(d, R: Report, pool):
             alt = "np_total" if np_key == "np_parent" else "np_parent"
             if alt in vals and sc is not None and abs(sc - vals[alt][0]) <= TOL_EOK:
                 R.items[-1]["hint"] = (f"표기값이 {'지배주주' if alt == 'np_parent' else '연결 총'}순이익과 일치한다. "
-                                       f"의도라면 audit.src.np_basis='{'parent' if alt == 'np_parent' else 'total'}'")
+                                       f"의도라면 assemble_report.py build에 --np-basis {'parent' if alt == 'np_parent' else 'total'}를 붙여 다시 조립한다")
 
     # 서술 대조 풀: 손익 전 계정(분기·누적, 당기·전년)과 그 YoY·매출 대비 비율, 재무상태표
     rev = vals.get("rev", (None, None))
@@ -700,7 +694,7 @@ def check_ledger(d, R: Report, pool, tps, tp):
     cons_ok = bool(e) and e.get("status") in ok_status
     labeled = any(w in plain(m.get("coverage_note", "")) for w in ("미확인", "추정", "확인된"))
     R.add(L, cons_ok or labeled, "CONS 집계", "확인됨" if cons_ok else ("범위 표기됨" if labeled else "근거 없음"),
-          "집계 출처를 audit.web(sec:'CONS', key:'coverage')에 남기거나, coverage_note에 집계 범위를 밝힌다")
+          "A2.json의 coverage_note에 집계 범위(표의 N개 증권사 기준)를 밝히고 다시 조립한다")
 
     # 목표가 범위: 표에서 계산되거나 출처가 있어야 한다
     calc = {"low": min(tps) if tps else None, "high": max(tps) if tps else None,
@@ -714,7 +708,7 @@ def check_ledger(d, R: Report, pool, tps, tp):
         sourced = bool(e) and e.get("status") in ok_status and e.get("url")
         R.add(L, derived or sourced, f"meta.tp_{k}",
               f"표기 {fmt(v)} / 표 기준 {fmt(calc[k])}" + (" · 출처 있음" if sourced else ""),
-              "표의 증권사로 계산한 값으로 바꾸거나, 컨센서스 출처를 audit.web(sec:'meta', key:'tp_avg')에 남긴다")
+              "목표가 평균은 조립 스크립트가 표의 증권사로 계산한다. 조각을 고쳤다면 다시 조립한다")
     if tps and tp.get("low") and tp.get("high"):
         R.add(L, tp["low"] <= min(tps) and max(tps) <= tp["high"], "목표가 범위 ⊇ 표",
               f"범위 {fmt(tp['low'])}~{fmt(tp['high'])} / 표 {fmt(min(tps))}~{fmt(max(tps))}")
@@ -735,8 +729,8 @@ def check_ledger(d, R: Report, pool, tps, tp):
             if c and c.get("status") in ok_status and c.get("url"):
                 continue
             R.add(L, False, f"{sec}[{key}] '{tok}'", "재무·주가 데이터에서 나오지 않는 숫자",
-                  "계산이 틀렸으면 고치고, 외부 출처 숫자면 audit.claims에 {text, url, status:'confirmed'}를 남기고, "
-                  "확인 못 하면 문장에서 숫자를 뺀다")
+                  "B·C 조각(B.json·C.json)에서 그 숫자를 빼거나 facts에 있는 표기로 바꾸고 다시 조립한다. "
+                  "기사 숫자를 꼭 써야 하면 원문을 확인해 V1.json의 claims에 {text, url, status:'confirmed'}로 남긴다")
 
 
 # ───────────────────────── 게이트 ─────────────────────────
@@ -862,7 +856,9 @@ def main():
     for i in fails:
         print(f"  ✗ [{i['layer']}] {i['item']}: {i['msg']}" + (f"\n      → {i['hint']}" if i["hint"] else ""))
     if status == "FAIL":
-        print(f"\n남은 회차 {state['max_rounds'] - n}. 위 항목만 data.json에서 고치고 다시 실행한다.")
+        print(f"\n남은 회차 {state['max_rounds'] - n}. 위 항목을 조각 파일(parts)에서 고치고 "
+              "assemble_report.py build로 다시 조립한 뒤 이 검증을 다시 실행한다. "
+              "(조립 스크립트를 쓰지 않은 잠정실적 리포트만 data.json을 직접 고친다)")
     elif status == "BLOCKED":
         print(f"\n회차 소진. 자동 수정을 멈추고 사용자에게 보고한다: {md_p}")
     print(f"리포트: {md_p}")

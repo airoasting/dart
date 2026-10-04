@@ -366,16 +366,16 @@ def _result(query, status, match, rows, reg: Registry, message, notes=None, agen
             agent.append("사용자가 그래도 원한다고 답할 때만 진행한다.")
         if corp["market"] == "코넥스" and kind == "normal":
             notes.append("코넥스 상장사는 분기·반기 보고서 제출 의무가 없어 연간 실적으로 만듭니다.")
-            agent.append("client.latest_periodic_report(corp_code, fiscal_month, annual_only=True)로 최신 사업보고서를 찾고 "
-                         "audit.src.scope='annual'로 만든다.")
+            agent.append("기간은 assemble_report.py period가 정한다(사업보고서와 --scope annual이 args에 들어 있다). "
+                         "그 args를 그대로 쓴다.")
         if fm and fm != 12 and kind == "normal":
             notes.append(f"{fm}월 결산 법인입니다. 분기는 이 회사의 회계연도 기준으로 표시합니다.")
-            agent.append(f"Step 1 달력 표를 쓰지 않는다. client.latest_periodic_report(corp_code, fiscal_month={fm})의 "
-                         f"bsns_year·reprt_code·label을 쓴다. audit.src.fiscal_month={fm}.")
+            agent.append(f"기간은 assemble_report.py period가 정한다(--fiscal-month {fm}이 args에 들어 있다). "
+                         "build에 --period-note로 실제 기간(예: FY25 1Q (2025.04~06))을 밝힌다.")
     age = reg.age_days()
     if age is not None and age > STALE_DAYS:
         notes.append(f"상장사 목록이 {reg.generated_at[:10]} 기준이라 그 뒤 상장하거나 이름을 바꾼 회사는 빠졌을 수 있습니다.")
-        agent.append("python3 corp_registry.py --refresh 로 목록을 갱신한다.")
+        agent.append("python3 ~/.claude/skills/dart/assets/corp_registry.py --refresh 로 목록을 갱신한다.")
     shown = rows[:SHOW_MAX] if status in ("confirm", "ambiguous") else []
     qk = norm(str(query or ""))
 
@@ -508,7 +508,7 @@ def resolve(query: str, reg: Registry | None = None) -> dict:
         r2 = _resolve_core(trimmed, reg)
         if r2["status"] != "not_found":
             r2["query"] = query
-            r2["agent"].append(f"질의에서 덧붙인 말을 떼고 '{trimmed}'로 찾았다. 기간 표현은 Step 1이 원래 문장에서 읽은 값을 쓴다.")
+            r2["agent"].append(f"질의에서 덧붙인 말을 떼고 '{trimmed}'로 찾았다. 기간 표현은 SKILL.md Step 2에서 원래 문장으로 정한다.")
             return r2
     # 대화체·여러 회사: 토큰마다 꾸밈말·조사·기간 표현을 떼고, 남은 토큰을 회사로 읽는다
     toks = [t for t in re.split(r"[\s,/·]+|\s(?:vs|VS|대)\s", q) if t]
@@ -536,7 +536,7 @@ def resolve(query: str, reg: Registry | None = None) -> dict:
         if len(uniq) == 1 and len(names) == len(found):          # 남은 말이 모두 같은 회사를 가리킨다
             r1 = uniq[0]
             r1["query"] = query
-            r1["agent"].append("대화체 질의에서 회사 이름만 골라 찾았다. 기간 표현은 Step 1이 원래 문장에서 읽은 값을 쓴다.")
+            r1["agent"].append("대화체 질의에서 회사 이름만 골라 찾았다. 기간 표현은 SKILL.md Step 2에서 원래 문장으로 정한다.")
             return r1
     return res
 
@@ -838,14 +838,14 @@ def resolve_or_refresh(query: str, api_key: str | None = None, timeout: int = 30
     if not key:
         res["notes"].append("DART API 키가 설정돼 있지 않아 최신 상장사 목록을 받지 못했습니다. "
                             "키는 opendart.fss.or.kr에서 무료로 받을 수 있습니다.")
-        res["agent"].append("SKILL_DIR/.env에 DART_API_KEY=... 한 줄을 넣도록 안내한다.")
+        res["agent"].append("~/.claude/skills/dart/.env 에 DART_API_KEY=발급받은_키 한 줄을 넣도록 안내한다.")
         return res
     marker = cache_dir() / "refresh_failed_at"
     try:   # 오프라인에서 질의마다 타임아웃을 기다리지 않도록, 실패 뒤 6시간은 다시 시도하지 않는다
         last_fail = dt.datetime.fromisoformat(marker.read_text().strip())
         if dt.datetime.now() - last_fail < dt.timedelta(hours=REFRESH_COOLDOWN_H):
             res["agent"].append(f"최근 목록 갱신이 실패했다({last_fail:%m-%d %H:%M}). 네트워크가 돌아오면 "
-                                "python3 corp_registry.py --refresh 를 실행한다.")
+                                "python3 ~/.claude/skills/dart/assets/corp_registry.py --refresh 를 실행한다.")
             return res
     except (OSError, ValueError):
         pass
@@ -874,7 +874,7 @@ def apply_live_check(res: dict, api_key: str | None = None) -> dict:
     if lc["ok"] is False:
         res["status"], res["corp"], res["candidates"] = "not_found", None, []
         res["message"] = "회사 정보를 공시 시스템과 대조하다 어긋나는 점이 있어 진행을 멈췄습니다."
-        res["agent"].append("python3 corp_registry.py --refresh 를 한 번 실행하고 다시 찾는다. "
+        res["agent"].append("python3 ~/.claude/skills/dart/assets/corp_registry.py --refresh 를 한 번 실행하고 다시 찾는다. "
                             f"그래도 어긋나면 사용자에게 알리고 중단한다. 사유: {lc['reason']}")
     elif lc["ok"] is None:
         res["agent"].append(f"DART 대조를 못 했다({lc['reason']}). 오프라인 결과로 진행해도 된다. Step 6 게이트가 다시 본다.")
@@ -883,16 +883,26 @@ def apply_live_check(res: dict, api_key: str | None = None) -> dict:
 
 # ───────────────────────── DART 실시간 확인 ─────────────────────────
 
-def _load_api_key() -> str | None:
-    if os.environ.get("DART_API_KEY"):
+def find_api_key() -> str | None:
+    """DART API 키를 찾는 단 하나의 규칙. 모든 스크립트가 이 함수를 쓴다.
+
+    순서: 환경변수 DART_API_KEY → 스킬 루트 .env (README가 안내하는 위치, ~/.claude/skills/dart/.env)
+    → assets/.env → 현재 작업 폴더 .env.
+    """
+    if os.environ.get("DART_API_KEY", "").strip():
         return os.environ["DART_API_KEY"].strip()
-    for p in (Path.cwd() / ".env", HERE / ".env", HERE.parent / ".env"):
-        if p.exists():
-            for line in p.read_text().splitlines():
-                k, _, v = line.partition("=")
+    for p in (HERE.parent / ".env", HERE / ".env", Path.cwd() / ".env"):
+        try:
+            for line in p.read_text(encoding="utf-8").splitlines():
+                k, _, v = line.strip().partition("=")
                 if k.strip() == "DART_API_KEY" and v.strip():
-                    return v.strip()
+                    return v.strip().strip("'\"")
+        except OSError:
+            continue
     return None
+
+
+_load_api_key = find_api_key   # 예전 이름 (내부 호출 호환)
 
 
 def _redact(e: object, key: str | None) -> str:

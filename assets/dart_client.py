@@ -18,19 +18,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))   # corp_registry 동�
 
 
 def _load_api_key() -> str:
-    key = os.environ.get("DART_API_KEY")
-    if key:
-        return key
-    env_path = Path(__file__).parent / ".env"
-    if env_path.exists():
-        for line in env_path.read_text().splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            if k.strip() == "DART_API_KEY":
-                return v.strip()
-    raise RuntimeError("DART_API_KEY가 환경변수 또는 .env 파일에 없습니다.")
+    from corp_registry import find_api_key   # 키를 찾는 규칙은 한 곳에만 둔다
+    key = find_api_key()
+    if not key:
+        raise RuntimeError("DART_API_KEY가 없습니다. ~/.claude/skills/dart/.env 에 DART_API_KEY=발급받은_키 한 줄을 넣거나 "
+                           "환경변수로 설정하세요. 키는 opendart.fss.or.kr에서 무료로 받습니다.")
+    return key
 
 
 RETRY_STATUS = {"020", "800"}   # 요청 제한 초과·시스템 점검: 잠깐 쉬었다 다시 부른다

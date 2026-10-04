@@ -155,5 +155,144 @@ class Facts(unittest.TestCase):
         self.assertIn("192,200원 (10/2 종가, +0.16%)", f["주가"])
 
 
+class PeriodAndFallback(unittest.TestCase):
+    def test_period_args_from_registry(self):
+        rep = {"bsns_year": "2026", "reprt_code": "11013", "period_end": "2026.06", "label": "1Q26",
+               "report_nm": "분기보고서 (2026.06)", "rcept_no": "r", "rcept_dt": "d"}
+        with mock.patch.object(ar.DartClient, "__init__", return_value=None), \
+                mock.patch.object(ar.DartClient, "latest_periodic_report", return_value=rep) as lp:
+            out = ar.period(ar.argparse.Namespace(corp_code="00136721"))      # 신영증권, 3월 결산
+        self.assertEqual(out["args"], "--year 2026 --reprt 11013 --fiscal-month 3")
+        self.assertEqual(lp.call_args.kwargs["fiscal_month"], 3)
+
+    def test_consolidated_missing_falls_back_to_separate(self):
+        calls = []
+
+        def fake(src):
+            calls.append(src["fs_div"])
+            if src["fs_div"] == "CFS":
+                raise LookupError("DART status=013 조회된 데이타가 없습니다.")
+            return VALS, ITEMS, [], []
+        a = ar.argparse.Namespace(corp_code=CORP, year="2026", reprt="11012", fs_div="CFS", scope="quarter",
+                                  np_basis="total", fiscal_month=None)
+        with mock.patch.object(ar, "fetch_dart", side_effect=fake), \
+                mock.patch.object(ar, "get_prev_close", return_value=PX):
+            c = ar.collect(a)
+        self.assertEqual(calls, ["CFS", "OFS"])
+        self.assertEqual(a.fs_div, "OFS")
+        self.assertIn("(개별)", c["facts"]["기간"])
+
+    def test_no_report_stops_with_guidance(self):
+        a = ar.argparse.Namespace(corp_code=CORP, year="2026", reprt="11012", fs_div="CFS", scope="quarter",
+                                  np_basis="total", fiscal_month=None)
+        with mock.patch.object(ar, "fetch_dart", side_effect=LookupError("DART status=013")), \
+                mock.patch.object(ar, "get_prev_close", return_value=PX):
+            with self.assertRaises(SystemExit) as cm:
+                ar.collect(a)
+        self.assertIn("provisional.md", str(cm.exception))
+
+
+class ApiKey(unittest.TestCase):
+    def test_skill_root_env_is_read(self):
+        """README가 안내하는 위치(스킬 루트 .env)를 모든 스크립트가 읽는다 (새 설치에서 키를 못 찾던 버그)."""
+        import corp_registry as cr
+        import dart_client as dc
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "assets").mkdir()
+            (root / ".env").write_text("DART_API_KEY=ROOTKEY\n", encoding="utf-8")
+            with mock.patch.dict(os.environ, {"DART_API_KEY": ""}), mock.patch.object(cr, "HERE", root / "assets"), \
+                    mock.patch("pathlib.Path.cwd", return_value=root / "assets"):
+                self.assertEqual(cr.find_api_key(), "ROOTKEY")
+                self.assertEqual(dc._load_api_key(), "ROOTKEY")
+                self.assertEqual(vr._load_key(), "ROOTKEY")
+
+
+class PatchOrdering(unittest.TestCase):
+    """새 리뷰어가 찾은 조립 버그 회귀 (patch가 계산보다 늦게 반영되던 문제 등)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = Path(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_segment_patch_flows_into_delta_and_sum_check(self):
+        v2 = {"web": [{"sec": "SEGS", "key": "플랫폼", "status": "corrected", "url": "u", "patch": {"q26": 23000, "q25": 20000}},
+                      {"sec": "SEGS", "key": "콘텐츠", "status": "corrected", "url": "u", "patch": {"q26": 10888}}], "claims": []}
+        write_parts(self.d, **{"V2.json": v2})
+        data = run_build(self.d)
+        self.assertEqual(data["js"]["DELTA"][-1]["d"], 33888 - 29151)
+        R, pool = vr.Report(), vr.Pool()
+        vr.check_arithmetic(data, R, pool)
+        self.assertEqual(R.fails, [])
+
+    def test_cons_recounted_after_opinion_patch(self):
+        v2 = {"web": [{"sec": "ANALYSTS", "key": "나증권", "status": "corrected", "url": "u2", "patch": {"r": "Hold"}}], "claims": []}
+        write_parts(self.d, **{"V2.json": v2})
+        self.assertEqual(run_build(self.d)["js"]["CONS"], {"buy": 1, "hold": 1, "sell": 0})
+
+    def test_missing_target_price_stops(self):
+        a2 = json.loads(json.dumps({"ANALYSTS": [{"firm": "가증권", "r": "Buy", "tp": None, "from": None, "date": "d", "note": "n"}],
+                                    "CONS": {"buy": 1, "hold": 0, "sell": 0},
+                                    "SEGS": [{"name": "플랫폼", "sub": "", "cat": "platform", "q25": 29151, "q26": 33888, "est": True}]}))
+        write_parts(self.d, **{"A2.json": a2, "V2.json": None})
+        with self.assertRaises(SystemExit):
+            run_build(self.d)
+
+    def test_news_url_patch_moves_ledger_key(self):
+        v1 = {"web": [{"sec": "NEWS", "key": "https://example.com/n1", "status": "corrected", "url": "https://example.com/n1",
+                       "patch": {"url": "https://example.com/real"}}], "claims": []}
+        write_parts(self.d, **{"V1.json": v1})
+        data = run_build(self.d)
+        self.assertEqual(data["js"]["NEWS"][0]["url"], "https://example.com/real")
+        self.assertIn("https://example.com/real", {e["key"] for e in data["audit"]["web"] if e["sec"] == "NEWS"})
+
+    def test_chip_dot_from_class(self):
+        c = {"BULLS": [{"t": "a", "d": "b"}], "BEARS": [{"t": "a", "d": "b"}],
+             "CHIPS": [{"cls": "dn", "dot": "var(--red)", "txt": "x"}]}       # 템플릿에 없는 색을 줘도
+        write_parts(self.d, **{"C.json": c})
+        self.assertEqual(run_build(self.d)["js"]["CHIPS"][0]["dot"], "var(--dn)")
+
+
+class ZeroCoverage(unittest.TestCase):
+    """증권사 보고서가 없는 중소형주도 리포트를 만든다 (신영증권 실측에서 발견)."""
+
+    def test_empty_analysts_builds_and_passes_arithmetic(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            a2 = {"ANALYSTS": [], "SEGS": [{"name": "플랫폼", "sub": "", "cat": "platform", "q25": 29151, "q26": 33888, "est": True}],
+                  "filter_cats": []}
+            write_parts(d, **{"A2.json": a2, "V2.json": None})
+            data = run_build(d)
+        m = data["meta"]
+        self.assertEqual((m["tp_avg"], m["tp_upside"], m["cons_buy"]), ("없음", "해당 없음", "0"))
+        self.assertIn("커버리지 없음", m["coverage_note"])
+        R, pool = vr.Report(), vr.Pool()
+        vr.check_arithmetic(data, R, pool)
+        self.assertEqual(R.fails, [], R.fails)
+
+
+class DartText(unittest.TestCase):
+    """V2가 DART 뷰어 URL을 그대로 넘겨도 접수번호를 뽑는다."""
+
+    def test_rcept_no_from_url_and_bare(self):
+        import dart_text
+        self.assertEqual(dart_text.rcept_no("https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260810000423"), "20260810000423")
+        self.assertEqual(dart_text.rcept_no("20260810000423"), "20260810000423")
+        with self.assertRaises(SystemExit):
+            dart_text.rcept_no("https://example.com")
+
+
+class TemplateHasNoCompanyText(unittest.TestCase):
+    """템플릿에 특정 회사 문구가 박히면 모든 리포트에 새어 나간다 (카카오 각주가 신영증권 리포트에 나왔던 회귀)."""
+
+    def test_no_example_company_words(self):
+        t = (ASSETS / "template.html").read_text(encoding="utf-8")
+        for w in ("카카오", "픽코마", "톡비즈", "하이닉스", "삼성전자", "1Q26", "2Q26"):
+            self.assertNotIn(w, t, w)
+
+
 if __name__ == "__main__":
     unittest.main()

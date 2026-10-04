@@ -329,6 +329,7 @@ tr:hover td { background:var(--row-hover); }
 .act-ke    { color:var(--t2); }
 .pos { color:var(--up); font-weight:700; }
 .neg { color:var(--dn); font-weight:700; }
+.tp-upside { color:var(--grn); } .tp-upside[data-sign^="-"] { color:var(--dn); }   /* 평균 목표가가 현재가보다 낮으면 빨강 */
 .grn { color:var(--grn); font-weight:700; }
 
 /* ─── bull / bear ─── */
@@ -660,7 +661,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div id="sec-growth" class="sec-label">성장 기여도 분석</div>
 <div class="sc nr full">
   <div class="sh">
-    <div class="sann">순증 <strong style="color:var(--coral)">{{g_net}}</strong> &nbsp;= 성장 기여 <strong style="color:var(--coral)">{{g_up}}</strong> + 감소 요인 <strong style="color:var(--dn)">{{g_dn}}</strong> &nbsp;<span style="color:var(--t3);font-size:.80rem">* 추정치 포함</span></div>
+    <div class="sann">순증 <strong style="color:var(--coral)">{{g_net}}</strong> &nbsp;= 성장 기여 <strong style="color:var(--coral)">{{g_up}}</strong> + 감소 요인 <strong style="color:var(--dn)">{{g_dn}}</strong> &nbsp;<span id="deltaEst" style="color:var(--t3);font-size:.80rem">* 추정치 포함</span></div>
   </div>
   <div class="cw" style="height:360px"><canvas id="deltaChart"></canvas></div>
 </div>
@@ -741,7 +742,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
         <div class="tp-item"><div class="l">최저 목표가</div><div class="v">{{tp_low}}</div></div>
         <div class="tp-item"><div class="l">평균 목표가</div><div class="v" style="color:var(--coral)">{{tp_avg}}</div></div>
         <div class="tp-item"><div class="l">최고 목표가</div><div class="v">{{tp_high}}</div></div>
-        <div class="tp-item"><div class="l">Implied Upside</div><div class="v" style="color:var(--grn)">{{tp_upside}}</div></div>
+        <div class="tp-item"><div class="l">Implied Upside</div><div class="v tp-upside" data-sign="{{tp_upside}}">{{tp_upside}}</div></div>
       </div>
     </div>
   </div>
@@ -1082,8 +1083,15 @@ function togTable(){
   b.textContent=o?'데이터 테이블 닫기':'데이터 테이블 보기';
   b.classList.toggle('open',o);if(o)renderTbl();
 }
-document.getElementById('fn1').innerHTML=
-  '* 추정치: 카카오모빌리티(플랫폼기타 역산), 픽코마·카카오엔터(스토리 비율 기준), 기타·재편(1Q26 세부 미공시). 영업이익·순이익은 연결 기준 IR 발표치.';
+/* 각주는 데이터에서 만든다: est:true 부문만 추정치로 밝힌다 */
+(function(){
+  const est=SEGS.filter(s=>s.est).map(s=>s.name);
+  document.getElementById('fn1').textContent=est.length
+    ? '* 추정치: '+est.join(', ')+' (출처에 부문 숫자가 없어 비중으로 역산하거나 합계를 맞춘 값)'
+    : '* 모든 부문 숫자는 출처(정기보고서·IR) 그대로다.';
+  const de=document.getElementById('deltaEst');
+  if(de) de.style.display=DELTA.some(x=>x.est&&!x.tot)?'':'none';
+})();
 
 /* ═══════════════ MARKET TAB ═══════════════ */
 function buildMarket(){
@@ -1100,6 +1108,9 @@ function buildMarket(){
 
   const tbody=document.getElementById('atBody');
   tbody.innerHTML='';
+  if(!ANALYSTS.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--t2);padding:18px">실적 발표 뒤 나온 증권사 보고서를 찾지 못했습니다 (커버리지 없음)</td></tr>';
+  }
   ANALYSTS.forEach(a=>{
     const delta=(a.from==null)?null:a.tp-a.from;   // 직전 목표가가 원문에 없으면 방향을 지어내지 않는다
     const action=delta===null?`<span class="act-ke">미확인</span>`:delta>0?`<span class="act-up">▲ 상향</span>`:delta<0?`<span class="act-dn">▼ 하향</span>`:`<span class="act-ke">유지</span>`;
@@ -1112,7 +1123,7 @@ function buildMarket(){
       <td><span class="badge ${a.r==='Buy'?'badge-buy':a.r==='Hold'?'badge-hold':'badge-sell'}">${a.r}</span></td>
       <td class="r"><strong>${a.tp.toLocaleString('ko-KR')}원</strong></td>
       <td class="r">${action} ${Math.abs(delta)>0?Math.abs(delta).toLocaleString('ko-KR')+'원':''}</td>
-      <td class="r pos">+${upside}%</td>
+      <td class="r ${upside>=0?'pos':'neg'}">${upside>=0?'+':''}${upside}%</td>
       <td style="font-size:.82rem;color:var(--t2)">${a.date}</td>
       <td style="font-size:.84rem;color:var(--t2)">${a.note}</td>`;
     tbody.appendChild(tr);

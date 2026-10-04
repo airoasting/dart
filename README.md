@@ -147,7 +147,7 @@ python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
 
 **리포트 생성.**
 
-이 스킬은 HTML을 매번 통째로 만들지 않습니다. 디자인과 차트, 레이아웃 같은 보일러플레이트는 `assets/template.html`에 고정해 두고, 스킬은 데이터만 만들어 `assets/build_report.py`로 결합합니다. 그래서 빠르고, 디자인이 매번 일정하며, 차트 축은 데이터에 맞춰 자동으로 조정됩니다. 뉴스와 애널리스트, 페르소나 같은 무거운 조사는 여러 작업을 병렬로 돌려 시간을 줄입니다.
+이 스킬은 HTML을 매번 통째로 만들지 않습니다. 디자인과 차트는 `assets/template.html`에 고정해 두고, 데이터만 새로 만들어 결합합니다. 뉴스, 증권사, 투자자 평가 같은 조사는 여러 AI 작업자가 동시에 하고, 숫자 계산과 조립은 `assets/assemble_report.py`가 DART와 한국거래소 자료에서 직접 합니다. 사람 손으로 숫자를 옮겨 적지 않으니 오류가 줄고, 리포트 한 편이 5분 안팎에 나옵니다.
 
 <details>
 <summary>파일 구조 펼치기</summary>
@@ -162,6 +162,7 @@ python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
 │   ├── build_report.py         # 데이터 + 템플릿 → 리포트
 │   ├── data.example.json       # 데이터 형식(스키마) + 카카오 예시
 │   ├── price.py                # 전일 종가·52주 (KRX)
+│   ├── dart_text.py            # 공시 원문 텍스트 검색 (V2 부문 검증용)
 │   ├── html2pdf.py             # 리포트 HTML → PDF (A4)
 │   ├── dart_client.py          # DART API 클라이언트 (재시도·키 가림)
 │   ├── corp_registry.py        # 종목 찾기: 이름·약칭·코드 → DART 고유번호
@@ -171,7 +172,7 @@ python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
 │   └── corp_aliases.csv        # 약칭 → 종목코드
 ├── tests/                      # 종목 찾기·조립 회귀 테스트 (python3 -m unittest discover -s tests)
 ├── investor_persona/           # 13인 투자자 철학 파일 (_ALL.md 통합본)
-└── references/                 # 설계 문서 (런타임 미사용)
+└── references/                 # 예외 상황 안내(종목 찾기·잠정실적·문제 해결·PDF)와 설계 기록
 ```
 </details>
 

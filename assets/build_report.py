@@ -83,7 +83,7 @@ def validate(out, js):
     n_persona = len(js.get("PERSONAS", []))
     if n_persona != 13:
         problems.append(f"페르소나가 13인이 아닙니다: {n_persona}인")
-    for req in ["SEGS", "ANALYSTS", "NEWS", "PERSONAS", "DELTA"]:
+    for req in ["SEGS", "NEWS", "PERSONAS", "DELTA"]:   # ANALYSTS는 비어도 된다(커버리지 없음)
         if not js.get(req):
             problems.append(f"필수 데이터 누락 또는 비어있음: {req}")
     # chart.js 버전 가드 (스킬 절대 규칙)
