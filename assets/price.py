@@ -76,9 +76,9 @@ def get_prev_close(stock_code: str) -> dict | None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("usage: python3 price.py <stock_code>", file=sys.stderr)
-        sys.exit(1)
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
+        print("usage: python3 price.py <stock_code>  (6자리 종목코드, 전일 종가·52주 범위를 JSON으로)", file=sys.stderr)
+        sys.exit(0 if len(sys.argv) >= 2 else 1)
     res = get_prev_close(sys.argv[1])
     if res is None:
         print(json.dumps({"error": "주가를 가져오지 못했습니다"}, ensure_ascii=False))

@@ -1103,7 +1103,7 @@ function togTable(){
 (function(){
   const est=SEGS.filter(s=>s.est).map(s=>s.name);
   document.getElementById('fn1').textContent=est.length
-    ? '* 추정치: '+est.join(', ')+' (출처에 부문 숫자가 없어 비중으로 역산하거나 합계를 맞춘 값)'
+    ? '* 추정치: '+est.join(', ')+' (원문에서 확인하지 못했거나, 비중으로 역산·합계를 맞춘 값)'
     : '* 모든 부문 숫자는 출처(정기보고서·IR) 그대로다.';
   const de=document.getElementById('deltaEst');
   if(de) de.style.display=DELTA.some(x=>x.est&&!x.tot)?'':'none';

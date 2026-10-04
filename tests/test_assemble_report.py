@@ -43,7 +43,6 @@ def write_parts(d: Path, **override):
         "A2.json": {"ANALYSTS": [
             {"firm": "가증권", "r": "Buy", "tp": 300000, "from": 280000, "date": "2026.08.10", "note": "n", "url": "u1"},
             {"firm": "나증권", "r": "Buy", "tp": 290000, "from": None, "date": "2026.09.01", "note": "n", "url": "u2"}],
-            "CONS": {"buy": 2, "hold": 0, "sell": 0}, "coverage_note": "표의 2개 증권사 기준",
             "SEGS": [{"name": "플랫폼", "sub": "s", "cat": "platform", "q25": 20000, "q26": 23000, "est": True},
                      {"name": "콘텐츠", "sub": "s", "cat": "content", "q25": 9151, "q26": 10888, "est": True}],
             "filter_cats": [["platform", "플랫폼"], ["content", "콘텐츠"]]},
@@ -292,6 +291,80 @@ class TemplateHasNoCompanyText(unittest.TestCase):
         t = (ASSETS / "template.html").read_text(encoding="utf-8")
         for w in ("카카오", "픽코마", "톡비즈", "하이닉스", "삼성전자", "1Q26", "2Q26"):
             self.assertNotIn(w, t, w)
+
+
+class SmallAndLossMaking(unittest.TestCase):
+    """소형주(억 반올림이 마진을 흔든다)와 적자 회사도 조립 결과가 게이트 A층을 통과한다 (최종 리뷰에서 발견)."""
+
+    def check(self, vals, q25, q26):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            a2 = {"ANALYSTS": [], "SEGS": [{"name": "본업", "sub": "", "cat": "other", "q25": q25, "q26": q26, "est": True}],
+                  "filter_cats": []}
+            write_parts(d, **{"A2.json": a2, "V2.json": None, "C.json": {"BULLS": [], "BEARS": [], "CHIPS": []}})
+            data = run_build(d, vals=vals)
+        R, pool = vr.Report(), vr.Pool()
+        vr.check_arithmetic(data, R, pool)
+        self.assertEqual(R.fails, [], R.fails)
+        return data
+
+    def test_operating_loss_negative_margin(self):
+        m = self.check({"rev": (100.4, 98.6), "op": (-3.3, 1.0), "np_total": (-5.2, 0.4), "np_parent": (-5.2, 0.4)},
+                       99, 100)["meta"]
+        self.assertIn("-3.3%", m["op_sub"])
+
+    def test_small_company_margin_rounding(self):
+        # 영업이익 4.6억 → 표기 5억이지만 OPM은 원값 4.58% → 4.6%. 반올림한 억으로 다시 계산하면 5.0%가 되어 틀렸다
+        self.check({"rev": (100.4, 100.2), "op": (4.6, 4.4), "np_total": (3.4, 3.6), "np_parent": (3.4, 3.6)}, 100, 100)
+
+    def test_small_segment_gap_goes_to_adjustment_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            a2 = {"ANALYSTS": [], "filter_cats": [],
+                  "SEGS": [{"name": "플랫폼", "sub": "", "cat": "platform", "q25": 20000, "q26": 23000, "est": False},
+                           {"name": "콘텐츠", "sub": "", "cat": "content", "q25": 9150, "q26": 10887, "est": False}]}
+            write_parts(d, **{"A2.json": a2, "V2.json": None})
+            data = run_build(d)
+        adj = [s for s in data["js"]["SEGS"] if s["name"] == "연결조정"]
+        self.assertEqual((adj[0]["q25"], adj[0]["q26"], adj[0]["est"]), (1, 1, True))
+        R, pool = vr.Report(), vr.Pool()
+        vr.check_arithmetic(data, R, pool)
+        self.assertEqual(R.fails, [], R.fails)
+
+
+class PickQuarter(unittest.TestCase):
+    """사용자가 말한 분기 → DART 사업연도. 결산월이 12월이 아니면 '뒤 분기면 전년' 규칙이 틀린다."""
+
+    def test_december(self):
+        self.assertEqual(ar.pick_quarter("1", 12, "2026.06"), (2026, "11013"))
+        self.assertEqual(ar.pick_quarter("3", 12, "2026.06"), (2025, "11014"))
+        self.assertEqual(ar.pick_quarter("4", 12, "2026.06"), (2025, "11011"))
+        self.assertEqual(ar.pick_quarter("3", 12, fiscal_year=2025), (2025, "11014"))
+
+    def test_march_fiscal_year(self):
+        # 신영증권: 최근 보고서 1Q26(2026.06). 3분기는 2025.12 보고서, 4분기는 2026.03 사업보고서
+        self.assertEqual(ar.pick_quarter("3", 3, "2026.06"), (2025, "11014"))
+        self.assertEqual(ar.pick_quarter("4", 3, "2026.06"), (2026, "11011"))
+        self.assertEqual(ar.pick_quarter("2", 3, "2026.06"), (2025, "11012"))
+        self.assertEqual(ar.pick_quarter("1", 3, fiscal_year=2025), (2025, "11013"))
+        self.assertEqual(ar.pick_quarter("4", 3, fiscal_year=2025), (2026, "11011"))
+
+    def test_june_fiscal_year(self):
+        self.assertEqual(ar.pick_quarter("3", 6, fiscal_year=2025), (2026, "11014"))   # 2026.03
+        self.assertEqual(ar.pick_quarter("2", 6, fiscal_year=2025), (2025, "11012"))   # 2025.12
+
+
+class AccountNames(unittest.TestCase):
+    """증권사 보고서는 'III. 영업이익'처럼 번호를 붙이고 IFRS 표준 id를 쓴다 (신영증권 3Q25에서 영업이익을 못 찾았다)."""
+
+    def test_numbered_names(self):
+        for raw in ("III. 영업이익", "Ⅲ.영업이익", "1. 영업이익", "(1) 영업이익", "가. 영업이익", "영업이익"):
+            self.assertEqual(vr.acc_name(raw), "영업이익", raw)
+        self.assertEqual(vr.acc_name("매출액"), "매출액")
+
+    def test_ifrs_operating_id(self):
+        it = {"sj_div": "CIS", "account_id": "ifrs-full_ProfitLossFromOperatingActivities", "account_nm": "III. 영업이익"}
+        self.assertIs(vr._find([it], "op"), it)
 
 
 if __name__ == "__main__":

@@ -47,7 +47,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from dart_client import REPRT_Q, DartClient, fiscal_label_year  # noqa: E402
+from dart_client import REPRT_OFFSET, REPRT_Q, DartClient, fiscal_label, fiscal_label_year  # noqa: E402
 from verify_report import fetch_dart                 # noqa: E402  (게이트와 같은 숫자)
 import corp_registry                                  # noqa: E402
 from price import get_prev_close                      # noqa: E402
@@ -107,6 +107,10 @@ def collect(a) -> dict:
     if a.fiscal_month is None:
         a.fiscal_month = corp["fiscal_month"] or 12
     vals, items, _div, _bs = _fetch(a)
+    cur = sorted({it.get("currency") for it in items if it.get("currency")} - {"KRW"})
+    if cur:   # 국내 상장 외국 기업(950xxx 등)은 달러 등으로 공시한다. 원 단위로 읽으면 모든 숫자가 틀린다
+        sys.exit(f"이 회사는 재무제표를 {', '.join(cur)}로 공시한다. 원화(억원) 기준인 이 리포트로는 만들 수 없다. "
+                 "사용자에게 알리고 중단한다.")
     np_key = "np_parent" if a.np_basis == "parent" else "np_total"
     miss = [k for k in ("rev", "op", np_key) if k not in vals or None in vals[k]]
     if miss:
@@ -201,6 +205,15 @@ def build(a) -> None:
     _apply_patches(js, ledgers)
 
     s25, s26 = sum(s["q25"] for s in segs), sum(s["q26"] for s in segs)
+    d25, d26 = r["rev"][1] - s25, r["rev"][0] - s26
+    if (d25 or d26) and abs(d25) <= len(segs) and abs(d26) <= len(segs):
+        # 부문별 억 반올림에서 생긴 작은 차이는 연결조정 행에 모아 합계를 총매출과 정확히 맞춘다(게이트는 ±1억)
+        adj = next((s for s in segs if s["name"] == "연결조정"), None)
+        if adj is None:
+            adj = {"name": "연결조정", "sub": "부문 간 거래·반올림", "cat": "other", "q25": 0, "q26": 0, "est": True}
+            segs.append(adj)
+        adj["q25"] += d25; adj["q26"] += d26; adj["est"] = True
+        s25, s26 = s25 + d25, s26 + d26
     if abs(s25 - r["rev"][1]) > len(segs) or abs(s26 - r["rev"][0]) > len(segs):
         sys.exit(f"SEGS 합계가 총매출과 다르다: 전년 {s25} vs {r['rev'][1]}, 당기 {s26} vs {r['rev'][0]}. "
                  "A2.json의 부문 숫자를 고치거나 차이를 연결조정 행(est: true)으로 넣고 다시 조립한다.")
@@ -278,20 +291,51 @@ def build(a) -> None:
     print(f"✅ {out}  (검증 장부 {len(web)}건" + (f", 아직 없는 출처 검증: {', '.join(missing)})" if missing else ")"))
 
 
+Q_REPRT = {"1": "11013", "2": "11012", "3": "11014", "4": "11011", "FY": "11011"}
+
+
+def pick_quarter(q: str, fm: int, latest_end: str | None = None, fiscal_year: int | None = None) -> tuple[int, str]:
+    """사용자가 말한 분기 → (DART bsns_year, reprt_code). bsns_year는 그 기간 끝 월의 연도다.
+
+    fiscal_year(회계연도 시작 연도, 라벨의 연도)를 주면 그 회계연도의 분기, 없으면 가장 최근 제출 보고서의
+    기간 끝(latest_end, 'YYYY.MM')보다 늦지 않은 가장 최근 분기를 고른다. 결산월이 12월이 아니어도 맞는다.
+    """
+    reprt = Q_REPRT[q]
+    pe = (fm + REPRT_OFFSET[reprt] - 1) % 12 + 1          # 그 분기의 기간 끝 월
+    if fiscal_year is not None:
+        return (fiscal_year if fm == 12 else fiscal_year + (1 if pe <= fm else 0)), reprt
+    ly, lm = (int(x) for x in latest_end.split("."))
+    return (ly if pe <= lm else ly - 1), reprt
+
+
 def period(a) -> dict:
-    """가장 최근에 제출된 정기보고서로 기간을 정한다. 결산월·코넥스 여부는 상장사 목록에서 읽는다."""
+    """기간을 정한다. 기본은 가장 최근에 제출된 정기보고서, --quarter를 주면 그 분기. 결산월·코넥스는 상장사 목록에서."""
     corp = _corp(a.corp_code)
     fm = corp["fiscal_month"] or 12
     konex = corp["market"] == "코넥스"
+    a.quarter, a.fiscal_year = getattr(a, "quarter", None), getattr(a, "fiscal_year", None)
     rep = DartClient().latest_periodic_report(a.corp_code, fiscal_month=fm, annual_only=konex)
-    if not rep:
+    if not rep and not (a.quarter and a.fiscal_year):
         sys.exit("최근 460일 안에 제출된 정기보고서가 없다. 사용자에게 알리고 중단한다.")
-    args = f"--year {rep['bsns_year']} --reprt {rep['reprt_code']}"
+    out = dict(rep or {})
+    note = None
+    if a.quarter and konex:
+        note = "코넥스는 분기·반기보고서 제출 의무가 없어 연간(사업보고서)으로 만든다. 사용자에게 알린다."
+    elif a.quarter:
+        year, reprt = pick_quarter(a.quarter, fm, (rep or {}).get("period_end"), a.fiscal_year)
+        pe = (fm + REPRT_OFFSET[reprt] - 1) % 12 + 1
+        out = {"bsns_year": str(year), "reprt_code": reprt, "period_end": f"{year}.{pe:02d}",
+               "label": ("FY" + fiscal_label(year, reprt, fm)[2:]) if a.quarter == "FY" else fiscal_label(year, reprt, fm),
+               "latest_submitted": (rep or {}).get("label")}
+    args = f"--year {out['bsns_year']} --reprt {out['reprt_code']}"
     if fm != 12:
         args += f" --fiscal-month {fm}"
-    if konex:
+    if konex or a.quarter == "FY":
         args += " --scope annual"
-    return {**rep, "fiscal_month": fm, "konex": konex, "args": args}
+    res = {**out, "fiscal_month": fm, "konex": konex, "args": args}
+    if note:
+        res["note"] = note
+    return res
 
 
 def main(argv=None) -> int:
@@ -299,6 +343,8 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     pp = sub.add_parser("period")
     pp.add_argument("--corp-code", required=True)
+    pp.add_argument("--quarter", choices=list(Q_REPRT), help="사용자가 말한 분기(1~4, 연간은 FY). 생략하면 가장 최근 제출 보고서")
+    pp.add_argument("--fiscal-year", type=int, help="사용자가 연도까지 말했을 때: 회계연도 시작 연도(라벨의 연도)")
     for name in ("facts", "build"):
         p = sub.add_parser(name)
         p.add_argument("--corp-code", required=True)

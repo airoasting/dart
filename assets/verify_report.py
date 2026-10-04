@@ -162,12 +162,14 @@ def check_arithmetic(d, R: Report, pool):
 
     # OPM·NPM
     for k, key in (("op", "op_sub"), ("np", "np_sub")):
-        shown = re.findall(r"(\d+(?:\.\d+)?)\s*%", plain(m.get(key, "")))
+        shown = re.findall(r"([+-]?\d+(?:\.\d+)?)\s*%", plain(m.get(key, "")))   # 손실이면 음수 마진
         cur, prv = vals.get(k, (None, None))
         if len(shown) >= 2 and cur is not None and rev_cur and rev_prv:
             e_prv, e_cur = prv / rev_prv * 100, cur / rev_cur * 100
-            R.eq(L, f"meta.{key} 전년 마진", to_num(shown[0]), round(e_prv, decimals(shown[0])), pct_tol(0, shown[0]))
-            R.eq(L, f"meta.{key} 당기 마진", to_num(shown[1]), round(e_cur, decimals(shown[1])), pct_tol(0, shown[1]))
+            # YoY와 같다: 반올림하지 않은 계산값과 비교하고 억 반올림 전파 오차를 더한다(정밀 대조는 B층)
+            mt = lambda num, den: (0.5 / abs(den) + 0.5 * abs(num) / den ** 2) * 100
+            R.eq(L, f"meta.{key} 전년 마진", to_num(shown[0]), e_prv, pct_tol(0, shown[0]) + mt(prv, rev_prv))
+            R.eq(L, f"meta.{key} 당기 마진", to_num(shown[1]), e_cur, pct_tol(0, shown[1]) + mt(cur, rev_cur))
             pool.add_pct(e_prv, e_cur)
             pool.add_pp(e_cur - e_prv)
 
@@ -261,7 +263,7 @@ def check_arithmetic(d, R: Report, pool):
 
 ACC = {
     "rev": (["ifrs-full_Revenue"], ["매출액", "영업수익", "수익(매출액)", "매출"]),
-    "op": (["dart_OperatingIncomeLoss"], ["영업이익", "영업이익(손실)"]),
+    "op": (["dart_OperatingIncomeLoss", "ifrs-full_ProfitLossFromOperatingActivities"], ["영업이익", "영업이익(손실)"]),
     "np_total": (["ifrs-full_ProfitLoss"], ["당기순이익", "당기순이익(손실)", "분기순이익", "반기순이익"]),
     "np_parent": (["ifrs-full_ProfitLossAttributableToOwnersOfParent"], ["지배기업 소유주지분", "지배기업의 소유주"]),
 }
@@ -274,10 +276,18 @@ def _amt(v):
         return None
 
 
+_NUM_PREFIX = re.compile(r"^\s*(?:\(\d+\)|(?:[IVXⅠ-Ⅻ]+|\d+|[가나다라마바사아자차카타파하])\s*[.)])\s*")
+
+
+def acc_name(nm):
+    """'III. 영업이익', '1. 매출액', 'Ⅳ.당기순이익' → 번호를 뗀 계정명 (증권사·보험사 보고서가 번호를 붙인다)."""
+    return _NUM_PREFIX.sub("", nm or "").strip()
+
+
 def _find(items, key):
     ids, names = ACC[key]
     pl = [it for it in items if it.get("sj_div") in ("IS", "CIS")]
-    for pred in (lambda it: it.get("account_id") in ids, lambda it: it.get("account_nm", "").strip() in names):
+    for pred in (lambda it: it.get("account_id") in ids, lambda it: acc_name(it.get("account_nm")) in names):
         hit = [it for it in pl if pred(it)]
         if hit:
             hit.sort(key=lambda it: it.get("sj_div") != "IS")
@@ -359,7 +369,10 @@ def fetch_provisional_text(rcept_no):
     import io, zipfile, requests
     r = requests.get("https://opendart.fss.or.kr/api/document.xml",
                      params={"crtfc_key": _load_key(), "rcept_no": rcept_no}, timeout=20)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
+    try:
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+    except zipfile.BadZipFile:   # 접수번호·키 오류면 DART가 zip 대신 오류 JSON/XML을 준다
+        raise LookupError(f"공시 원문을 받지 못했다(접수번호 {rcept_no}): {r.text[:160]}") from None
     text = re.sub(r"<[^>]+>", " ", z.read(z.namelist()[0]).decode("utf-8", "ignore"))
     return re.sub(r"\s+", " ", text)
 
@@ -392,7 +405,11 @@ def check_dart(d, R: Report, pool):
         shown[k] = (cur, None if None in (cur, diff) else cur - diff)
 
     if src.get("kind") == "provisional":
-        text = fetch_provisional_text(src["rcept_no"])
+        try:
+            text = fetch_provisional_text(src["rcept_no"])
+        except LookupError as e:
+            R.add(L, False, "잠정실적 원문", str(e), "audit.src.rcept_no가 잠정실적 공시의 접수번호(14자리)인지 확인한다")
+            return
         found = [to_num(x) for x in re.findall(r"\d[\d,]*(?:\.\d+)?", text)]
         for k, label in (("rev", "매출"), ("op", "영업이익"), ("np", "순이익")):
             v = shown[k][0]
@@ -406,6 +423,11 @@ def check_dart(d, R: Report, pool):
         vals, items, div, prev_bs = fetch_dart(src)
     except LookupError as e:
         R.add(L, False, "DART 재조회", str(e), "audit.src의 corp_code·year·reprt_code·fs_div를 확인한다")
+        return
+    cur = sorted({it.get("currency") for it in items if it.get("currency")} - {"KRW"})
+    if cur:
+        R.add(L, False, "DART 통화", f"재무제표 통화가 {', '.join(cur)}다. 억원 기준 리포트와 맞지 않는다",
+              "외화로 공시하는 회사는 이 리포트로 만들 수 없다")
         return
     np_key = "np_parent" if src.get("np_basis") == "parent" else "np_total"
     for k, dk, label in (("rev", "rev", "매출"), ("op", "op", "영업이익"), ("np", np_key, "순이익")):
@@ -425,6 +447,18 @@ def check_dart(d, R: Report, pool):
             if alt in vals and sc is not None and abs(sc - vals[alt][0]) <= TOL_EOK:
                 R.items[-1]["hint"] = (f"표기값이 {'지배주주' if alt == 'np_parent' else '연결 총'}순이익과 일치한다. "
                                        f"의도라면 assemble_report.py build에 --np-basis {'parent' if alt == 'np_parent' else 'total'}를 붙여 다시 조립한다")
+
+    # facts가 찍는 원값 기준 YoY·증감·마진·pp. 4Q 단독(연간 − 3Q 누적)은 items에 없는 값이라 따로 넣는다
+    rc, rp = vals.get("rev", (None, None))
+    for dk, (c, p) in vals.items():
+        if c is None or p is None:
+            continue
+        pool.add_eok(c, p, c - p)
+        if p:
+            pool.add_pct(yoy(c, p))
+        if dk != "rev" and rc and rp:
+            pool.add_pct(c / rc * 100, p / rp * 100)
+            pool.add_pp(c / rc * 100 - p / rp * 100)
 
     # 서술 대조 풀: 손익 전 계정(분기·누적, 당기·전년)과 그 YoY·매출 대비 비율, 재무상태표
     rev = vals.get("rev", (None, None))
@@ -669,7 +703,7 @@ def check_ledger(d, R: Report, pool, tps, tp):
         elif e.get("status") in ok_status:
             R.add(L, bool(e.get("url")), f"ANALYSTS '{a['firm']}'", "확인 URL " + ("있음" if e.get("url") else "없음"))
         else:
-            labeled = any(w in a.get("note", "") for w in ("추정", "미확인"))
+            labeled = any(w in (a.get("note") or "") for w in ("추정", "미확인"))
             R.add(L, labeled, f"ANALYSTS '{a['firm']}'", "미확인 항목",
                   "note에 '(추정)' 또는 '미확인'을 표기하거나 표에서 뺀다")
 
@@ -694,7 +728,7 @@ def check_ledger(d, R: Report, pool, tps, tp):
     cons_ok = bool(e) and e.get("status") in ok_status
     labeled = any(w in plain(m.get("coverage_note", "")) for w in ("미확인", "추정", "확인된"))
     R.add(L, cons_ok or labeled, "CONS 집계", "확인됨" if cons_ok else ("범위 표기됨" if labeled else "근거 없음"),
-          "A2.json의 coverage_note에 집계 범위(표의 N개 증권사 기준)를 밝히고 다시 조립한다")
+          "meta.coverage_note에 집계 범위(표의 N개 증권사 기준, 미확인)를 밝힌다. 조립 스크립트를 쓰면 자동으로 들어간다")
 
     # 목표가 범위: 표에서 계산되거나 출처가 있어야 한다
     calc = {"low": min(tps) if tps else None, "high": max(tps) if tps else None,
