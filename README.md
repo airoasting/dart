@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**바로 보기** → [카카오 1Q2026 리포트](https://airoasting.github.io/dart/%EC%B9%B4%EC%B9%B4%EC%98%A4_20260704.html)  ·  [SK하이닉스 (큰 숫자 사례)](https://airoasting.github.io/dart/SK%ED%95%98%EC%9D%B4%EB%8B%89%EC%8A%A4_20260704.html)
+**바로 보기** → [카카오 1Q2026 리포트](https://airoasting.github.io/dart/%EC%B9%B4%EC%B9%B4%EC%98%A4_20260704.html)  ·  [SK하이닉스 2Q2026 (큰 숫자 사례)](https://airoasting.github.io/dart/SK%ED%95%98%EC%9D%B4%EB%8B%89%EC%8A%A4_20261004.html)
 
 ---
 
@@ -71,7 +71,7 @@
 ### 투자자 시각
 ![13인 투자자 페르소나](assets/screenshots/08_persona.png)
 
-아주 큰 숫자도 잘 다룹니다. [SK하이닉스 1Q2026 리포트](https://airoasting.github.io/dart/SK%ED%95%98%EC%9D%B4%EB%8B%89%EC%8A%A4_20260704.html)를 보면 분기 매출 52조에 영업이익률 71.5%인데도, 차트가 데이터에 맞춰 축을 자동으로 조정합니다.
+아주 큰 숫자도 잘 다룹니다. [SK하이닉스 2Q2026 리포트](https://airoasting.github.io/dart/SK%ED%95%98%EC%9D%B4%EB%8B%89%EC%8A%A4_20261004.html)를 보면 분기 매출 79조에 영업이익률 76.3%, 순이익이 매출보다 큰 분기인데도, 차트가 데이터에 맞춰 축을 자동으로 조정합니다.
 
 ---
 

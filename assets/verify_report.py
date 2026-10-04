@@ -148,7 +148,9 @@ def check_arithmetic(d, R: Report, pool):
         if pct_tok and exp is not None:
             shown = pct_tok[0]
             rnd = (0.5 / abs(prv) + 0.5 * abs(cur) / prv ** 2) * 100   # 억 반올림 전파 오차 (정밀 대조는 B층)
-            R.eq(L, f"meta.{k}_yoy YoY%", to_num(shown), round(exp, decimals(shown)), pct_tol(0, shown) + rnd)
+            # 표기값과 '반올림하지 않은' 계산값을 비교한다. 계산값까지 반올림하면 반올림을 두 번 하게 되어
+            # 경계값(-11.150%)에서 A층(억 단위)과 B층(원 단위)이 서로 다른 답을 요구한다
+            R.eq(L, f"meta.{k}_yoy YoY%", to_num(shown), exp, pct_tol(0, shown) + rnd)
         elif exp is not None:
             R.add(L, False, f"meta.{k}_yoy", "YoY% 표기 없음")
         dir_ = m.get(f"{k}_dir")
@@ -422,7 +424,7 @@ def check_dart(d, R: Report, pool):
                     "전년 비교는 이번 보고서의 frmtrm(재작성치)을 쓴다. 작년 보고서 숫자를 쓰지 마라")
         yt = re.findall(r"([+-]?\d[\d,]*(?:\.\d+)?)\s*%", plain(m.get(f"{k}_yoy", "")))
         if yt and dc is not None and dp:
-            R.eq(L, f"DART {label} YoY%", to_num(yt[0]), round(yoy(dc, dp), decimals(yt[0])), pct_tol(0, yt[0]),
+            R.eq(L, f"DART {label} YoY%", to_num(yt[0]), yoy(dc, dp), pct_tol(0, yt[0]),
                  "YoY는 원 단위 원값으로 계산한다")
         if k == "np" and not (ok_c and ok_p):
             alt = "np_total" if np_key == "np_parent" else "np_parent"

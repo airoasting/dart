@@ -191,7 +191,7 @@ vals, items, div, prev_bs = fetch_dart(src)   # src = Step 5의 audit.src와 같
 
 | 에이전트 | 모델 | 넘겨줄 입력 | 반환할 JSON 조각 |
 |---|---|---|---|
-| **A. 웹 리서치** | Sonnet | 기업명·종목코드·분기·발표일·전년/당기 총매출 | `NEWS`(6~8), `SEGS`, `ANALYSTS`(≥3), `CONS`, 목표가 범위(`meta.tp_*`) — **주가는 제외**(price.py로) |
+| **A. 웹 리서치** | Sonnet | 기업명·종목코드·분기·발표일·전년/당기 총매출 | `NEWS`(6~8), `SEGS`, `ANALYSTS`(5곳), `CONS`, 목표가 범위(`meta.tp_*`) — **주가는 제외**(price.py로) |
 | **B. 페르소나** | **Opus** | 재무 요약 | `PERSONAS` 13인 (`_ALL.md` 직접 읽고 평가) |
 | **C. 강세·약세** | Sonnet | 재무 요약 | `BULLS` 5, `BEARS` 5, `CHIPS` 3~4 |
 
@@ -377,7 +377,7 @@ python3 ~/.claude/skills/dart/assets/price.py <종목코드>
 `CURR`은 애널리스트 표의 Upside `(tp-CURR)/CURR` 계산에 쓰인다. `price.py`가 실패하면(네트워크 장애) 다른 소스로 채우지 말고 잠시 뒤 다시 실행한다. 게이트가 같은 KRX 일봉으로 대조하므로 다른 소스 값은 통과하지 못한다.
 
 ### 애널리스트 (`ANALYSTS`, `CONS`, `meta.tp_*`)
-최소 3개 이상 증권사 확인. `CONS`는 전체 커버리지 집계(리스트에 안 실린 곳 포함 가능), `meta.coverage_note`·`cons_*_pct`와 정합. 목표가 범위는 `meta.tp_low/tp_avg/tp_high/tp_upside`에 넣는다. 불확실하면 note에 "(추정)".
+**증권사는 5곳**이다. 실적 발표 뒤 가장 최근 보고서를 낸 곳부터 고르되, 의견이 다른 곳(보유·매도)이나 목표가를 크게 올린 곳이 있으면 5곳 안에 넣는다. 5곳을 채우면 검색을 멈춘다(리서치 시간의 대부분이 증권사 찾기다). `CONS`는 전체 커버리지 집계(리스트에 안 실린 곳 포함 가능), `meta.coverage_note`·`cons_*_pct`와 정합. 목표가 범위는 `meta.tp_low/tp_avg/tp_high/tp_upside`에 넣는다. 불확실하면 note에 "(추정)".
 
 ### Bull/Bear (`BULLS`/`BEARS`)
 DART 공시+개황+재무 기반, 각 5개. 주술 정합, em dash 없음, 투자 권유 배제.
