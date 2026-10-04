@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-10-04T12:24:47+09:00",
+  "sources": {
+    "dart": "https://opendart.fss.or.kr/api/corpCode.xml",
+    "krx": "https://kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13",
+    "mcap_rank": "https://m.stock.naver.com/api/stocks/marketValue/KOSPI|KOSDAQ"
+  },
+  "counts": {
+    "dart_all": 119546,
+    "krx_listed": 2759,
+    "listed": 2759,
+    "delisted": 1239,
+    "by_market": {
+      "유가": 831,
+      "코스닥": 1821,
+      "코넥스": 107
+    }
+  },
+  "krx_without_dart": [],
+  "delist_reasons": 1239,
+  "mcap_ranked": 511,
+  "alias_problems": []
+}

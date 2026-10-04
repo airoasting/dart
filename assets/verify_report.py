@@ -6,7 +6,8 @@ verify_report.py — HTML 빌드 전 숫자 검증 게이트
 data.json의 모든 숫자를 세 층으로 다시 대조한다. 통과(PASS)해야만 build_report.py가 HTML을 만든다.
 
   A. 산술 정합   meta 텍스트 ↔ js 숫자, YoY·마진·합계·기여도·컨센·업사이드를 다시 계산해 대조
-  B. 원천 대조   DART API를 다시 호출해 매출·영업이익·순이익을, KRX 일봉으로 주가·등락·52주를 대조
+  B. 원천 대조   종목명·종목코드·corp_code가 한 회사인지 확인하고(상장 목록 + DART 기업개황),
+                 DART API를 다시 호출해 매출·영업이익·순이익을, KRX 일봉으로 주가·등락·52주를 대조
                  (서술 속 숫자의 대조 풀도 여기서 만든다)
   C. 출처 장부   웹에서 온 숫자(증권사 목표가, 부문 매출, 뉴스, 컨센)는 audit.web에 검증 기록이 있어야 하고,
                  CHIPS·BULLS·BEARS·페르소나 평가 속 숫자는 A·B 풀에 있거나 audit.claims에 출처가 있어야 한다
@@ -297,6 +298,16 @@ def _load_key():
     return None
 
 
+def q3_year(year, fiscal_month=12) -> str:
+    """사업보고서(bsns_year=year)와 같은 회계연도의 3분기보고서 bsns_year.
+
+    DART bsns_year는 보고서 기간 끝 월의 연도다. 3Q 끝 월 = 결산월 − 3. 0 이하면 전년이다.
+    12월 결산 2025 → 2025(9월), 3월 결산 2026 → 2025(12월), 6월 결산 2026 → 2026(3월).
+    """
+    fm = int(fiscal_month or 12)
+    return str(int(year) - (1 if fm - 3 <= 0 else 0))
+
+
 def fetch_dart(src):
     """(cur, prv) 억원 dict와 DART 전 계정 리스트를 반환. 실패 시 예외."""
     from dart_client import DartClient
@@ -316,8 +327,8 @@ def fetch_dart(src):
     vals = {}
     q4 = rc == "11011" and src.get("scope", "quarter") == "quarter"
     q3 = None
-    if q4:   # 4Q 단독 = 연간 − 3Q 누적
-        r3 = c.get_financial_statements(src["corp_code"], year, "11014", fs)
+    if q4:   # 4Q 단독 = 연간 − 3Q 누적. 3Q의 사업연도는 3Q 기간 끝 월의 연도다 (3월 결산이면 전년 12월)
+        r3 = c.get_financial_statements(src["corp_code"], q3_year(year, src.get("fiscal_month", 12)), "11014", fs)
         if r3.get("status") != "000":
             raise LookupError(f"4Q 역산용 3Q 보고서 없음: status={r3.get('status')}")
         q3 = r3["list"]
@@ -367,9 +378,10 @@ def check_dart(d, R: Report, pool):
               '"audit":{"src":{"corp_code":"00258801","year":"2026","reprt_code":"11012","fs_div":"CFS"}}')
         return
 
-    # 분기 라벨 ↔ 보고서 코드
+    # 분기 라벨 ↔ 보고서 코드. 비12월 결산은 회계연도 시작 연도로 라벨을 단다 (dart_client.fiscal_label_year)
+    from dart_client import fiscal_label_year
     q = REPRT_Q.get(str(src["reprt_code"]))
-    yy = int(str(src["year"])[-2:])
+    yy = fiscal_label_year(src["year"], str(src["reprt_code"]), src.get("fiscal_month", 12)) % 100
     want_cur, want_prv = f"{q}{yy:02d}", f"{q}{yy - 1:02d}"
     if src.get("scope") == "annual":
         want_cur, want_prv = f"FY{yy:02d}", f"FY{yy - 1:02d}"
@@ -484,6 +496,61 @@ def check_dart(d, R: Report, pool):
                 for cc, pc in (("thstrm_add_amount", "frmtrm_add_amount"), ("thstrm_amount", "frmtrm_q_amount")):
                     if r[cc] and r[pc] and v[cc] is not None and v[pc] is not None:
                         pool.add_pp(v[cc] / r[cc] * 100 - v[pc] / r[pc] * 100)
+
+
+def check_identity(d, R: Report):
+    """리포트가 정말 그 회사인가: meta.name ↔ meta.code ↔ audit.src.corp_code가 한 회사를 가리켜야 한다.
+
+    오프라인은 corp_registry(DART ∩ KRX 상장 목록), 온라인은 DART company.json으로 본다.
+    "현대차"를 부분일치로 찾아 현대차증권 숫자를 쓰는 식의 오인을 여기서 막는다.
+    """
+    L = "B 식별"
+    import corp_registry
+    m = d.get("meta", {})
+    src = (d.get("audit") or {}).get("src") or {}
+    corp_code, code, name = str(src.get("corp_code") or ""), str(m.get("code") or ""), plain(m.get("name", ""))
+    if not (corp_code and code and name):
+        R.add(L, False, "식별 정보", f"meta.name={name!r} meta.code={code!r} audit.src.corp_code={corp_code!r}",
+              "셋 다 채운다. corp_registry.py <회사명>의 corp.corp_name·stock_code·corp_code를 그대로 쓴다")
+        return
+    reg = corp_registry.load()
+    row = reg.by_corp.get(corp_code)
+    gone = next((x for x in reg.delisted if x["corp_code"] == corp_code), None)
+    if gone and not row:   # DART는 폐지 뒤에도 종목코드를 남긴다. 기업개황 대조만으로는 못 잡는다
+        R.add(L, False, "corp_code 상장 여부", f"{corp_code}는 {gone['corp_name']}({gone['stock_code']}), "
+              "현재 KRX 상장 종목이 아니다", "corp_registry.py로 지금 상장된 회사를 다시 찾는다")
+        return
+    if row:
+        R.add(L, row["stock_code"] == code, "corp_code ↔ 종목코드 (상장 목록)",
+              f"{corp_code}는 {row['corp_name']}({row['stock_code']}) / 표기 {code}",
+              "audit.src.corp_code와 meta.code 중 하나가 다른 회사다. corp_registry.py로 다시 찾는다")
+        res = corp_registry.resolve(name, reg)
+        # 정식명이 다른 회사의 약칭이기도 한 경우(모비스)는 ambiguous로 나온다. 후보 안에 있으면 같은 회사다
+        same = ((res["status"] == "ok" and res["corp"]["corp_code"] == corp_code)
+                or (res["status"] == "ambiguous" and corp_code in {c["corp_code"] for c in res["candidates"]}
+                    and corp_registry.norm(name) == corp_registry.norm(row["corp_name"])))
+        R.add(L, same, "meta.name ↔ corp_code",
+              f"'{name}' → " + (f"{res['corp']['corp_name']}({res['corp']['corp_code']})" if res["corp"] else res["status"])
+              + f" / audit {row['corp_name']}({corp_code})",
+              f"meta.name을 '{row['corp_name']}'(정식명)으로 쓴다")
+    from dart_client import DartClient
+    info = DartClient(api_key=_load_key(), timeout=20).company(corp_code)
+    if info.get("status") in ("020", "800"):   # 한도 초과·점검: 불일치가 아니라 확인 불가 → INCOMPLETE
+        raise ConnectionError(f"DART 기업개황 status={info.get('status')} {info.get('message')}")
+    if info.get("status") != "000":
+        R.add(L, False, "DART 기업개황", f"status={info.get('status')} {info.get('message')}",
+              "audit.src.corp_code가 8자리 DART 고유번호인지 확인한다")
+        return
+    R.add(L, (info.get("stock_code") or "").strip() == code, "corp_code ↔ 종목코드 (DART 기업개황)",
+          f"DART {info.get('corp_name')}({info.get('stock_code')}) / 표기 {code}")
+    R.add(L, info.get("corp_cls") in ("Y", "K", "N"), "상장 구분 (DART 기업개황)",
+          f"corp_cls={info.get('corp_cls')!r} (Y 코스피 · K 코스닥 · N 코넥스, E는 비상장·폐지)",
+          "상장 종목이 아니다. corp_registry.py로 다시 찾는다")
+    if not row:   # 목록에 아직 없는 신규 상장사: 이름은 기업개황과 직접 대조한다
+        dart_names = {corp_registry.norm(info.get("corp_name", "")), corp_registry.norm(info.get("stock_name", ""))}
+        R.add(L, corp_registry.norm(name) in dart_names, "meta.name ↔ DART 기업개황",
+              f"'{name}' / DART {info.get('stock_name')} · {info.get('corp_name')}",
+              f"meta.name을 '{info.get('stock_name')}'로 쓴다")
 
 
 def check_price(d, R: Report, pool):
@@ -716,6 +783,7 @@ def write_md(md_path, data, state, R: Report | None):
 def run_checks(data):
     R, pool = Report(), Pool()
     tps, tp = check_arithmetic(data, R, pool)
+    check_identity(data, R)
     check_dart(data, R, pool)
     check_price(data, R, pool)
     check_ledger(data, R, pool, tps, tp)

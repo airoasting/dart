@@ -31,6 +31,7 @@
 
 ## 믿을 수 있나 (데이터 출처)
 
+- **종목**은 금융감독원 공시 목록과 한국거래소의 현재 상장 목록을 맞물려 찾습니다. "현대차", "삼전", "하닉" 같은 약칭, "네이버" 같은 한글 표기, 영문명, 종목코드, 우선주, 그리고 "쌍용차", "포스코케미칼" 같은 주요 옛 회사명을 알아듣습니다. 이름이 애매하면 추측하지 않고 후보를 보여 드리고, 상장폐지된 종목은 그렇다고 알려 드립니다. 리츠와 상장 인프라 펀드는 결산 구조가 달라 만들지 않고, 스팩은 실적이 거의 없다는 점을 먼저 알려 드린 뒤 원하실 때만 만듭니다.
 - **재무**는 금융감독원 DART 전자공시의 공식 재무제표를 씁니다. 전년 동기와 비교합니다.
 - **주가**는 한국거래소(KRX) 전일 종가를 씁니다. 추측 없이 실제 종가와 52주 범위를 넣습니다.
 - **뉴스와 애널리스트 정보**는 실제 기사와 증권사 리포트에서 확인된 것만 넣습니다.
@@ -110,8 +111,11 @@ DART API 키는 https://opendart.fss.or.kr 에서 무료로 발급받아 알려�
 ```
 /dart 카카오
 /dart SK하이닉스 1Q2026
+/dart 005380
 네이버 실적 리포트 만들어줘
 ```
+
+회사 이름이 애매하면 리포트를 만들기 전에 "이 회사가 맞나요?"라고 먼저 여쭤봅니다.
 
 리포트는 `output/` 폴더에 `종목명_날짜_번호.html`로 저장됩니다.
 
@@ -133,6 +137,14 @@ python3 ~/.claude/skills/dart/assets/html2pdf.py output/카카오_20260704_01.ht
 
 ## 작동 방식 (기술 참고)
 
+**종목 찾기.** `assets/corp_registry.py`가 이름을 DART 고유번호(corp_code)로 바꿉니다. 상장사 목록은 저장소에 들어 있고, 30일이 지나거나 못 찾는 이름이 나오면 DART와 한국거래소에서 새로 받아 `~/.cache/dart-skill/`에 둡니다. 해석 결과는 이렇게 미리 볼 수 있습니다.
+
+```bash
+python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
+```
+
+**리포트 생성.**
+
 이 스킬은 HTML을 매번 통째로 만들지 않습니다. 디자인과 차트, 레이아웃 같은 보일러플레이트는 `assets/template.html`에 고정해 두고, 스킬은 데이터만 만들어 `assets/build_report.py`로 결합합니다. 그래서 빠르고, 디자인이 매번 일정하며, 차트 축은 데이터에 맞춰 자동으로 조정됩니다. 뉴스와 애널리스트, 페르소나 같은 무거운 조사는 여러 작업을 병렬로 돌려 시간을 줄입니다.
 
 <details>
@@ -148,8 +160,13 @@ python3 ~/.claude/skills/dart/assets/html2pdf.py output/카카오_20260704_01.ht
 │   ├── data.example.json       # 데이터 형식(스키마) + 카카오 예시
 │   ├── price.py                # 전일 종가·52주 (KRX)
 │   ├── html2pdf.py             # 리포트 HTML → PDF (A4)
-│   ├── dart_client.py          # DART API 클라이언트
-│   └── corp_codes_listed.csv   # 상장사 코드 (오프라인 검색)
+│   ├── dart_client.py          # DART API 클라이언트 (재시도·키 가림)
+│   ├── corp_registry.py        # 종목 찾기: 이름·약칭·코드 → DART 고유번호
+│   ├── corp_codes_listed.csv   # 현재 상장사 (DART ∩ 한국거래소)
+│   ├── corp_codes_delisted.csv # 상장폐지·이전 종목 (안내용)
+│   ├── corp_codes_meta.json    # 목록 생성 시각·건수
+│   └── corp_aliases.csv        # 약칭 → 종목코드
+├── tests/                      # 종목 찾기 회귀 테스트 (python3 -m unittest discover -s tests)
 ├── investor_persona/           # 13인 투자자 철학 파일 (_ALL.md 통합본)
 └── references/                 # 설계 문서 (런타임 미사용)
 ```

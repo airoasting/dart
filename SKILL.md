@@ -43,10 +43,15 @@ dart/
 │   ├── verify_report.py              ← 숫자 검증 게이트 (빌드 전 필수, 최대 3회차)
 │   ├── build_report.py               ← data.json + template → HTML 빌더 (게이트 PASS 확인)
 │   ├── data.example.json             ← 데이터 계약(스키마) + 카카오 예시 ★반드시 참고
-│   ├── dart_client.py                ← DartClient 클래스
+│   ├── dart_client.py                ← DartClient 클래스 (재시도·키 가림)
+│   ├── corp_registry.py              ← 종목 찾기: 이름·약칭·코드 → corp_code (Step 2)
+│   ├── corp_codes_listed.csv         ← 현재 KRX 상장사 (DART ∩ KIND, 시장·결산월·옛 이름 포함)
+│   ├── corp_codes_delisted.csv       ← 폐지·이전 종목 (안내 문구용)
+│   ├── corp_codes_meta.json          ← 목록 생성 시각·건수
+│   ├── corp_aliases.csv              ← 약칭 → 종목코드 (사람이 관리)
 │   ├── price.py                      ← 전일 종가·52주 (KRX, 웹검색 대신 필수)
-│   ├── html2pdf.py                   ← 리포트 HTML → PDF (인쇄용 보정 포함)
-│   └── corp_codes_listed.csv         ← 3,963개 상장사 오프라인 조회
+│   └── html2pdf.py                   ← 리포트 HTML → PDF (인쇄용 보정 포함)
+├── tests/test_corp_registry.py       ← 종목 찾기 회귀 테스트 (오프라인)
 ├── investor_persona/
 │   ├── _ALL.md                       ← 13인 페르소나 통합본 (이 파일 하나만 읽어라)
 │   └── *.md                          ← 개별 원본 (참고용)
@@ -79,10 +84,10 @@ DART API 키: 프로젝트 `.env` (`DART_API_KEY=...`) 또는 환경변수에서
 
 | 항목 | 처리 |
 |------|------|
-| **기업명** | 한글·영문·종목코드 모두 허용 |
+| **기업명** | 정식명·약칭(현대차·삼전)·옛 이름·영문명·종목코드(우선주 포함)·corp_code 모두 허용. 해석은 Step 2가 한다 |
 | **분기** | 명시 없으면 최근 분기 자동 판단 (아래) |
 
-최근 분기 자동 판단 (공시 지연 45일 고려):
+최근 분기 자동 판단 (공시 지연 45일 고려, **12월 결산 법인 기준**):
 
 | 현재 날짜 | 사용 분기 | reprt_code |
 |-----------|-----------|------------|
@@ -94,18 +99,52 @@ DART API 키: 프로젝트 `.env` (`DART_API_KEY=...`) 또는 환경변수에서
 
 ### Step 2. 기업 코드 조회
 
-`assets/corp_codes_listed.csv` (3,963개 상장사, 네트워크 불필요)에서 먼저 검색:
+이름 부분일치로 직접 찾지 마라. "현대차"는 현대차증권으로, "네이버"는 0건으로 빠진다. 반드시 레지스트리를 쓴다:
 
-```python
-import pandas as pd
-from pathlib import Path
-SKILL_DIR = Path('~/.claude/skills/dart').expanduser()
-df = pd.read_csv(SKILL_DIR/'assets'/'corp_codes_listed.csv',
-                dtype={'corp_code': str, 'stock_code': str}).fillna('')
-hits = df[df['corp_name'].str.contains(keyword, na=False)]
+```bash
+python3 ~/.claude/skills/dart/assets/corp_registry.py "<사용자가 쓴 이름 그대로>" --verify
 ```
 
-- 1개 히트 → 사용 / 복수 히트 → 회사명+종목코드 목록 제시 후 선택 대기 / 0개 → DART API `company.json` 재검색, 그래도 없으면 중단.
+출력 JSON은 두 갈래의 문장을 준다.
+- `message`·`notes`: **사용자에게 보여 줄 문장.** 자연스럽게 다듬어 전해도 되지만 뜻은 바꾸지 않는다. `notes`는 하나도 빼지 않는다.
+- `agent`: **너에게 주는 지시.** 사용자에게 보여 주지 말고 그대로 따른다.
+
+`status`별 행동 (종료코드 0·2·3):
+
+| status | 뜻 | 행동 |
+|---|---|---|
+| `ok` | 한 회사로 확정됨 (종목코드·정식명·약칭·옛 이름·영문명) | `corp`로 진행한다. 묻지 않는다. **단 `agent`에 멈추라거나 물으라는 지시가 있으면 그것이 먼저다** (리츠·스팩) |
+| `confirm` | 후보가 하나지만 확신할 수 없음 (부분일치, 오타, 앞자리 0이 빠진 코드, 합병으로 사라진 회사) | `message`로 묻고 답을 기다린다 |
+| `ambiguous` | 후보가 여럿 | `message`를 전하고 `candidates`의 `display`를 그대로 번호 목록으로 보여 준다(회사명·종목코드·시장, 사용자가 옛 이름으로 물었으면 그 옛 이름까지 들어 있다) |
+| `not_found` | 상장사에 없음 (비상장·폐지·오타) | `message`를 전하고, `suggestions`가 있으면 번호 목록으로 붙인다(문구는 `message`에 이미 있다). 사용자가 다시 말할 때까지 멈춘다 |
+
+**사용자가 후보(`candidates`)나 제안(`suggestions`) 중 하나를 고르거나 `confirm`에 "맞다"고 답하면, 고른 회사의 종목코드로 위 명령을 한 번 더 실행한다.** 그래야 그 회사의 `notes`·`agent`(리츠·스팩·코넥스·결산월 안내)가 붙는다. 다시 실행한 결과는 `ok`가 나오므로 아래 확인 항목으로 간다. 이때 `message`("찾았습니다")는 다시 전하지 않고 `notes`만 전한다.
+
+`confirm`에 "아니다"라고 답하면 정식 회사명이나 종목코드를 다시 물어보고, 답을 받으면 처음부터 다시 찾는다.
+
+"LG그룹"처럼 그룹을 말하면 `ambiguous`로 후보가 나온다. 현대차·한진그룹은 별칭 표의 계열 상장사이고, 그 밖의 그룹은 **이름이 같은 말로 시작하는 상장사**라 계열사가 아닌 회사가 섞일 수 있다(롯데관광개발). `message`가 그렇게 밝히니 덧붙여 "계열사"라고 부르지 않는다. 그룹 리포트는 없으니 한 곳을 고르게 한다.
+
+사용자가 "삼성전자랑 하이닉스"처럼 두 회사 이상을 말하면 `match: "multiple"`인 `ambiguous`가 나온다(후보는 말한 순서). 한 회사를 고르게 하고, 그 리포트를 끝낸 뒤 나머지도 만들지 묻는다.
+
+사용자가 "삼성전자 주가", "현대차 3분기 실적 어때?"처럼 말해도 그대로 넣으면 된다. 덧붙인 말은 레지스트리가 뗀다. 기간 표현("3분기")은 Step 1이 원래 문장에서 이미 읽었으니 그 값을 그대로 쓴다.
+
+`--verify`의 `live_check`부터 본다:
+- **`ok`가 `false`** (status가 `not_found`로 바뀌고 `corp`가 비워진다): 아직 사용자에게 아무것도 전하지 말고 `--refresh`를 **한 번** 한 뒤 같은 이름으로 다시 찾는다. 다시 찾은 결과를 위 표대로 처리한다. 두 번째도 false면 그때 `message`를 전하고 멈춘다.
+- **`ok`가 `null`** (DART 접속 불가): 그대로 진행한다. Step 6 게이트가 다시 확인한다.
+
+`corp`가 정해진 뒤 확인할 것:
+- **`corp.kind`**: `reit`·`fund`이면 `message`가 이미 "만들 수 없다"는 안내다. 전하고 멈춘다(결산 주기·실적 구조가 달라 분기 비교가 성립하지 않는다). `spac`이면 `notes`의 질문을 전하고 원할 때만 진행한다.
+- **`corp.market == "코넥스"`**: 분기·반기보고서 제출 의무가 없다. `client.latest_periodic_report(corp_code, fiscal_month, annual_only=True)`로 최신 사업보고서를 찾고 `audit.src.scope="annual"`로 연간 리포트를 만든다(반기보고서를 자진 제출한 코넥스사도 연간으로 통일한다).
+- **`corp.fiscal_month != 12`** (리츠·펀드·스팩을 빼면 34개사): Step 1의 달력 표를 쓰지 않는다. `client.latest_periodic_report(corp_code, fiscal_month)`가 가장 최근 정기보고서의 `bsns_year`·`reprt_code`·`period_end`·`label`을 준다.
+  - DART의 bsns_year는 보고서 기준월의 연도다. 3월 결산 1Q는 "분기보고서 (2025.06)" → 2025·11013, 4Q는 "사업보고서 (2026.03)" → 2026·11011.
+  - **라벨은 회계연도가 시작한 해로 단다**(업계 관행). 위 회계연도(2025.04~2026.03)는 1Q~4Q 모두 `25`다: `meta.q_cur_short`=`label`(예 `1Q25`), `q_prev_short`는 연도만 1 뺀다. `meta.period_full`에 기간(예 `FY25 1Q (2025.04~06)`)을 밝힌다.
+  - `audit.src.fiscal_month`를 넣는다. 게이트가 이 값으로 라벨과 4Q 역산(3Q 연도)을 맞춘다.
+
+확정된 `corp`의 세 값을 data.json에 그대로 옮긴다: `meta.name` = `corp_name`, `meta.code` = `stock_code`, `audit.src.corp_code` = `corp_code`. Step 6 게이트가 이 셋이 지금 상장된 한 회사인지 대조한다. 이 게이트는 **식별자 일관성**을 본다. 사용자가 뜻한 회사가 맞는지는 이 단계의 확인 질문이 책임진다.
+
+목록은 번들(`assets/corp_codes_listed.csv`)을 쓰고, 30일이 지났거나 못 찾으면 DART·KRX에서 한 번 갱신해 캐시(`~/.cache/dart-skill/`)에 둔 뒤 다시 찾는다. 갱신은 성공이든 실패든 6시간에 한 번만 한다. 수동 갱신은 `corp_registry.py --refresh`, 상태는 `--status`.
+
+파이썬에서 부를 때: `DartClient().resolve_corp("현대차", verify=True)` (반환과 상태 전환이 CLI와 같다).
 
 ### Step 3. DART 데이터 수집
 
@@ -216,7 +255,8 @@ def extract(items, sj_div, keyword):
 | `src` 선택 키 | 언제 |
 |---|---|
 | `np_basis: "parent"` | 순이익을 지배주주순이익으로 표기할 때 (기본은 연결 총 당기순이익) |
-| `scope: "annual"` | 4Q가 아니라 연간(FY) 리포트일 때. 11011의 기본은 4Q 단독(연간 − 3Q 누적) |
+| `scope: "annual"` | 4Q가 아니라 연간(FY) 리포트일 때. 11011의 기본은 4Q 단독(연간 − 3Q 누적). 코넥스는 항상 annual |
+| `fiscal_month` | 결산월이 12월이 아닐 때 `corp.fiscal_month`. 4Q 역산에 쓰는 3Q 보고서의 사업연도를 맞춘다 |
 | `kind: "provisional"`, `rcept_no` | status=013 잠정실적 폴백을 썼을 때. 공시 원문에서 숫자를 찾는다 |
 
 ### Step 5.5. 출처 검증 에이전트 (RED)
@@ -250,7 +290,7 @@ python3 ~/.claude/skills/dart/assets/verify_report.py <data.json 경로>
 | 층 | 대조 대상 | 정답 |
 |---|---|---|
 | A 산술 | YoY·증감액·OPM/NPM·방향, TOT ↔ 부문 합계, DELTA ↔ 부문 차이, g_net/up/dn, 컨센 %, 업사이드 | 재계산값 |
-| B 원천 | 매출·영업이익·순이익 당기/전년(재작성치), 분기 라벨, 종가·등락률·52주 | DART API 재조회, KRX 일봉 |
+| B 원천 | 종목명 ↔ 종목코드 ↔ corp_code가 지금 상장된 한 회사인지(폐지 corp_code·비상장 구분 포함), 매출·영업이익·순이익 당기/전년(재작성치), 분기 라벨, 종가·등락률·52주 | 상장사 레지스트리, DART 기업개황·재무 재조회, KRX 일봉 |
 | C 출처 | 증권사·부문·뉴스·컨센의 `audit.web` 기록, 목표가 범위, 서술 속 모든 `억·조·%·pp·원·만·배` 숫자 | A·B에서 나온 값 또는 `audit.claims` |
 
 종료 코드와 행동:
@@ -364,6 +404,9 @@ DART 공시+개황+재무 기반, 각 5개. 주술 정합, em dash 없음, 투�
 | API 전체 실패 | 오류 코드+해결법 안내 후 중단 |
 | CFS 없음 | OFS 재시도, 제목에 "(개별)" |
 | status=013 | 잠정실적 XML 폴백 (Step 3) |
+| status=020·800 | `DartClient`가 1초·3초 쉬고 두 번 더 시도한다. 그래도 020이면 일일 한도(2만 건) 초과다. 내일 다시 하거나 다른 키를 쓴다 |
+| 종목 `confirm`·`ambiguous` | 묻고 기다린다 (Step 2). 추측해서 고르지 않는다 |
+| 종목 `not_found` | `message`·`suggestions`를 전하고 중단한다 |
 | 빌더 "숫자 검증 게이트 미통과" | Step 6 `verify_report.py`를 먼저 돌린다. PASS 뒤 data.json을 고쳤다면 다시 검증 |
 | 게이트 BLOCKED | 3회차 소진. 자동 수정 중단, 사용자에게 `verify.md` 보고 후 선택을 받는다 |
 | 빌더 "미치환 토큰" 경고 | `data.json`의 `meta`에 그 키 추가 후 재빌드 |
@@ -379,6 +422,8 @@ DART 공시+개황+재무 기반, 각 5개. 주술 정합, em dash 없음, 투�
 | 빌더가 exit 1 | 미치환 토큰 또는 데이터 미주입 | 경고에 찍힌 키를 `data.json`에 채운다 |
 | 차트가 안 그려짐 | 해당 `js` 배열이 비었거나 필드명 오타 | `data.example.json`과 필드명 대조 |
 | 값이 화면과 안 맞음 | `meta` 텍스트와 `js` 숫자 불일치 | 게이트 A층이 잡는다. `verify.md`의 항목대로 동기화 |
+| 게이트 "B 식별" 불일치 | 다른 회사의 corp_code나 종목코드를 씀 | Step 2를 다시 돌려 `corp`의 세 값을 그대로 옮긴다. 숫자를 그 회사 것으로 다시 모은다 |
+| 종목을 못 찾음 (신규 상장·사명 변경) | 목록이 오래됨 | `corp_registry.py --refresh` 뒤 다시 찾는다 |
 | 게이트 B층 전년동기 불일치 | 작년 보고서 숫자를 씀 | 이번 보고서의 `frmtrm_q_amount`(재작성치)를 쓴다 |
 | 게이트 C층 "데이터에서 나오지 않는 숫자" | 서술에 출처 없는 숫자 | 계산 오류면 고치고, 기사 숫자면 `audit.claims`에 출처, 확인 불가면 숫자를 뺀다 |
 | API 키 실패 | `.env` 위치/형식 | 프로젝트 루트 `DART_API_KEY=...` 한 줄 |
