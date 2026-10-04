@@ -15,19 +15,19 @@ KPI 차트 · 성장 기여도 · 사업별 매출 · 애널리스트 시각 · 
 그래서 이 스킬은 HTML을 **다시 생성하지 않는다.** 대신:
 
 1. `assets/template.html` — 보일러플레이트가 고정된 템플릿 (건드리지 않는다)
-2. **너의 일** — 재무 데이터를 모아 `data.json` 하나를 쓴다 (약 200줄)
+2. **너의 일** — 리서치 에이전트를 돌려 조각 파일을 모으고, `assets/assemble_report.py`로 `data.json`을 조립한다 (숫자는 스크립트가 계산한다)
 3. `assets/verify_report.py` — **숫자 검증 게이트.** data.json의 모든 숫자를 원천과 다시 대조한다. PASS 전에는 빌드되지 않는다
 4. `assets/build_report.py` — 템플릿 + data.json → 최종 HTML (결정론적, 1초)
 
-HTML 전체를 토큰 단위로 뱉던 과거 방식은 한 리포트에 10분이 걸렸다. 데이터만 쓰면 출력량이 1/10로 줄어 전체가 **3~4분**이면 끝난다(병렬 웹 리서치가 하한). 절대 `template.html`을 복붙해 손으로 채우지 마라. 반드시 빌더를 써라.
+HTML 전체를 토큰 단위로 뱉던 과거 방식은 한 리포트에 10분이 걸렸다. 지금 구조의 실측은 NAVER 2Q26 **5분 00초**다(이전 구조의 현대자동차는 8분 24초). 전체 시간은 가장 느린 리서치 에이전트(증권사·부문, 약 4분)와 그 출처 검증(약 1분)이 정한다. 나머지 단계(사실 뽑기·조립·게이트·빌드)는 모두 합쳐 10초 남짓이다. 절대 `template.html`을 복붙해 손으로 채우지 마라. 반드시 빌더를 써라.
 
 ---
 
 ## 전체 흐름 (한눈에)
 
 1. 입력 해석, 종목 확정, DART 재무 수집 — Step 1~4
-2. 재무 숫자만 나오면 뉴스·부문 매출·애널리스트·페르소나·강세약세를 **서브에이전트로 병렬** 수집 — Step 4.5 (주가는 `price.py`)
-3. `data.example.json` 형식 그대로 `data.json` 작성, 출처 검증 에이전트가 `audit` 장부 기록 — Step 5~5.5
+2. `assemble_report.py facts`로 숫자를 뽑고, 뉴스·증권사·부문·페르소나·강세약세를 **서브에이전트로 병렬** 수집. 각 에이전트가 조각 파일을 직접 쓰고, 출처 검증은 리서치가 끝나는 대로 겹쳐 돈다 — Step 4~4.5
+3. `assemble_report.py build`가 조각과 검증 장부를 합쳐 `data.json`을 만든다(meta 숫자는 스크립트가 계산) — Step 5
 4. `verify_report.py` 숫자 검증 게이트. FAIL이면 고쳐서 재검증, **최대 3회차** — Step 6
 5. PASS 후 `build_report.py` 실행 → `output/`에 HTML, 경로를 사용자에게 전달 — Step 7~8
 
@@ -41,6 +41,7 @@ dart/
 ├── assets/
 │   ├── template.html                 ← 고정 보일러플레이트 (수정 금지)
 │   ├── verify_report.py              ← 숫자 검증 게이트 (빌드 전 필수, 최대 3회차)
+│   ├── assemble_report.py            ← 사실 뽑기(facts) · 조각+검증 장부 → data.json 조립(build)
 │   ├── build_report.py               ← data.json + template → HTML 빌더 (게이트 PASS 확인)
 │   ├── data.example.json             ← 데이터 계약(스키마) + 카카오 예시 ★반드시 참고
 │   ├── dart_client.py                ← DartClient 클래스 (재시도·키 가림)
@@ -51,7 +52,7 @@ dart/
 │   ├── corp_aliases.csv              ← 약칭 → 종목코드 (사람이 관리)
 │   ├── price.py                      ← 전일 종가·52주 (KRX, 웹검색 대신 필수)
 │   └── html2pdf.py                   ← 리포트 HTML → PDF (인쇄용 보정 포함)
-├── tests/test_corp_registry.py       ← 종목 찾기 회귀 테스트 (오프라인)
+├── tests/                            ← 종목 찾기·조립 회귀 테스트 (오프라인, 93개)
 ├── investor_persona/
 │   ├── _ALL.md                       ← 13인 페르소나 통합본 (이 파일 하나만 읽어라)
 │   └── *.md                          ← 개별 원본 (참고용)
@@ -168,107 +169,82 @@ client = DartClient()
 
 > **병렬로 보내라.** 당해·전년 재무, 개황 등 DART 호출은 서로 독립적이니 한 메시지에서 동시에 호출한다. 순차로 기다리지 마라.
 
-### Step 4. 핵심 숫자 뽑기 — 게이트와 같은 함수를 쓴다
+### Step 4. 사실 뽑기 — `assemble_report.py facts`
 
-매출·영업이익·순이익은 **직접 파싱하지 말고** 검증 게이트가 쓰는 함수로 뽑는다. 그래야 Step 6에서 기준이 어긋나 FAIL하지 않는다.
-
-```python
-from verify_report import fetch_dart          # SKILL_DIR/assets 가 sys.path에 있어야 한다
-vals, items, div, prev_bs = fetch_dart(src)   # src = Step 5의 audit.src와 같은 dict
-# vals = {'rev': (당기, 전년동기), 'op': (...), 'np_total': (...), 'np_parent': (...)}  단위: 억원(실수)
+```bash
+python3 ~/.claude/skills/dart/assets/assemble_report.py facts --corp-code <corp_code> --year <YYYY> --reprt <reprt_code>
+# 선택: --fs-div OFS · --scope annual · --np-basis parent · --fiscal-month 3
 ```
 
-이 함수가 대신 처리하는 것:
-- **전년 동기는 이번 보고서의 재작성치**(`frmtrm_q_amount`)다. 작년 보고서 숫자를 쓰면 안 된다(중단영업 재분류 등으로 다르다).
-- **사업보고서(11011)는 4Q 단독**(연간 − 3Q 누적)으로 바꾼다. 연간 리포트면 `src.scope="annual"`.
-- 비12월 결산은 `src.fiscal_month`로 3Q 보고서의 사업연도를 맞춘다.
+매출·영업이익·순이익(전년 → 당기, 증감액, YoY, OPM/NPM), 재무상태 4개 계정(조), 주가·52주를 **게이트와 같은 표기**의 문장으로 준다. 1초 안쪽이다. 이 출력을 B·C 에이전트에게 그대로 넘긴다. 직접 파싱하거나 다시 계산하지 마라.
 
-표기는 억원 정수로 반올림한다. YoY는 억원으로 반올림하기 전 원값으로 `(cur-prv)/abs(prv)*100`(prv가 0이면 "N/A"). 그 밖의 계정(자산·부채·현금흐름)이 필요하면 `items`에서 찾는다.
+이 스크립트는 게이트의 `verify_report.fetch_dart`를 쓴다. 그래서 전년 동기는 이번 보고서의 재작성치(`frmtrm_q_amount`), 사업보고서(11011)는 4Q 단독(연간 − 3Q 누적), 비12월 결산은 `--fiscal-month`로 3Q 사업연도를 맞춘 값이 나온다. 핵심 계정이 없으면 여기서 멈추고 이유를 알려 준다(게이트를 통과할 수 없는 경우다).
 
-### Step 4.5. 병렬 리서치·서술 ⚡ 속도 핵심
+### Step 4.5. 병렬 리서치와 출처 검증 ⚡ 속도 핵심
 
-재무 숫자만 나오면 리포트의 나머지 데이터는 서로 독립적이다. 이 구간을 순차로 하면 5~8분, **서브에이전트(`Task`/`Agent`)로 병렬 처리하면 2~3분**이다. 재무 요약(매출·영업이익·순이익 YoY, OPM/NPM)을 뽑은 뒤 **한 메시지에서 아래 3개 에이전트를 동시에** 띄운다.
+조각 폴더를 하나 정한다(예: `output/<종목명>_parts/`). **한 메시지에서 아래 4개 에이전트를 `run_in_background`로 동시에** 띄운다. 각 에이전트는 결과를 **조각 파일에 직접 쓰고** "done"만 답한다. 메인이 결과를 옮겨 적지 않는다.
 
-| 에이전트 | 모델 | 넘겨줄 입력 | 반환할 JSON 조각 |
+| 에이전트 | 모델 | 넘겨줄 입력 | 쓸 파일 |
 |---|---|---|---|
-| **A. 웹 리서치** | Sonnet | 기업명·종목코드·분기·발표일·전년/당기 총매출 | `NEWS`(6~8), `SEGS`, `ANALYSTS`(5곳), `CONS`, 목표가 범위(`meta.tp_*`) — **주가는 제외**(price.py로) |
-| **B. 페르소나** | **Opus** | 재무 요약 | `PERSONAS` 13인 (`_ALL.md` 직접 읽고 평가) |
-| **C. 강세·약세** | Sonnet | 재무 요약 | `BULLS` 5, `BEARS` 5, `CHIPS` 3~4 |
+| **A1. 뉴스** | Sonnet | 기업명·종목코드·분기 | `A1.json` = `{"NEWS": [5건]}` |
+| **A2. 증권사·부문** | Sonnet | 기업명·종목코드·분기·facts의 전년/당기 매출 | `A2.json` = `{"ANALYSTS": [5곳], "CONS", "coverage_note", "SEGS", "filter_cats"}` |
+| **B. 페르소나** | **Opus** | facts 출력 | `B.json` = PERSONAS 13인 배열 (`_ALL.md` 직접 읽고 평가) |
+| **C. 강세·약세** | Sonnet | facts 출력 | `C.json` = `{"BULLS": 5, "BEARS": 5, "CHIPS": 3~4}` |
 
-**모델 선택** (`Task`/`Agent`의 `model` 파라미터로 지정한다):
-- **A·C는 Sonnet** — 검색·추출·구조화 서술이라 빠르고 저렴한 Sonnet으로 충분하다. A는 세 트랙 중 가장 오래 걸려 전체 시간의 병목이니 특히 Sonnet이 이득이다.
-- **B(페르소나)는 Opus** — 13인 각자의 철학·판단 규칙을 실제 데이터에 적용하는 게 리포트 품질을 가르는 지점이라 여기만 Opus를 쓴다. A와 병렬로 도니 전체 시간은 늘지 않는다.
+**출처 검증은 리서치와 겹쳐 돌린다.** A1이 끝났다는 알림이 오면 곧바로 검증 에이전트 **V1**(Sonnet)을, A2가 끝나면 **V2**를 띄운다. 나머지 에이전트를 기다리지 않는다. 검증 에이전트는 작성한 에이전트와 달라야 한다.
 
-**A에게 넘길 규칙** (뉴스·부문 매출은 아래 "데이터 생성 가이드"도 함께 넘긴다):
-- 뉴스: 실적발표 전후 2주 내 국내 신문사 기사 6~8건. 우선 매체는 한국경제·이데일리·전자신문·파이낸셜뉴스·서울경제·뉴스1·아이뉴스24·뉴시스. **검색에서 확인된 실제 URL만** 쓴다(추측 URL·네이버 검색 URL 금지). `sent`: 상회·긍정=`pos`, 급감·하락·규제=`neg`, 혼재=`mix`.
-- 검색은 순차로 돌리지 말고 한 메시지에 여러 `WebSearch`/`WebFetch`를 몰아 보낸다.
+| 검증 | 입력 | 쓸 파일 |
+|---|---|---|
+| **V1** | `A1.json` | `V1.json` = `{"web": [NEWS 항목별], "claims": []}` |
+| **V2** | `A2.json` | `V2.json` = `{"web": [ANALYSTS·SEGS(est:false) 항목별], "claims": []}` |
 
-규칙:
-- 각 에이전트에게 **"출력은 사람용 설명이 아니라 순수 JSON 조각"**임을 명시한다. 그래야 메인이 그대로 `data.json`에 꽂는다.
-- B·C는 웹이 필요 없으니 A와 정말 동시에 돈다. 세 트랙에 의존성이 없다.
-- 서브에이전트를 못 쓰는 환경이면 메인이 A·B·C를 차례로 하되, 웹 검색만은 한 메시지에 몰아 병렬로 보낸다.
+검증 항목 형식과 규칙:
 
-### Step 5. `data.json` 작성 ★ 핵심 단계
+```json
+{"sec": "ANALYSTS", "key": "하나증권", "status": "corrected", "url": "<원문 URL>", "note": "08.24 하향", "patch": {"tp": 50000}}
+{"sec": "NEWS", "key": "<기사 URL>", "status": "confirmed", "url": "<기사 URL>"}
+{"sec": "SEGS", "key": "톡비즈", "status": "confirmed", "url": "<IR URL>"}
+```
 
-`data.example.json`을 열어 **똑같은 구조로** `data.json`을 만든다. 최상위 두 키:
+- 원문을 직접 열어 본 것만 `confirmed`다. 검색 결과 요약만 봤거나 링크가 열리지 않으면 `unverified`. 확인하지 않은 항목을 `confirmed`로 적는 것은 게이트 전체를 무력화하므로 금지한다.
+- 고칠 것이 있으면 `corrected`와 함께 **`patch`에 바뀐 필드와 값**을 넣는다(ANALYSTS는 `firm`, NEWS는 `url`, SEGS는 `name`으로 찾는다). 조립 스크립트가 그대로 반영하므로 메인이 다시 고치지 않는다. 원문에서 확인되지 않은 인용문은 note를 확인된 사실로 바꾸는 patch를 낸다.
+- `claims`: C·B의 문장에 재무제표로 계산되지 않는 숫자가 있을 때만 `{"text": "본문 표기 그대로", "url", "status"}`.
 
-- **`meta`** — 헤더·KPI 카드·컨센서스·목표가 등 화면에 박히는 스칼라 텍스트. `data.example.json`의 모든 `meta` 키를 그대로 채운다.
-- **`js`** — 차트·표·페르소나에 쓰이는 배열/객체 데이터.
-- **`audit`** — 검증 장부. `src`는 메인이 Step 5에서 채우고, `web`·`claims`는 Step 5.5의 검증 에이전트가 채운다. 화면에는 나오지 않는다.
+에이전트에게 줄 공통 규칙:
+- 파일에는 사람용 설명 없이 **순수 JSON**만 쓴다(Write 도구).
+- A1·A2는 검색을 순차로 돌리지 말고 한 메시지에 여러 `WebSearch`/`WebFetch`를 몰아 보낸다. 할당량(뉴스 5건, 증권사 5곳)을 채우면 검색을 멈춘다.
+- A1 뉴스: 실적발표 전후 2주 내 국내 신문사 기사 5건. 우선 매체는 한국경제·이데일리·전자신문·파이낸셜뉴스·서울경제·뉴스1·아이뉴스24·뉴시스. **검색에서 확인된 실제 URL만** 쓴다(추측 URL·네이버 검색 URL 금지). `body`의 숫자는 기사에 있는 것만. `sent`: 상회·긍정=`pos`, 급감·하락·규제=`neg`, 혼재=`mix`.
+- A2 증권사·부문: 아래 "데이터 생성 가이드"의 애널리스트·사업별 매출 규칙을 넘긴다. 직전 목표가(`from`)를 원문에서 못 찾으면 `null`로 둔다. `note`에는 원문에서 확인한 사실만 쓰고 확인 안 된 인용문은 넣지 않는다. `SEGS`의 `q25`·`q26` 합계는 facts의 전년·당기 매출과 같아야 한다(차이는 연결조정 행으로).
+- B·C: facts에 있는 숫자만 facts에 적힌 표기 그대로 쓴다. 새로 계산한 숫자는 게이트 C층에서 걸린다.
 
-`js`의 필수 키와 규칙. **`q25`·`q26`·`TOT25`·`TOT26`은 연도가 아니라 "전년 동기·당기"를 뜻하는 고정 키 이름이다.** 2027년 리포트에서도 이름을 바꾸지 않는다. 화면의 기간 표기는 `meta.q_prev_full`·`q_cur_full`이 정한다.
+**모델 선택** (`Agent`의 `model` 파라미터): 검색·추출·구조화 서술인 A1·A2·C·V1·V2는 Sonnet, 13인의 판단 규칙을 데이터에 적용하는 B만 Opus. 실측(현대자동차 2Q26)에서 웹 리서치가 전체 시간의 병목이었다.
+
+서브에이전트를 못 쓰는 환경이면 메인이 차례로 하되, 웹 검색만은 한 메시지에 몰아 병렬로 보낸다.
+
+### Step 5. `data.json` 조립 — `assemble_report.py build`
+
+A1·A2·B·C·V1·V2 파일이 모두 생기면:
+
+```bash
+python3 ~/.claude/skills/dart/assets/assemble_report.py build --corp-code <corp_code> --year <YYYY> --reprt <reprt_code> \
+    --parts <조각 폴더> -o output/<종목명>_data.json
+# 비12월 결산은 --fiscal-month와 --period-note "FY25 1Q (2025.04~06)"을 더한다
+```
+
+스크립트가 하는 일: meta의 모든 숫자(실적·증감·이익률·성장 기여도·기간 라벨·주가·목표가 범위·컨센 비율)를 DART·KRX에서 계산해 채운다. `DELTA`는 `SEGS`에서 만든다. 검증 장부를 `audit`에 합치고 `patch`를 본문에 반영한다. meta 키·페르소나 13인·SEGS 합계를 확인하고, 어긋나면 이유를 찍고 멈춘다. 메인은 data.json을 손으로 쓰지 않는다. 고칠 것이 생기면 조각 파일을 고치고 다시 조립한다.
+
+데이터 계약(구조)은 `data.example.json`이 정본이다. **`q25`·`q26`·`TOT25`·`TOT26`은 연도가 아니라 "전년 동기·당기"를 뜻하는 고정 키 이름이다.** 2027년 리포트에서도 이름을 바꾸지 않는다.
 
 | 키 | 내용 | 규칙 |
 |----|------|------|
-| `NAME` | 종목명(뉴스 검색 링크용) | `meta.name`과 동일 |
-| `CONS` | `{buy,hold,sell}` 애널리스트 컨센 수 | 도넛·집계에 사용 |
 | `CHIPS` | KPI 인사이트 칩 3~4개 | `{cls:'co'|'gn'|'dn', dot, txt}` |
 | `SEGS` | 사업부문별 매출 | `{name,sub,cat,q25,q26,est}` · Y축은 자동 계산됨 |
-| `TOT25`/`TOT26` | 전년·당기 총매출(억) | 믹스 계산용 |
-| `DELTA` | 성장 기여도 워터폴 | `{name,d,est}` + 마지막 `{name:'합계',d,tot:true}` |
-| `CURR` | 현재 주가(숫자) | 애널리스트 표 Upside 계산에 사용 |
-| `ANALYSTS` | 증권사 리포트 | `{firm,r:'Buy'|'Hold'|'Sell',tp,from,date,note}` |
+| `ANALYSTS` | 증권사 리포트 5곳 | `{firm,r:'Buy'|'Hold'|'Sell',tp,from,date,note}` (+조각에는 `url`). `from`은 직전 목표가이고, 원문에 없으면 `null`로 둔다(화면에 '미확인'). 지어내지 않는다 |
 | `BULLS`/`BEARS` | 각 5개 | `{t,d}` |
-| `NEWS` | 6~8건 | `{h,src,date,sent,url,body}` |
+| `NEWS` | 5건 | `{h,src,date,sent,url,body}` |
 | `PERSONAS` | **정확히 13인** | `{name,type,rating:'buy'|'hold'|'sell',desc,eval}` |
 
-**절대 규칙**: 모든 차트 Y축은 데이터에서 자동 계산된다(템플릿이 처리). data.json에 축 수치를 넣지 마라. `meta`의 숫자 텍스트(예: `rev_yoy`)는 Step 4에서 계산한 값과 일치시켜라.
-
-`audit.src`는 Step 3에서 실제로 호출한 값 그대로 쓴다. 게이트가 이 값으로 DART를 다시 부른다.
-
-```json
-"audit": {
-  "src": {"corp_code": "00258801", "year": "2026", "reprt_code": "11012", "fs_div": "CFS"},
-  "web": [], "claims": []
-}
-```
-
-| `src` 선택 키 | 언제 |
-|---|---|
-| `np_basis: "parent"` | 순이익을 지배주주순이익으로 표기할 때 (기본은 연결 총 당기순이익) |
-| `scope: "annual"` | 4Q가 아니라 연간(FY) 리포트일 때. 11011의 기본은 4Q 단독(연간 − 3Q 누적). 코넥스는 항상 annual |
-| `fiscal_month` | 결산월이 12월이 아닐 때 `corp.fiscal_month`. 4Q 역산에 쓰는 3Q 보고서의 사업연도를 맞춘다 |
-| `kind: "provisional"`, `rcept_no` | status=013 잠정실적 폴백을 썼을 때. 공시 원문에서 숫자를 찾는다 |
-
-### Step 5.5. 출처 검증 에이전트 (RED)
-
-웹에서 온 숫자는 스크립트가 원천을 다시 부를 수 없다. 그래서 **작성한 에이전트와 다른 에이전트**가 다시 연다. `data.json` 작성 직후 Sonnet 서브에이전트 하나를 띄운다.
-
-- 입력: `data.json` 경로
-- 할 일: `ANALYSTS` 각 증권사, `est:false`인 `SEGS` 각 부문, `NEWS` 각 URL, `CONS` 집계, 그리고 CHIPS·BULLS·BEARS·페르소나 `eval` 속 **재무제표로 계산되지 않는 숫자**를 WebFetch/WebSearch로 원문에서 확인한다.
-- 반환: 순수 JSON `{"web":[...], "claims":[...]}`. 메인은 이를 `audit`에 넣고, `corrected` 항목은 `note`대로 data.json 본문도 고친다.
-
-```json
-{"sec": "ANALYSTS", "key": "하나증권", "status": "corrected", "url": "<원문 URL>", "note": "tp 58000 → 50000 (08.24 하향)"}
-{"sec": "SEGS", "key": "톡비즈", "status": "confirmed", "url": "<IR URL>"}
-{"sec": "NEWS", "key": "<기사 URL>", "status": "confirmed", "url": "<기사 URL>"}
-{"sec": "CONS", "key": "coverage", "status": "unverified", "note": "전체 커버리지 집계 출처 없음"}
-{"sec": "meta", "key": "tp_avg", "status": "confirmed", "url": "<컨센 출처>"}
-```
-
-`claims`는 `{"text": "580억", "url": "<원문>", "status": "confirmed"}`. `text`는 본문에 쓴 표기 그대로다.
-
-**검증 에이전트 규칙**: 원문을 직접 열어 본 것만 `confirmed`다. 검색 결과 요약만 봤거나 링크가 열리지 않으면 `unverified`. 확인하지 않은 항목을 `confirmed`로 적는 것은 게이트 전체를 무력화하므로 금지한다.
+`audit.src` 선택 키는 조립 스크립트 옵션과 같다: `np_basis: "parent"`(지배주주순이익 표기), `scope: "annual"`(연간 리포트, 코넥스는 항상), `fiscal_month`(비12월 결산). 잠정실적 폴백(`kind: "provisional"`, `rcept_no`)은 조립 스크립트 대상이 아니라 data.example.json 구조대로 손으로 만든다.
 
 ### Step 6. 숫자 검증 게이트 ★ 빌드 전 필수
 
@@ -391,7 +367,7 @@ DART 공시+개황+재무 기반, 각 5개. 주술 정합, em dash 없음, 투�
 
 | 상황 | 처리 |
 |------|------|
-| 매출·영업이익·순이익 중 하나가 DART에 없음 | 게이트 B층을 통과할 수 없다. 만들기 전에 사용자에게 알리고 중단한다 (`fetch_dart`의 `vals`에 키가 없으면 이 경우다) |
+| 매출·영업이익·순이익 중 하나가 DART에 없음 | 게이트 B층을 통과할 수 없다. `assemble_report.py facts`가 멈추며 알려 준다. 사용자에게 알리고 중단한다 |
 | 그 밖의 계정 없음 | 해당 `meta` 값 "데이터 없음", 나머지 정상 |
 | API 전체 실패 | 오류 코드+해결법 안내 후 중단 |
 | CFS 없음 | OFS 재시도, 제목에 "(개별)" |

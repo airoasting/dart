@@ -1101,8 +1101,8 @@ function buildMarket(){
   const tbody=document.getElementById('atBody');
   tbody.innerHTML='';
   ANALYSTS.forEach(a=>{
-    const delta=a.tp-a.from;
-    const action=delta>0?`<span class="act-up">▲ 상향</span>`:delta<0?`<span class="act-dn">▼ 하향</span>`:`<span class="act-ke">유지</span>`;
+    const delta=(a.from==null)?null:a.tp-a.from;   // 직전 목표가가 원문에 없으면 방향을 지어내지 않는다
+    const action=delta===null?`<span class="act-ke">미확인</span>`:delta>0?`<span class="act-up">▲ 상향</span>`:delta<0?`<span class="act-dn">▼ 하향</span>`:`<span class="act-ke">유지</span>`;
     const upside=((a.tp-CURR)/CURR*100).toFixed(1);
     const tr=document.createElement('tr');
     tr.className='link-row';

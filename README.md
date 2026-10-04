@@ -158,6 +158,7 @@ python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
 ├── assets/
 │   ├── template.html           # 고정 템플릿 (디자인·차트)
 │   ├── verify_report.py        # 숫자 검증 게이트 (빌드 전 필수, 최대 3회차)
+│   ├── assemble_report.py      # 숫자 뽑기, 에이전트 조각 + 검증 장부 → data.json
 │   ├── build_report.py         # 데이터 + 템플릿 → 리포트
 │   ├── data.example.json       # 데이터 형식(스키마) + 카카오 예시
 │   ├── price.py                # 전일 종가·52주 (KRX)
@@ -168,7 +169,7 @@ python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
 │   ├── corp_codes_delisted.csv # 상장폐지·이전 종목 (안내용)
 │   ├── corp_codes_meta.json    # 목록 생성 시각·건수
 │   └── corp_aliases.csv        # 약칭 → 종목코드
-├── tests/                      # 종목 찾기 회귀 테스트 (python3 -m unittest discover -s tests)
+├── tests/                      # 종목 찾기·조립 회귀 테스트 (python3 -m unittest discover -s tests)
 ├── investor_persona/           # 13인 투자자 철학 파일 (_ALL.md 통합본)
 └── references/                 # 설계 문서 (런타임 미사용)
 ```
