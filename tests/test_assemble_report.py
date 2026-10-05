@@ -420,5 +420,17 @@ class TurnLabels(unittest.TestCase):
         self.assertEqual(m["g_dn"], "0억")
 
 
+class FiscalPeriodNote(unittest.TestCase):
+    """결산월이 12월이 아니면 기간 문구를 스크립트가 만든다 (--period-note를 손으로 넣던 단계를 없앴다)."""
+
+    def test_notes(self):
+        f = ar.fiscal_period_note
+        self.assertEqual(f("1Q", 2025, 3, False), "FY25 1Q (2025.04~06)")
+        self.assertEqual(f("4Q", 2025, 3, False), "FY25 4Q (2026.01~03)")
+        self.assertEqual(f("4Q", 2025, 3, True), "FY25 (2025.04~2026.03)")
+        self.assertEqual(f("2Q", 2025, 6, False), "FY25 2Q (2025.10~12)")
+        self.assertIsNone(f("1Q", 2026, 12, False))
+
+
 if __name__ == "__main__":
     unittest.main()

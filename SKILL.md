@@ -114,11 +114,10 @@ A1·A2·B·C·V1·V2 파일이 모두 생기면:
 ```bash
 python3 ~/.claude/skills/dart/assets/assemble_report.py build --corp-code <corp_code> <args> \
     --parts output/<종목명>_parts -o output/<종목명>_data.json
-# 결산월 비12월이면 --period-note "FY25 1Q (2025.04~06)"으로 실제 기간을 밝힌다
 # 순이익을 지배주주순이익으로 보이려면 facts·build 모두에 --np-basis parent (기본은 연결 당기순이익)
 ```
 
-스크립트가 meta의 모든 숫자와 라벨, 성장 기여도, 목표가 범위, 컨센 비율을 계산하고, 검증 장부를 합치고, `patch`를 본문에 반영한다. 부문 합계·투자자 13인·목표가 누락이 어긋나면 이유를 찍고 멈춘다. 그때는 위의 수정 원칙대로 조각을 고치고 다시 조립한다.
+스크립트가 meta의 모든 숫자와 라벨(결산월이 12월이 아니면 실제 달력 기간까지), 성장 기여도, 목표가 범위, 컨센 비율을 계산하고 검증 장부를 합친다. 부문 합계·투자자 13인·목표가 누락이 어긋나면 이유를 찍고 멈춘다. 그때는 위의 수정 원칙대로 조각을 고치고 다시 조립한다.
 
 ## Step 6. 숫자 검증 게이트
 
@@ -165,6 +164,6 @@ python3 ~/.claude/skills/dart/assets/build_report.py output/<종목명>_data.jso
 | 어떤 단계가 멈췄을 때 | `references/troubleshooting.md` |
 | PDF | `references/pdf.md` |
 | DART API 응답 구조가 헷갈릴 때 | `references/dart-api.md` |
-| 데이터 계약 전체 | `assets/data.example.json` (카카오 1Q26 실제 예시) |
+| 데이터 계약 전체 | `assets/data.example.json` (카카오 1Q26 기준 예시) |
 
 `references/design-system.md`·`section-templates.md`는 사람용 설계 기록이다. 이미 `template.html`에 반영돼 있어 실행 중에는 읽지 않는다. 변경 이력은 `OPTIMIZATION.md`.

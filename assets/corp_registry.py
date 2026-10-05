@@ -371,7 +371,7 @@ def _result(query, status, match, rows, reg: Registry, message, notes=None, agen
         if fm and fm != 12 and kind == "normal":
             notes.append(f"{fm}월 결산 법인입니다. 분기는 이 회사의 회계연도 기준으로 표시합니다.")
             agent.append(f"기간은 assemble_report.py period가 정한다(--fiscal-month {fm}이 args에 들어 있다). "
-                         "build에 --period-note로 실제 기간(예: FY25 1Q (2025.04~06))을 밝힌다.")
+                         "그 args를 그대로 쓰면 라벨과 실제 기간(예: FY25 1Q (2025.04~06))을 스크립트가 붙인다.")
     age = reg.age_days()
     if age is not None and age > STALE_DAYS:
         notes.append(f"상장사 목록이 {reg.generated_at[:10]} 기준이라 그 뒤 상장하거나 이름을 바꾼 회사는 빠졌을 수 있습니다.")

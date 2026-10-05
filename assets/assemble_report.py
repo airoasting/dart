@@ -33,7 +33,7 @@
 검증 장부의 corrected 항목에 "patch": {필드: 값}을 넣으면 해당 항목(ANALYSTS는 firm, NEWS는 url,
 SEGS는 name으로 찾는다)에 그대로 반영한다. 사람이 다시 옮겨 적지 않는다.
 
-옵션: --fs-div OFS · --scope annual · --np-basis parent · --fiscal-month 3 · --period-note "FY25 1Q (2025.04~06)"
+옵션: --fs-div OFS · --scope annual · --np-basis parent · --fiscal-month 3
 잠정실적(kind=provisional) 리포트는 이 스크립트 대상이 아니다. references/provisional.md대로 만든다.
 """
 from __future__ import annotations
@@ -120,6 +120,19 @@ def _bs_fmt(*won):
     return [f"{round(w / 1e8):,}억" for w in won]
 
 
+def fiscal_period_note(q: str, fy: int, fm: int, annual: bool) -> str | None:
+    """결산월이 12월이 아니면 실제 달력 기간을 밝힌다: 'FY25 1Q (2025.04~06)', 'FY25 (2025.04~2026.03)'. 12월 결산은 None."""
+    fm = int(fm or 12)
+    if fm == 12:
+        return None
+    n = 4 if annual else int(q[0])
+    first = 1 if annual else n
+    sm, em = (fm + 3 * (first - 1)) % 12 + 1, (fm + 3 * n - 1) % 12 + 1     # 기간 첫 달, 끝 달
+    sy, ey = fy + (0 if sm > fm else 1), fy + (0 if em > fm else 1)
+    span = f"{sy}.{sm:02d}~{em:02d}" if sy == ey else f"{sy}.{sm:02d}~{ey}.{em:02d}"
+    return f"FY{fy % 100:02d}{'' if annual else ' ' + q} ({span})"
+
+
 def collect(a) -> dict:
     """DART·주가에서 리포트의 모든 숫자를 만든다. facts와 build가 같은 값을 쓴다."""
     corp = _corp(a.corp_code)
@@ -144,6 +157,8 @@ def collect(a) -> dict:
     else:
         cur_full, prv_full = f"{q} {fy}", f"{q} {fy - 1}"
         cur_s, prv_s, nav = f"{q}{fy % 100:02d}", f"{q}{(fy - 1) % 100:02d}", f"{fy % 100:02d} {q}"
+
+    note = fiscal_period_note(q, fy, a.fiscal_month, a.scope == "annual")
 
     bs = {}
     for it in items:
@@ -181,7 +196,7 @@ def collect(a) -> dict:
     }
     return {"corp": corp, "raw": raw, "r": r, "opm": opm, "npm": npm, "px": px, "facts": facts,
             "chg": {k: chg(k) for k in ("rev", "op", "np")},
-            "labels": {"cur_full": cur_full, "prv_full": prv_full, "cur_s": cur_s, "prv_s": prv_s, "nav": nav, "fy": fy}}
+            "labels": {"note": note, "cur_full": cur_full, "prv_full": prv_full, "cur_s": cur_s, "prv_s": prv_s, "nav": nav, "fy": fy}}
 
 
 def _load(p: pathlib.Path, need=True):
@@ -268,7 +283,7 @@ def build(a) -> None:
     fy = lb["fy"]
     meta = {
         "name": corp["corp_name"], "base_date": dt.date.today().strftime("%Y.%m.%d"), "code": corp["stock_code"],
-        "period_full": a.period_note or f"{lb['prv_full']} vs {lb['cur_full']}",
+        "period_full": a.period_note or lb["note"] or f"{lb['prv_full']} vs {lb['cur_full']}",
         "basis": ("연결" if a.fs_div == "CFS" else "개별") + " · 전년은 이번 보고서의 비교 수치(재작성 반영)",
         "price": f"{px['close']:,}", "price_chg": f"{px['change_pct']:+.2f}% ({int(d[4:6])}/{int(d[6:])} 종가)",
         "w52_range": px["w52_range"],
