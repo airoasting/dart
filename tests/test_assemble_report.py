@@ -432,5 +432,45 @@ class FiscalPeriodNote(unittest.TestCase):
         self.assertIsNone(f("1Q", 2026, 12, False))
 
 
+REVIEW_OK = {"scene": "투자위원회 5분 전, PM이 안건에 올릴지 정한다",
+             "reviews": [{"role": "GOLD", "score": 8.5, "comment": "c", "fix": "f"},
+                         {"role": "RED", "score": 9, "comment": "매출 +16.3%에서 나온 결론", "fix": "f"},
+                         {"role": "SILVER", "score": 7.5, "comment": "c", "fix": "f"}]}
+
+
+class ExpertReview(unittest.TestCase):
+    """맨 아래 전문가 평가(RED·SILVER·GOLD, 10점 만점). 참고용이지만 형식과 문장 속 숫자는 게이트가 본다."""
+
+    def build(self, review):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            write_parts(d, **{"R.json": review})
+            return run_build(d)
+
+    def test_review_assembled_in_role_order(self):
+        js = self.build(REVIEW_OK)["js"]
+        self.assertEqual([r["role"] for r in js["REVIEW"]["reviews"]], ["RED", "SILVER", "GOLD"])
+
+    def test_first_assembly_without_review_then_gate_fails(self):
+        data = self.build(None)
+        self.assertIsNone(data["js"]["REVIEW"])
+        self.assertTrue(vr.review_problems(data["js"]["REVIEW"]))
+
+    def test_bad_review_stops_assembly(self):
+        bad = {"scene": "s", "reviews": [{"role": "RED", "score": 8.3, "comment": "c", "fix": "f"}]}
+        with self.assertRaises(SystemExit):
+            self.build(bad)
+
+    def test_numbers_in_review_are_checked(self):
+        data = self.build({**REVIEW_OK, "reviews": REVIEW_OK["reviews"][:2] +
+                           [{"role": "SILVER", "score": 7.5, "comment": "점유율 37.5%로 보인다", "fix": "f"}]})
+        R, pool = vr.Report(), vr.Pool()
+        vr.check_arithmetic(data, R, pool)
+        vr.check_ledger(data, R, pool, [], {})
+        fails = " ".join(str(f) for f in R.fails)
+        self.assertIn("37.5%", fails)
+        self.assertNotIn("16.3%", fails)          # facts에 있는 숫자는 통과
+
+
 if __name__ == "__main__":
     unittest.main()

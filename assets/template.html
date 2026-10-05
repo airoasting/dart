@@ -32,6 +32,8 @@
   --up:    #D96244;
   --dn:    #DC2626;
   --grn:   #059669;
+  --silver: #8A94A6;
+  --gold:   #B8860B;
   --r:     14px;
   --rs:    8px;
   --nav-bg:      rgba(245,245,247,.92);
@@ -68,6 +70,8 @@
   --up:    #E07050;
   --dn:    #EF4444;
   --grn:   #22C55E;
+  --silver: #A7B0C0;
+  --gold:   #E0B341;
   --nav-bg:      rgba(13,13,13,.92);
   --card-shadow: none;
   --row-hover:   rgba(255,255,255,.03);
@@ -467,6 +471,20 @@ tr.link-row:hover td { background:var(--row-hover) !important; }
 
 @media(max-width:900px){ .persona-cards{grid-template-columns:repeat(2,1fr)} }
 @media(max-width:560px){ .persona-cards{grid-template-columns:1fr} }
+/* ─── expert review ─── */
+.review-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.review-card  { padding:18px; border-top:3px solid var(--rc); }
+.review-top   { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:4px; }
+.review-role  { font-size:.78rem; font-weight:800; letter-spacing:.06em; color:var(--rc); }
+.review-score { font-size:1.6rem; font-weight:800; color:var(--t1); }
+.review-score small { font-size:.8rem; font-weight:600; color:var(--t3); }
+.review-who   { font-size:.74rem; color:var(--t3); margin-bottom:10px; }
+.review-cmt   { font-size:.84rem; color:var(--t2); line-height:1.62; margin-bottom:8px; }
+.review-fix   { font-size:.8rem; color:var(--t2); line-height:1.55; padding-top:8px; border-top:1px solid var(--bdr); }
+.review-fix b { color:var(--t1); }
+.review-avg   { font-size:.86rem; color:var(--t2); white-space:nowrap; }
+.review-avg b { color:var(--t1); font-size:1.05rem; }
+@media(max-width:900px){ .review-cards{grid-template-columns:1fr} }
 
 /* ─── section entrance animation ─── */
 .sc.sc-anim { opacity:0; transform:translateY(14px); }
@@ -619,6 +637,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
       <a class="nav-link" href="#sec-market">애널리스트 시각</a>
       <a class="nav-link" href="#sec-news">뉴스</a>
       <a class="nav-link" href="#sec-persona">투자자 시각</a>
+      <a class="nav-link" href="#sec-review">전문가 평가</a>
     </div>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="다크 모드로 전환" title="테마 전환 (T)">
       <span id="themeBtnIcon">🌙</span>
@@ -787,6 +806,19 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
   <div class="disc">※ 투자자 시각은 각 인물의 공개된 투자 철학·발언을 기반으로 AI가 시뮬레이션한 가상 평가이며, 실제 의견이 아닙니다.</div>
 </div>
 
+<!-- ══ 전문가 평가 ════════════════════════════════════ -->
+<div id="sec-review-wrap">
+<div id="sec-review" class="sec-label">전문가 평가</div>
+<div class="sc nr full">
+  <div class="sh">
+    <div class="sann" id="reviewScene"></div>
+    <div class="review-avg" id="reviewAvg"></div>
+  </div>
+  <div class="review-cards" id="reviewCards"></div>
+  <div class="disc">※ RED(논리)·SILVER(분야 전문가)·GOLD(실제 독자) 세 관점의 AI 평가로, 10점 만점이며 참고용입니다. 9.5점이 그대로 써도 되는 수준입니다. 숫자의 정확성은 이 평가와 별개로 숫자 검증 게이트가 원천과 대조해 확인했습니다.</div>
+</div>
+</div>
+
 </div><!-- /inner wrap -->
 
 <div class="invest-disclaimer">
@@ -880,12 +912,12 @@ function rebuildCharts(){
 }
 
 /* ═══════════════ NAV HIGHLIGHT ═══════════════ */
-const sections=['sec-kpi','sec-growth','sec-segment','sec-market','sec-news','sec-persona'];
+const sections=['sec-kpi','sec-growth','sec-segment','sec-market','sec-news','sec-persona','sec-review'];
 window.addEventListener('scroll',()=>{
   let cur=sections[0];
   sections.forEach(id=>{
     const el=document.getElementById(id);
-    if(el&&window.scrollY+140>=el.offsetTop)cur=id;
+    if(el&&el.offsetParent!==null&&window.scrollY+140>=el.offsetTop)cur=id;   /* 숨긴 섹션(평가 없음)은 건너뛴다 */
   });
   document.querySelectorAll('.nav-link').forEach(a=>{
     a.classList.toggle('active',a.getAttribute('href')==='#'+cur);
@@ -1182,6 +1214,35 @@ function buildNews(){
 
 /* ═══════════════ PERSONAS ═══════════════ */
 
+/* 전문가 평가: 평가가 없는 옛 데이터면 섹션을 숨긴다. 문장은 textContent로 넣는다 */
+function buildReview(){
+  const wrap=document.getElementById('sec-review-wrap');
+  if(typeof REVIEW==='undefined'||!REVIEW||!(REVIEW.reviews||[]).length){
+    wrap.style.display='none';
+    const nl=document.querySelector('.nav-link[href="#sec-review"]'); if(nl) nl.style.display='none';
+    return;
+  }
+  const meta={RED:['var(--dn)','이성 비평가 · 논리와 근거'],
+              SILVER:['var(--silver)','분야 전문가 · 업종 실무 해석'],
+              GOLD:['var(--gold)','실제 독자 · 이것으로 결정할 수 있는가']};
+  document.getElementById('reviewScene').textContent='GOLD 독자 장면: '+REVIEW.scene;
+  const avg=REVIEW.reviews.reduce((a,r)=>a+r.score,0)/REVIEW.reviews.length;
+  document.getElementById('reviewAvg').innerHTML='평균 <b>'+avg.toFixed(1)+'</b> / 10';
+  const box=document.getElementById('reviewCards'); box.innerHTML='';
+  REVIEW.reviews.forEach(r=>{
+    const [color,who]=meta[r.role]||['var(--t2)',''];
+    const card=document.createElement('div'); card.className='review-card nr'; card.style.setProperty('--rc',color);
+    card.innerHTML='<div class="review-top"><span class="review-role"></span><span class="review-score"></span></div>'+
+      '<div class="review-who"></div><div class="review-cmt"></div><div class="review-fix"><b>고칠 점</b> <span></span></div>';
+    card.querySelector('.review-role').textContent=r.role;
+    card.querySelector('.review-score').innerHTML=(+r.score).toFixed(1)+' <small>/ 10</small>';
+    card.querySelector('.review-who').textContent=who;
+    card.querySelector('.review-cmt').textContent=r.comment;
+    card.querySelector('.review-fix span').textContent=r.fix;
+    box.appendChild(card);
+  });
+}
+
 function buildPersonas(){
   const buy =PERSONAS.filter(p=>p.rating==='buy');
   const hold=PERSONAS.filter(p=>p.rating==='hold');
@@ -1279,7 +1340,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   /* 한 단계가 실패해도 나머지 섹션은 그린다.
      (CDN 차단 시 Chart 미정의로 전체 렌더가 죽던 문제) */
   [['chips',buildChips],['delta',buildDeltaChart],['segment',drawSeg],
-   ['market',buildMarket],['news',buildNews],['persona',buildPersonas],
+   ['market',buildMarket],['news',buildNews],['persona',buildPersonas],['review',buildReview],
    ['scroll',initScrollAnim]].forEach(([name,fn])=>{
     try{ fn(); }catch(e){ console.error('['+name+'] 렌더 실패:',e); }
   });

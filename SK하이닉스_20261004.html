@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SK하이닉스 2026.10.04 - AI ROASTING</title>
+<title>SK하이닉스 2026.10.05 - AI ROASTING</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
@@ -32,6 +32,8 @@
   --up:    #D96244;
   --dn:    #DC2626;
   --grn:   #059669;
+  --silver: #8A94A6;
+  --gold:   #B8860B;
   --r:     14px;
   --rs:    8px;
   --nav-bg:      rgba(245,245,247,.92);
@@ -68,6 +70,8 @@
   --up:    #E07050;
   --dn:    #EF4444;
   --grn:   #22C55E;
+  --silver: #A7B0C0;
+  --gold:   #E0B341;
   --nav-bg:      rgba(13,13,13,.92);
   --card-shadow: none;
   --row-hover:   rgba(255,255,255,.03);
@@ -467,6 +471,20 @@ tr.link-row:hover td { background:var(--row-hover) !important; }
 
 @media(max-width:900px){ .persona-cards{grid-template-columns:repeat(2,1fr)} }
 @media(max-width:560px){ .persona-cards{grid-template-columns:1fr} }
+/* ─── expert review ─── */
+.review-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.review-card  { padding:18px; border-top:3px solid var(--rc); }
+.review-top   { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:4px; }
+.review-role  { font-size:.78rem; font-weight:800; letter-spacing:.06em; color:var(--rc); }
+.review-score { font-size:1.6rem; font-weight:800; color:var(--t1); }
+.review-score small { font-size:.8rem; font-weight:600; color:var(--t3); }
+.review-who   { font-size:.74rem; color:var(--t3); margin-bottom:10px; }
+.review-cmt   { font-size:.84rem; color:var(--t2); line-height:1.62; margin-bottom:8px; }
+.review-fix   { font-size:.8rem; color:var(--t2); line-height:1.55; padding-top:8px; border-top:1px solid var(--bdr); }
+.review-fix b { color:var(--t1); }
+.review-avg   { font-size:.86rem; color:var(--t2); white-space:nowrap; }
+.review-avg b { color:var(--t1); font-size:1.05rem; }
+@media(max-width:900px){ .review-cards{grid-template-columns:1fr} }
 
 /* ─── section entrance animation ─── */
 .sc.sc-anim { opacity:0; transform:translateY(14px); }
@@ -598,7 +616,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div class="hdr">
   <div class="hdr-l">
     <h1><span>SK하이닉스</span> (000660) 실적 대시보드</h1>
-    <p>2Q 2025 vs 2Q 2026 &nbsp;|&nbsp; 연결 · 전년은 이번 반기보고서의 비교 수치 기준 &nbsp;|&nbsp; 기준일: 2026.10.04 &nbsp;|&nbsp; <span style="color:var(--grn)">숫자 검증 통과</span> <span style="color:var(--t3)">(74개 항목 · 1회차 · 2026-10-04 17:48)</span></p>
+    <p>2Q 2025 vs 2Q 2026 &nbsp;|&nbsp; 연결 · 전년은 이번 반기보고서의 비교 수치 기준 &nbsp;|&nbsp; 기준일: 2026.10.05 &nbsp;|&nbsp; <span style="color:var(--grn)">숫자 검증 통과</span> <span style="color:var(--t3)">(75개 항목 · 1회차 · 2026-10-05 10:02)</span></p>
   </div>
   <div class="hdr-r">
     <div class="price-now">1,842,000<span style="font-size:.93rem;color:var(--t2);font-weight:500">원</span></div>
@@ -619,6 +637,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
       <a class="nav-link" href="#sec-market">애널리스트 시각</a>
       <a class="nav-link" href="#sec-news">뉴스</a>
       <a class="nav-link" href="#sec-persona">투자자 시각</a>
+      <a class="nav-link" href="#sec-review">전문가 평가</a>
     </div>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="다크 모드로 전환" title="테마 전환 (T)">
       <span id="themeBtnIcon">🌙</span>
@@ -791,6 +810,19 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
   <div class="disc">※ 투자자 시각은 각 인물의 공개된 투자 철학·발언을 기반으로 AI가 시뮬레이션한 가상 평가이며, 실제 의견이 아닙니다.</div>
 </div>
 
+<!-- ══ 전문가 평가 ════════════════════════════════════ -->
+<div id="sec-review-wrap">
+<div id="sec-review" class="sec-label">전문가 평가</div>
+<div class="sc nr full">
+  <div class="sh">
+    <div class="sann" id="reviewScene"></div>
+    <div class="review-avg" id="reviewAvg"></div>
+  </div>
+  <div class="review-cards" id="reviewCards"></div>
+  <div class="disc">※ RED(논리)·SILVER(분야 전문가)·GOLD(실제 독자) 세 관점의 AI 평가로, 10점 만점이며 참고용입니다. 9.5점이 그대로 써도 되는 수준입니다. 숫자의 정확성은 이 평가와 별개로 숫자 검증 게이트가 원천과 대조해 확인했습니다.</div>
+</div>
+</div>
+
 </div><!-- /inner wrap -->
 
 <div class="invest-disclaimer">
@@ -817,6 +849,7 @@ const BULLS = [{"t": "매출 규모의 급격한 확대", "d": "매출이 222,32
 const BEARS = [{"t": "메모리 사이클 정점 리스크", "d": "OPM이 41.4% → 76.3%까지 오른 구간은 업황이 꺾일 때 이익이 같은 폭으로 줄 수 있는 지점이다. 가격이나 수요가 한 번만 흔들려도 영업이익의 변동 폭이 매우 커진다."}, {"t": "영업외 이익의 질", "d": "순이익 939,226억이 영업이익 605,426억을 크게 웃돌고, NPM은 118.4%다. 이 차이는 키옥시아 투자자산 관련 이익 같은 영업외 이익에서 나왔으며, 반복되는 이익으로 보기 어렵다."}, {"t": "52주 고점 대비 주가 낙폭", "d": "52주 범위는 384,000~2,987,000원이고 종가는 1,842,000원이다. 고점 대비 이미 큰 폭으로 내려온 구간이라, 시장이 이익의 지속성을 의심하고 있을 가능성이 있다."}, {"t": "설비투자와 고객 집중 부담", "d": "이익 급증 국면에서는 증설 경쟁과 투자 부담이 커지기 쉽고, 소수 대형 고객에 대한 의존도가 높으면 수요 변동이 실적에 직접 반영된다. 부채총계가 55.4조에서 86.2조로 늘어난 점도 함께 점검해야 한다."}, {"t": "밸류에이션 왜곡 위험", "d": "순이익 기준으로 주가를 해석하면 일회성 성격의 영업외 이익이 배수를 실제보다 낮아 보이게 만든다. 영업이익 중심으로 다시 계산해 정상 이익 수준을 확인해야 한다."}];
 const NEWS = [{"h": "SK하닉 2Q 영업익 60조 돌파…'꿈의 영업이익률' 76% 대기록(종합)", "src": "이데일리", "date": "2026.07.29", "sent": "mix", "url": "https://edaily.co.kr/News/Read?mediaCodeNo=257&newsId=03217686645519440", "body": "2분기 매출 79조3187억원, 영업이익 60조5426억원으로 분기 최대 실적을 냈고 영업이익률은 76.3%였다. 다만 에프앤가이드 컨센서스(매출 83조9391억원, 영업이익 63조9868억원)를 각각 5%가량 밑돌아 '어닝 미스'로 평가됐다."}, {"h": "SK하이닉스, 2분기 영업익 60조원 '역대 최대'…HBM4 양산 확대", "src": "전자신문", "date": "2026.07.29", "sent": "pos", "url": "https://www.etnews.com/20260729000010", "body": "순이익은 93조9226억원, 순이익률은 118%를 기록했다. 핵심 고객을 포함한 10여개 고객과 장기공급계약(LTA) 협상을 마무리했고, HBM4는 2분기 양산 출하를 시작해 하반기 생산량을 본격적으로 늘린다."}, {"h": "SK하이닉스 2분기 순이익 94조…삼성 제치고 1위", "src": "서울경제", "date": "2026.07.29", "sent": "pos", "url": "https://www.sedaily.com/article/20073124", "body": "당기순이익 93조9226억원, 세전이익 122조7083억원으로 국내 상장사 분기 최대 기록을 세웠다. 투자자산 관련 손익 63조2700억원이 반영됐고, 업계는 키옥시아 지분 매각 및 평가이익이 대거 반영된 것으로 분석했다."}, {"h": "[컨콜] SK하이닉스, HBM4 하반기 양산 본격화…올해 40조원 후반 투자", "src": "파이낸셜뉴스", "date": "2026.07.29", "sent": "pos", "url": "https://www.fnnews.com/news/202607290942012790", "body": "HBM4 양산 출하를 2분기부터 시작해 하반기 본격 확대한다고 밝혔다. 올해 투자 규모는 40조원대 후반으로 예상되며 청주 M15X 양산 일정을 앞당긴다."}, {"h": "SK하이닉스 목표주가 줄하향하는 증권사들…이유 살펴보니", "src": "한국경제", "date": "2026.07.30", "sent": "neg", "url": "https://www.hankyung.com/article/202607305196i", "body": "실적 발표 이후 삼성증권, 신한투자증권, NH투자증권 등 여러 증권사가 목표주가를 낮췄다. 컨센서스 미달, 글로벌 반도체 밸류에이션 하락, 제품 믹스와 장기공급계약 초기 단계에 따른 판가 상승 제약이 이유로 꼽혔다."}, {"h": "'고점대비 -50%' SK하이닉스, 목표가 잇단 하향… 한투는 \"470만원 간다\" 상향", "src": "디지털타임스", "date": "2026.07.30", "sent": "mix", "url": "https://www.dt.co.kr/article/12075680", "body": "신한투자증권 420만원에서 270만원, NH투자증권 410만원에서 340만원, 삼성증권 350만원에서 300만원으로 하향했다. 반면 한국투자증권은 380만원에서 470만원으로 올려 잡았다."}, {"h": "8년 묵힌 4조원이 63조 됐다…SK하이닉스 잭팟", "src": "한국경제", "date": "2026.08.01", "sent": "pos", "url": "https://www.hankyung.com/article/202607317995g", "body": "2분기 순영업외이익 62조2000억원은 투자자산 이익 63조3000억원과 외환 이익 1조1000억원이 반영된 결과다. 일회성 이익을 걷어내도 영업이익률 76%로 본업 실적은 사상 최대라고 짚었다."}];
 const PERSONAS = [{"name": "애스워스 다모다란", "type": "내러티브 가치평가", "rating": "hold", "desc": "뉴욕대 스턴 경영대학원 교수, 사업의 스토리와 숫자를 잇는 가치평가 전문가", "eval": "OPM 76.3%를 지속 마진으로 가정하면 가치평가가 과도해지고, 순이익이 영업이익을 크게 웃도는 부분은 영업외 일회성 가능성이 있어 정상 이익에서 분리해야 한다. 스토리는 강하지만 1,842,000원에 담긴 기대가 사이클 정점 마진을 얼마나 반영했는지 확인하기 전까지는 중립이다."}, {"name": "벤저민 그레이엄", "type": "안전마진 가치투자", "rating": "sell", "desc": "가치투자의 아버지, 『증권분석』과 『현명한 투자자』의 저자", "eval": "부채총계 86.2조 대비 자본총계 262.7조로 재무구조는 탄탄하지만, 영업이익 +557.2%의 급변은 이익 안정성을 중시하는 기준에서 경계해야 할 경기순환형 변동성이다. 정점 이익으로는 보수적 가치를 산정할 수 없어 안전마진이 확인되지 않는다."}, {"name": "빌 애크먼", "type": "행동주의 집중투자", "rating": "hold", "desc": "퍼싱스퀘어 캐피털 매니지먼트 창업자, 소수 종목에 집중하는 행동주의 투자자", "eval": "현금및현금성자산 26.8조와 자본총계 262.7조는 자본배분 여력을 보여주지만, 이 자료에서 확인된 촉매나 주주환원 변화는 없다. 사업 품질은 높아도 집중 투자를 정당화할 가치 창출 경로가 아직 보이지 않는다."}, {"name": "캐시 우드", "type": "파괴적 혁신", "rating": "buy", "desc": "ARK 인베스트 창업자, 파괴적 혁신 기술에 장기 투자하는 성장 투자자", "eval": "매출 +256.8%와 OPM 41.4%에서 76.3%로의 도약은 AI 인프라 수요가 메모리의 위상을 바꾸고 있다는 신호로 읽을 수 있다. 52주 고점 2,987,000원 대비 조정은 변동성을 감수하는 장기 투자자에게 진입 기회가 될 수 있다."}, {"name": "찰리 멍거", "type": "품질 우선", "rating": "hold", "desc": "버크셔 해서웨이 부회장을 지낸 다학제적 사고의 투자자", "eval": "이해 가능한 사업이지만 메모리는 가격 결정력이 사이클에 좌우되는 산업이라, OPM 76.3%를 영속적 해자로 착각해서는 안 된다. 좋은 분기와 좋은 사업은 다르므로 가격이 오류의 여지를 줄 때까지 기다린다."}, {"name": "마이클 버리", "type": "역발상 딥밸류", "rating": "sell", "desc": "사이언 자산운용 창업자, 숫자에 근거해 시장 반대편에 서는 역발상 투자자", "eval": "NPM 118.4%처럼 순이익이 매출을 넘는 분기는 영업외 일회성 가능성부터 의심해야 하며, 정점 마진에서 계산한 저렴함은 사이클 정상화 앞에서 쉽게 사라진다. 시장이 과도하게 비관적이라는 증거도, 실현 촉매도 이 자료에는 없다."}, {"name": "모니시 파브라이", "type": "단도 비대칭", "rating": "hold", "desc": "파브라이 투자펀드 창업자, 『단도 투자자』 저자", "eval": "자본총계 262.7조 대비 부채총계 86.2조로 영구손실 위험은 제한적이지만, 1,842,000원에서 자본을 두 배로 만들려면 OPM 76.3% 수준이 유지된다는 낙관 가정이 필요하다. 하방은 단단하나 상방이 과감한 가정에 기대므로 관망한다."}, {"name": "나심 탈레브", "type": "꼬리위험 회의론", "rating": "sell", "desc": "『블랙 스완』, 『안티프래질』의 저자, 꼬리위험과 취약성 연구자", "eval": "OPM 41.4%에서 76.3%로의 급등은 영업 레버리지가 반대 방향으로도 같은 힘으로 작동할 수 있다는 뜻이다. 52주 384,000~2,987,000원의 가격 폭 자체가 이 자산이 무질서에 취약하다는 표식이다."}, {"name": "피터 린치", "type": "GARP 성장주", "rating": "hold", "desc": "피델리티 마젤란 펀드를 운용한 실용주의 성장주 투자자", "eval": "메모리 같은 경기순환주는 이익이 정점일 때 가장 싸 보이는 함정이 있다. 영업이익 +557.2%가 지속 성장인지 사이클 정점인지 확인될 때까지 지켜본다."}, {"name": "필립 피셔", "type": "장기 성장 질적분석", "rating": "buy", "desc": "『위대한 기업에 투자하라』 저자, 스커틀버트 리서치를 정립한 성장주 투자자", "eval": "영업이익 +557.2%와 OPM 76.3%는 기술 경쟁력이 이익으로 전환되고 있음을 보여준다. 다만 경영진과 R&D 파이프라인에 대한 현장 확인 증거는 이 자료에 없어 질적 판단은 아직 불완전하다."}, {"name": "라케시 준준왈라", "type": "장기 성장가치", "rating": "buy", "desc": "인도의 워런 버핏으로 불린 장기 성장가치 투자자", "eval": "자본총계 262.7조 대비 부채총계 86.2조의 재무 체력과 매출 +256.8% 성장은 장기 부의 창출 후보로서의 조건을 갖췄다. 52주 고점 2,987,000원 대비 낮아진 1,842,000원은 장기 보유 관점에서 검토할 만하다."}, {"name": "스탠리 드러켄밀러", "type": "비대칭 모멘텀", "rating": "hold", "desc": "듀케인 캐피털 창업자, 거시 흐름과 추세를 결합하는 투자자", "eval": "매출 +256.8%와 영업이익 +557.2%는 펀더멘털 가속을 보여주지만, 주가는 52주 고점 2,987,000원에서 1,842,000원으로 내려와 추세가 이를 확인하지 않고 있다. 펀더멘털과 추세가 엇갈리는 구간이라 추세 회복 신호가 나오기 전까지 비중을 키우지 않는다."}, {"name": "워런 버핏", "type": "해자 장기복리", "rating": "hold", "desc": "버크셔 해서웨이를 이끌어 온 장기 가치투자자", "eval": "자본총계 262.7조와 현금및현금성자산 26.8조는 재무 체력을 보여주지만, 이익이 메모리 가격에 따라 크게 출렁이는 사업은 장기 내재가치를 자신 있게 추정하기 어렵다. 훌륭한 분기 실적과 안전마진은 별개의 문제이므로 더 나은 가격을 기다린다."}];
+const REVIEW = {"scene": "실적 발표 두 달 뒤 화요일 오전 투자위원회 10분 전, 반도체 비중을 들고 있는 PM이 이 리포트만 보고 SK하이닉스 비중을 유지할지 줄일지 안건으로 올린다.", "reviews": [{"role": "RED", "score": 8.5, "comment": "강세 5개와 약세 5개로 수는 맞고, 약세의 '영업외 이익의 질'이 순이익 939,226억과 영업이익 605,426억의 차이를 정면으로 짚은 점은 근거가 선다. 다만 강세의 '자본 확충' 논거는 자본총계 120.7조 → 262.7조를 재무 기반 강화로만 읽고, 그 증가분 상당 부분이 약세에서 일회성이라 한 영업외 이익에서 왔을 가능성을 같은 화면에서 연결하지 않아 논리가 서로 부딪힌다. 약세의 '설비투자와 고객 집중'은 리포트 안에 투자액이나 고객 비중 숫자가 없어 단정에 가깝다.", "fix": "자본총계 증가 논거에 '영업외 이익 포함' 단서를 달고, 설비투자 약세 논거는 뉴스에 있는 투자 계획을 근거로 끌어오거나 '확인 필요'로 낮춘다."}, {"role": "SILVER", "score": 8.0, "comment": "키옥시아 투자자산 이익을 영업외로 분리하고 커버리지를 '표의 9개 증권사 기준, 전체 집계 미확인'으로 밝힌 점은 정직하다. 그러나 사업부 표는 DRAM, NAND, 기타 모두 추정치이고, 기타가 2Q26에 0으로 떨어지며 성장 기여도에 감소 항목을 만든 것은 실제 사업 축소가 아니라 추정 방식이 만든 값으로 보인다. 메모리 실적 리뷰의 핵심인 DRAM·NAND 출하량과 판가 변화, HBM 매출 비중, 연간 설비투자 규모가 본문에 없고, 뉴스에 나온 컨센서스 미달이 KPI 칩에 빠져 있다.", "fix": "사업부 표 상단에 '회사 공시 비율 기반 추정' 문구를 크게 두고 기타 0 처리를 설명하며, 출하량·판가 방향과 HBM 비중, 컨센서스 대비 결과를 칩 한 줄로 추가한다."}, {"role": "GOLD", "score": 8.5, "comment": "첫 화면 칩만으로 OPM 41.4% → 76.3%, 순이익이 영업이익을 웃도는 구조, 52주 고점 2,987,000원 대비 조정까지 세 가지 판단 재료가 바로 보인다. 그런데 증권사 9곳 중 8곳이 매수이고 13인 평가는 대부분 보유와 매도로 갈리는데, 리포트가 둘 중 어느 쪽에 무게를 두는지 한 줄 결론이 없어 PM이 안건 문장을 직접 만들어야 한다. 실적 발표 직후 목표가 줄하향의 이유(컨센서스 미달, 판가 상승 제약)도 뉴스 카드 안에 묻혀 있어 위원회에서 바로 꺼내 쓰기 어렵다.", "fix": "KPI 칩 위에 '본업은 사상 최대, 순이익은 일회성 포함, 시장은 이익 지속성을 의심' 식의 한 줄 결론과 다음 분기 확인 지표 하나를 둔다."}]};
 
 /* ═══════════════ HELPERS ═══════════════ */
 const pv  =(a,b)=>a?(b-a)/a*100:null;
@@ -896,12 +929,12 @@ function rebuildCharts(){
 }
 
 /* ═══════════════ NAV HIGHLIGHT ═══════════════ */
-const sections=['sec-kpi','sec-growth','sec-segment','sec-market','sec-news','sec-persona'];
+const sections=['sec-kpi','sec-growth','sec-segment','sec-market','sec-news','sec-persona','sec-review'];
 window.addEventListener('scroll',()=>{
   let cur=sections[0];
   sections.forEach(id=>{
     const el=document.getElementById(id);
-    if(el&&window.scrollY+140>=el.offsetTop)cur=id;
+    if(el&&el.offsetParent!==null&&window.scrollY+140>=el.offsetTop)cur=id;   /* 숨긴 섹션(평가 없음)은 건너뛴다 */
   });
   document.querySelectorAll('.nav-link').forEach(a=>{
     a.classList.toggle('active',a.getAttribute('href')==='#'+cur);
@@ -1198,6 +1231,35 @@ function buildNews(){
 
 /* ═══════════════ PERSONAS ═══════════════ */
 
+/* 전문가 평가: 평가가 없는 옛 데이터면 섹션을 숨긴다. 문장은 textContent로 넣는다 */
+function buildReview(){
+  const wrap=document.getElementById('sec-review-wrap');
+  if(typeof REVIEW==='undefined'||!REVIEW||!(REVIEW.reviews||[]).length){
+    wrap.style.display='none';
+    const nl=document.querySelector('.nav-link[href="#sec-review"]'); if(nl) nl.style.display='none';
+    return;
+  }
+  const meta={RED:['var(--dn)','이성 비평가 · 논리와 근거'],
+              SILVER:['var(--silver)','분야 전문가 · 업종 실무 해석'],
+              GOLD:['var(--gold)','실제 독자 · 이것으로 결정할 수 있는가']};
+  document.getElementById('reviewScene').textContent='GOLD 독자 장면: '+REVIEW.scene;
+  const avg=REVIEW.reviews.reduce((a,r)=>a+r.score,0)/REVIEW.reviews.length;
+  document.getElementById('reviewAvg').innerHTML='평균 <b>'+avg.toFixed(1)+'</b> / 10';
+  const box=document.getElementById('reviewCards'); box.innerHTML='';
+  REVIEW.reviews.forEach(r=>{
+    const [color,who]=meta[r.role]||['var(--t2)',''];
+    const card=document.createElement('div'); card.className='review-card nr'; card.style.setProperty('--rc',color);
+    card.innerHTML='<div class="review-top"><span class="review-role"></span><span class="review-score"></span></div>'+
+      '<div class="review-who"></div><div class="review-cmt"></div><div class="review-fix"><b>고칠 점</b> <span></span></div>';
+    card.querySelector('.review-role').textContent=r.role;
+    card.querySelector('.review-score').innerHTML=(+r.score).toFixed(1)+' <small>/ 10</small>';
+    card.querySelector('.review-who').textContent=who;
+    card.querySelector('.review-cmt').textContent=r.comment;
+    card.querySelector('.review-fix span').textContent=r.fix;
+    box.appendChild(card);
+  });
+}
+
 function buildPersonas(){
   const buy =PERSONAS.filter(p=>p.rating==='buy');
   const hold=PERSONAS.filter(p=>p.rating==='hold');
@@ -1295,7 +1357,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   /* 한 단계가 실패해도 나머지 섹션은 그린다.
      (CDN 차단 시 Chart 미정의로 전체 렌더가 죽던 문제) */
   [['chips',buildChips],['delta',buildDeltaChart],['segment',drawSeg],
-   ['market',buildMarket],['news',buildNews],['persona',buildPersonas],
+   ['market',buildMarket],['news',buildNews],['persona',buildPersonas],['review',buildReview],
    ['scroll',initScrollAnim]].forEach(([name,fn])=>{
     try{ fn(); }catch(e){ console.error('['+name+'] 렌더 실패:',e); }
   });

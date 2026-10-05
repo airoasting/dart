@@ -5,7 +5,7 @@ description: 국내 상장사의 DART 공시 재무 데이터로 분기 실적�
 
 # DART 애널리스트 리포트
 
-상장사 하나의 분기 실적을 DART 공시로 분석해 HTML 리포트를 만든다. 6개 섹션(핵심 실적, 성장 기여도, 사업별 매출, 애널리스트 시각, 뉴스, 13인 투자자 시각)이 들어간다.
+상장사 하나의 분기 실적을 DART 공시로 분석해 HTML 리포트를 만든다. 6개 섹션(핵심 실적, 성장 기여도, 사업별 매출, 애널리스트 시각, 뉴스, 13인 투자자 시각)과 맨 아래 전문가 평가(RED·SILVER·GOLD, 10점 만점)가 들어간다.
 
 ## 이 스킬이 일하는 방식
 
@@ -24,7 +24,7 @@ description: 국내 상장사의 DART 공시 재무 데이터로 분기 실적�
 | 2 | 기간 정하기 | `assemble_report.py period --corp-code <c>` |
 | 3 | 사실 뽑기 | `assemble_report.py facts --corp-code <c> <args>` |
 | 4 | 병렬 조사와 출처 검증 → 조각 파일 | 서브에이전트 A1·A2·B·C, V1·V2 |
-| 5 | data.json 조립 | `assemble_report.py build ...` |
+| 5 | data.json 조립과 전문가 평가 | `assemble_report.py build ...` → 에이전트 R → 다시 `build` |
 | 6 | 숫자 검증 게이트 | `verify_report.py <data.json>` |
 | 7 | HTML 빌드·전달 | `build_report.py <data.json>` |
 
@@ -109,7 +109,7 @@ python3 ~/.claude/skills/dart/assets/assemble_report.py facts --corp-code <corp_
 
 ## Step 5. data.json 조립
 
-A1·A2·B·C·V1·V2 파일이 모두 생기면:
+A1·A2·B·C·V1·V2 파일이 모두 생기면 조립한다(첫 조립에는 R.json이 없다는 안내가 나온다. 정상이다):
 
 ```bash
 python3 ~/.claude/skills/dart/assets/assemble_report.py build --corp-code <corp_code> <args> \
@@ -118,6 +118,8 @@ python3 ~/.claude/skills/dart/assets/assemble_report.py build --corp-code <corp_
 ```
 
 스크립트가 meta의 모든 숫자와 라벨(결산월이 12월이 아니면 실제 달력 기간까지), 성장 기여도, 목표가 범위, 컨센 비율을 계산하고 검증 장부를 합친다. 부문 합계·투자자 13인·목표가 누락이 어긋나면 이유를 찍고 멈춘다. 그때는 위의 수정 원칙대로 조각을 고치고 다시 조립한다.
+
+**전문가 평가.** 조립된 data.json으로 에이전트 **R**을 띄운다(`references/agent-prompts.md`의 R 템플릿, `{DATA}`에 data.json 절대 경로). RED(논리)·SILVER(분야 전문가)·GOLD(실제 독자)가 10점 만점으로 평가해 `R.json`에 쓰고, 같은 명령으로 **다시 조립**하면 리포트 맨 아래에 실린다. 참고용 평가라 점수가 낮아도 리포트를 막지 않는다. 다만 평가가 없거나 형식이 틀리면 게이트가 FAIL을 내고, 평가 문장 속 숫자도 서술처럼 원천과 대조한다. 숫자 하나·문장 하나처럼 조각을 조금 고쳐 다시 조립할 때는 평가를 다시 받지 않는다. 증권사·부문을 새로 조사해 내용이 크게 바뀌었으면 R도 다시 띄운다.
 
 ## Step 6. 숫자 검증 게이트
 

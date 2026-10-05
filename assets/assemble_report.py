@@ -48,7 +48,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from dart_client import REPRT_OFFSET, REPRT_Q, DartClient, fiscal_label, fiscal_label_year  # noqa: E402
-from verify_report import fetch_dart, turn_label     # noqa: E402  (게이트와 같은 숫자·표기)
+from verify_report import fetch_dart, review_problems, turn_label   # noqa: E402  (게이트와 같은 숫자·표기·형식)
 import corp_registry                                  # noqa: E402
 from price import get_prev_close                      # noqa: E402
 
@@ -228,6 +228,11 @@ def build(a) -> None:
     c = collect(a)
     parts = pathlib.Path(a.parts)
     A1, A2, B, C = (_load(parts / f) for f in ("A1.json", "A2.json", "B.json", "C.json"))
+    review = _load(parts / "R.json", False)   # 전문가 평가는 조립된 data.json을 읽고 쓰므로 첫 조립에는 없다
+    if review is None:
+        print("ℹ️  R.json 없음: 전문가 평가 없이 조립했다. 이 data.json으로 R 에이전트를 돌리고 다시 조립한다.", file=sys.stderr)
+    elif review_problems(review):
+        sys.exit("R.json 형식이 맞지 않다: " + "; ".join(review_problems(review)) + ". 같은 템플릿으로 R을 다시 띄운다.")
     ledgers = [x for x in (_load(parts / "V1.json", False), _load(parts / "V2.json", False)) if x]
     corp, r, raw, lb, px = c["corp"], c["r"], c["raw"], c["labels"], c["px"]
 
@@ -238,7 +243,9 @@ def build(a) -> None:
     chips = [{"cls": c_["cls"], "dot": CHIP_DOT.get(c_["cls"], "var(--coral)"), "txt": c_["txt"]} for c_ in C["CHIPS"]]
     js = {"CHIPS": chips, "SEGS": segs, "TOT25": r["rev"][1], "TOT26": r["rev"][0], "DELTA": [],
           "CURR": px["close"], "NAME": corp["corp_name"], "CONS": {},
-          "ANALYSTS": analysts, "BULLS": C["BULLS"], "BEARS": C["BEARS"], "NEWS": A1["NEWS"], "PERSONAS": B}
+          "ANALYSTS": analysts, "BULLS": C["BULLS"], "BEARS": C["BEARS"], "NEWS": A1["NEWS"], "PERSONAS": B,
+          "REVIEW": review and {"scene": review["scene"], "reviews": sorted(
+              review["reviews"], key=lambda x: ("RED", "SILVER", "GOLD").index(x["role"]))}}
     _apply_patches(js, ledgers)
 
     s25, s26 = sum(s["q25"] for s in segs), sum(s["q26"] for s in segs)

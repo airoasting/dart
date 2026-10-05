@@ -82,6 +82,29 @@ def yoy(cur, prv):
     return None if not prv else (cur - prv) / abs(prv) * 100
 
 
+REVIEW_ROLES = ("RED", "SILVER", "GOLD")
+
+
+def review_problems(rv) -> list[str]:
+    """전문가 평가(R.json → js.REVIEW) 형식 검사. 문제 목록을 돌려준다(없으면 빈 목록)."""
+    if not isinstance(rv, dict):
+        return ["전문가 평가(REVIEW)가 없다"]
+    out = []
+    if not str(rv.get("scene", "")).strip():
+        out.append("scene(GOLD의 독자 장면)이 비었다")
+    reviews = rv.get("reviews") or []
+    if sorted(r.get("role", "") for r in reviews) != sorted(REVIEW_ROLES):
+        out.append("RED·SILVER·GOLD가 하나씩 있어야 한다")
+    for r in reviews:
+        sc = r.get("score")
+        if not isinstance(sc, (int, float)) or not 0 <= sc <= 10 or (sc * 2) != int(sc * 2):
+            out.append(f"{r.get('role')} 점수는 0~10, 0.5 단위다: {sc}")
+        for f in ("comment", "fix"):
+            if not str(r.get(f, "")).strip():
+                out.append(f"{r.get('role')}의 {f}가 비었다")
+    return out
+
+
 def turn_label(cur, prv):
     """적자가 낀 증감은 %가 아니라 업계 표기로 쓴다(-10억 → 9억을 '+190%'로 쓰면 오해를 부른다). 둘 다 흑자면 None."""
     if cur is None or prv is None or (prv >= 0 and cur >= 0):
@@ -769,6 +792,9 @@ def check_ledger(d, R: Report, pool, tps, tp):
         texts += [(sec, i, f"{x.get('t', '')} {x.get('d', '')}") for i, x in enumerate(js.get(sec, []))]
     texts += [("PERSONAS", p.get("name", i), p.get("eval", "")) for i, p in enumerate(js.get("PERSONAS", []))]
     texts += [("SEGS.sub", sg.get("name", i), sg.get("sub", "")) for i, sg in enumerate(js.get("SEGS", []))]   # 화면에 나온다
+    rv = js.get("REVIEW") or {}
+    texts += [("REVIEW", "scene", rv.get("scene", ""))]
+    texts += [("REVIEW", r.get("role", i), f"{r.get('comment', '')} {r.get('fix', '')}") for i, r in enumerate(rv.get("reviews") or [])]
     for sec, key, text in texts:
         seen = set()
         for kind, v, tok, n, tol in claim_tokens(text):
@@ -833,6 +859,9 @@ def run_checks(data):
     check_dart(data, R, pool)
     check_price(data, R, pool)
     check_ledger(data, R, pool, tps, tp)
+    probs = review_problems((data.get("js") or {}).get("REVIEW"))
+    R.add("A 산술", not probs, "전문가 평가 형식", "; ".join(probs) or "RED·SILVER·GOLD 3인",
+          "R 에이전트(references/agent-prompts.md)로 R.json을 쓰고 다시 조립한다")
     return R
 
 
