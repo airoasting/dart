@@ -1,5 +1,5 @@
 {
   "name": "dart",
   "description": "DART 공시 재무 데이터로 인터랙티브 애널리스트 HTML 리포트를 만드는 스킬",
-  "version": "2.0.0"
+  "version": "2.1.0"
 }
