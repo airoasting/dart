@@ -25,7 +25,7 @@ from typing import Any, Callable
 warnings.filterwarnings("ignore")   # urllib3 LibreSSL 경고 등. stdio 서버에서는 잡음일 뿐이다
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-SERVER = {"name": "dart", "version": "2.3.0"}
+SERVER = {"name": "dart", "version": "2.3.1"}
 PROTOCOLS = ("2025-06-18", "2025-03-26", "2024-11-05")
 VIEW_URL = "https://dart.fss.or.kr/dsaf001/main.do?rcpNo="
 
