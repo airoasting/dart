@@ -33,7 +33,7 @@ DART 공시로 두 가지 일을 한다. 먼저 요청이 어느 쪽인지 고�
 | 등기임원, 임기, 경력 | `people_executives` | 등기 여부는 `rgist_exctv_at`, 임기 정렬은 `tenure_end_on_iso` |
 | 직원 수, 평균 급여, 근속연수 | `people_employees` | 급여는 기간 누적이다(반기면 6개월치). 연봉을 물으면 사업보고서(`year`만)로. 1분기 보고서에는 급여가 빠진 경우가 많다 |
 | 매출·영업이익·순이익·자산 | `fin_key_accounts` | 계정 몇 개면 이것, 전체 표는 `fin_statements` |
-| ROE·부채비율·유동비율·증가율 | `fin_ratios` | 2023년 3분기 보고서부터. 분기·반기 값은 연환산하지 않았다. 기준(연결·별도)은 `meta.basis` |
+| ROE·부채비율·유동비율·증가율 | `fin_ratios` | 2023년 3분기 보고서부터. 분기·반기 값은 연초부터 누적이고 연환산하지 않았다. 기준(연결·별도)은 `meta.basis` |
 | 배당 | `fin_dividends` | |
 | 발행·유통 주식 수, 자기주식 | `share_outstanding`, `share_treasury` | |
 | 증자·감자 이력 | `share_capital_changes` | |

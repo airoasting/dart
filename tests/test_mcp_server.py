@@ -211,6 +211,13 @@ class ToolRunTest(unittest.TestCase):
         body, _ = ms.run_tool("share_top_holders", {"corp": NAVER, "year": "2026", "period": "H1"})
         self.assertTrue(body["rows"][1]["relate"].startswith("합계"))
 
+    def test_treasury_drops_blank_method_rows(self):
+        self.use(FakeClient({"tesstkAcqsDspsSttus.json": ok([
+            {"acqs_mth3": "장내직접취득", "bsis_qy": "1,648,558", "change_qy_acqs": "743,600", "trmend_qy": "2,341,700"},
+            {"acqs_mth3": "공개매수", "bsis_qy": "-", "change_qy_acqs": "-", "change_qy_dsps": "-", "trmend_qy": "-"}])}))
+        body, _ = ms.run_tool("share_treasury", {"corp": NAVER, "year": "2026", "period": "H1"})
+        self.assertEqual(len(body["rows"]), 1)
+
     def test_executive_term_gets_iso_date(self):
         self.use(FakeClient({"exctvSttus.json": ok([{"nm": "가", "tenure_end_on": "2028년 03월 18일"},
                                                     {"nm": "나", "tenure_end_on": "-"}])}))

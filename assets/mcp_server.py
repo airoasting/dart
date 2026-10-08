@@ -375,7 +375,8 @@ def t_fin_ratios(a: dict) -> dict:
         except ToolError:
             pass
     return result(corp, body, basis=basis, settlement_date=stlm, **_pmeta(per),
-                  caution="DART가 계산해 둔 값이다. 분기·반기 보고서 값은 연환산하지 않았다. 2023년 3분기 이전은 제공되지 않는다.")
+                  caution="DART가 계산해 둔 값이다. 분기·반기 보고서 값은 연초부터 그 기간 끝까지 누적 기준이고 연환산하지 않았다"
+                          "(현대차 2026 반기 순이익률 5.752% = 상반기 누적 순이익 ÷ 누적 매출). 2023년 3분기 이전은 제공되지 않는다.")
 
 
 def _iso_date(v: Any) -> str | None:
@@ -384,9 +385,16 @@ def _iso_date(v: Any) -> str | None:
     return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}" if m else None
 
 
-def _simple(endpoint: str, total_row: bool = False, iso: str | None = None) -> Callable[[dict], dict]:
+def _blank(v: Any) -> bool:
+    return str(v or "").strip() in ("", "-", "0")
+
+
+def _simple(endpoint: str, total_row: bool = False, iso: str | None = None,
+            drop_blank: tuple[str, ...] = ()) -> Callable[[dict], dict]:
     def run(a: dict) -> dict:
         corp, per, rows = periodic(endpoint, a)
+        if drop_blank:    # 취득 방법별 빈 칸 행(현대차 2026 반기 18행 중 13행)은 읽는 쪽에 잡음일 뿐이다
+            rows = [r for r in rows if not all(_blank(r.get(k)) for k in drop_blank)]
         if iso:
             for r in rows:
                 r[iso + "_iso"] = _iso_date(r.get(iso))
@@ -496,8 +504,9 @@ TOOLS: list[tuple[str, str, str, dict, Callable[[dict], dict]]] = [
      "임원과 주요주주의 특정증권 소유 상황 보고. 보고자, 직위, 보유 수량과 증감. 최근 접수순.",
      _schema({"corp": CORP, "limit": LIMIT}), _filings("elestock.json")),
     ("share_treasury", "자기주식 취득·처분",
-     "자기주식의 취득 방법별 기초 수량, 취득·처분·소각, 기말 수량.",
-     _schema(PERIODIC), _simple("tesstkAcqsDspsSttus.json")),
+     "자기주식의 취득 방법별 기초 수량, 취득·처분·소각, 기말 수량. 수량이 모두 비어 있는 방법 행은 뺀다(총계 행은 남는다).",
+     _schema(PERIODIC), _simple("tesstkAcqsDspsSttus.json", drop_blank=("bsis_qy", "change_qy_acqs", "change_qy_dsps",
+                                                                         "change_qy_incnr", "trmend_qy"))),
     ("share_capital_changes", "증자·감자 이력",
      "주식 발행(감소) 일자, 형태(유상증자·주식매수선택권 행사·소각 등), 주식 종류, 수량, 액면가와 발행 가액.",
      _schema(PERIODIC), _simple("irdsSttus.json")),

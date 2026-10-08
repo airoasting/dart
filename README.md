@@ -191,7 +191,7 @@ python3 ~/.claude/skills/dart/assets/html2pdf.py output/카카오_20260704_01.ht
 
 `basis`는 `auto`(기본, 연결이 없으면 별도), `consolidated`(연결만), `separate`(별도만)입니다. `filing_search`의 `kind`는 `periodic`(정기), `major`(주요사항), `ownership`(지분) 등이고, `market`은 `kospi`, `kosdaq`, `konex`, `other`입니다. `corp`를 비우면 시장 전체에서 찾되, DART 제한 때문에 기간이 3개월을 넘을 수 없습니다.
 
-재무 지표(`fin_ratios`)는 DART가 계산해 둔 값이고, 2023년 3분기 보고서부터 있습니다. 분기·반기 값은 연환산하지 않은 숫자입니다. 금액은 DART 원본 그대로 원 단위입니다.
+재무 지표(`fin_ratios`)는 DART가 계산해 둔 값이고, 2023년 3분기 보고서부터 있습니다. 분기·반기 값은 연초부터 그 기간까지 누적한 숫자이고, 연환산하지 않았습니다. 금액은 DART 원본 그대로 원 단위입니다.
 
 ### 연결하기
 
