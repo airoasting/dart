@@ -218,7 +218,7 @@ claude mcp add --scope user dart -- python3 ~/.claude/skills/dart/assets/mcp_ser
 }
 ```
 
-**플러그인으로 설치했다면** 따로 할 일이 없습니다. `.claude-plugin/plugin.json`에 서버가 등록돼 있어 플러그인과 함께 켜집니다.
+**플러그인으로 설치했다면** 연결은 따로 할 일이 없습니다. `.claude-plugin/plugin.json`에 서버가 등록돼 있어 플러그인과 함께 켜집니다. API 키만 `~/.claude/skills/dart/.env`에 넣어 두세요(폴더가 없으면 만듭니다). 플러그인 폴더는 업데이트 때마다 새로 받으므로 키를 그 안에 두면 사라집니다.
 
 **연결 전에 터미널에서 바로 확인**할 수도 있습니다.
 

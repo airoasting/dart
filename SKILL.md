@@ -82,7 +82,7 @@ DART 공시로 두 가지 일을 한다. 먼저 요청이 어느 쪽인지 고�
 ## Step 0. 준비
 
 - **작업 폴더**: 지금 작업 중인 폴더(cwd)에서 모든 명령을 실행한다. 결과는 `./output/`에 쌓인다. 조각 폴더는 `./output/<종목명>_parts/`로 만들고, 서브에이전트에게는 **절대 경로**로 넘긴다(서브에이전트의 작업 폴더는 다를 수 있다).
-- **API 키**: 스크립트가 환경변수 `DART_API_KEY` → `~/.claude/skills/dart/.env` → `assets/.env` → 작업 폴더 `.env` 순서로 찾는다. 없다는 오류가 나면 `~/.claude/skills/dart/.env`에 `DART_API_KEY=발급받은_키` 한 줄을 넣도록 안내하고 멈춘다(키는 opendart.fss.or.kr에서 무료).
+- **API 키**: 스크립트가 환경변수 `DART_API_KEY` → 스킬 루트 `.env` → `assets/.env` → `~/.claude/skills/dart/.env` → 작업 폴더 `.env` 순서로 찾는다. 플러그인으로 설치했어도 `~/.claude/skills/dart/.env`를 본다(플러그인 폴더는 업데이트 때 바뀐다). 없다는 오류가 나면 `~/.claude/skills/dart/.env`에 `DART_API_KEY=발급받은_키` 한 줄을 넣도록 안내하고 멈춘다(키는 opendart.fss.or.kr에서 무료).
 
 ## Step 1. 종목 확정
 

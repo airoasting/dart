@@ -43,7 +43,7 @@ SKILL.md의 단계가 멈췄는데 그 단계 설명으로 풀리지 않을 때 
 | `fin_statements`에 IS가 없고 CIS가 왔다 | 손익을 포괄손익계산서 한 장으로 공시한 회사(소형사에 흔하다) | 정상. `meta.statement_note`에 적혀 있다 |
 | `filing_search`가 "기간을 3개월 안으로" | `corp` 없이 시장 전체를 찾을 때의 DART 제한 | `from`·`to`를 좁히거나 `corp`를 준다 |
 | MCP로 연결했는데 도구가 안 보인다 | 앱이 `python3`를 못 찾거나 경로가 틀렸다 | Claude Desktop은 `~`를 풀지 않는다. 설정에 전체 경로를 쓰고, `python3` 대신 `which python3`가 알려 주는 전체 경로를 쓴다. 터미널에서 `mcp_server.py --list`가 도는지 먼저 본다 |
-| 모든 도구가 "DART_API_KEY가 없습니다" | 앱이 다른 폴더에서 서버를 띄워 작업 폴더 `.env`를 못 본다 | 키를 스킬 루트 `.env`(`~/.claude/skills/dart/.env`)에 둔다. 그 위치는 어디서 띄워도 찾는다 |
+| 모든 도구가 "DART_API_KEY가 없습니다" | 플러그인 설치본(`~/.claude/plugins/cache/…`)이나 다른 폴더에서 서버가 떠서 `.env`를 못 본다 | 키를 `~/.claude/skills/dart/.env`에 둔다. 이 위치는 어디서 띄워도, 플러그인으로 깔아도 찾는다 |
 
 `requests`가 없는 파이썬에서도 돈다(`http_compat.py`가 표준 라이브러리로 접속한다).
 

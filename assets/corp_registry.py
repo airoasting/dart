@@ -886,12 +886,15 @@ def apply_live_check(res: dict, api_key: str | None = None) -> dict:
 def find_api_key() -> str | None:
     """DART API 키를 찾는 단 하나의 규칙. 모든 스크립트가 이 함수를 쓴다.
 
-    순서: 환경변수 DART_API_KEY → 스킬 루트 .env (README가 안내하는 위치, ~/.claude/skills/dart/.env)
-    → assets/.env → 현재 작업 폴더 .env.
+    순서: 환경변수 DART_API_KEY → 스킬 루트 .env → assets/.env → ~/.claude/skills/dart/.env (README가 안내하는 위치)
+    → 현재 작업 폴더 .env.
+    플러그인으로 설치하면 스킬 루트가 ~/.claude/plugins/cache/<마켓>/dart/<버전>/이라 .env가 없고 업데이트 때마다 바뀐다.
+    그래서 README가 안내하는 고정 위치를 따로 본다.
     """
     if os.environ.get("DART_API_KEY", "").strip():
         return os.environ["DART_API_KEY"].strip()
-    for p in (HERE.parent / ".env", HERE / ".env", Path.cwd() / ".env"):
+    for p in (HERE.parent / ".env", HERE / ".env", Path.home() / ".claude" / "skills" / "dart" / ".env",
+              Path.cwd() / ".env"):
         try:
             for line in p.read_text(encoding="utf-8").splitlines():
                 k, _, v = line.strip().partition("=")

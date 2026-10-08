@@ -304,6 +304,25 @@ class HttpCompatTest(unittest.TestCase):
                 req.get("https://x", timeout=1)
 
 
+class ApiKeyLocationTest(unittest.TestCase):
+    def test_plugin_install_reads_documented_env(self):
+        """플러그인 캐시에서 돌 때(.env 없음)도 ~/.claude/skills/dart/.env의 키를 찾는다."""
+        import corp_registry
+        with tempfile.TemporaryDirectory() as t:
+            plugin_assets = Path(t, "cache", "dart", "2.2.0", "assets")
+            plugin_assets.mkdir(parents=True)
+            env = Path(t, "home", ".claude", "skills", "dart", ".env")
+            env.parent.mkdir(parents=True)
+            env.write_text("DART_API_KEY='HOMEKEY'\n")
+            cwd = Path(t, "elsewhere")
+            cwd.mkdir()
+            with unittest.mock.patch.object(corp_registry, "HERE", plugin_assets), \
+                    unittest.mock.patch.dict(os.environ, {"DART_API_KEY": ""}), \
+                    unittest.mock.patch("pathlib.Path.home", return_value=Path(t, "home")), \
+                    unittest.mock.patch("pathlib.Path.cwd", return_value=cwd):
+                self.assertEqual(corp_registry.find_api_key(), "HOMEKEY")
+
+
 class CliTest(unittest.TestCase):
     def test_list_and_help(self):
         import contextlib
