@@ -62,6 +62,25 @@ corp_code, bsns_year, reprt_code
 그래서 레지스트리는 KRX KIND 상장법인목록(`kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13`, EUC-KR HTML 표)과 stock_code로 교차해 현재 상장사만 남긴다.
 KIND 원본에는 같은 종목이 두 번 실린 행이 있고(2026-10 기준 43행), 신규 종목코드에는 영문이 섞인다(`0035S0`).
 
+### 8. MCP 서버만 쓰는 엔드포인트
+
+리포트 파이프라인은 쓰지 않고 `assets/mcp_server.py`만 부른다. 2026-10-08 카카오로 실측했다.
+
+| 엔드포인트 | MCP 도구 | 인자 | 비고 |
+|---|---|---|---|
+| `fnlttSinglIndx.json` | `fin_ratios` | 정기 + `idx_cl_code` (M210000 수익성, M220000 안정성, M230000 성장성, M240000 활동성) | 2023년 3분기 보고서부터 있다. 2023 1Q·2022 연간은 013. 값이 없으면 `idx_val` 키 자체가 빠지고, 자릿수가 넘치면 `#########`이 온다 |
+| `hyslrSttus.json` | `share_top_holders` | 정기 | 최대주주와 특수관계인. 카카오는 99행 |
+| `majorstock.json` | `share_block_reports` | `corp_code`만 | 5% 대량보유 보고 전체 이력. 정렬이 보장되지 않아 서버가 접수일 내림차순으로 정렬한다 |
+| `elestock.json` | `share_insider_reports` | `corp_code`만 | 임원·주요주주 소유 보고 전체 이력 (카카오 117행). 정렬은 위와 같다 |
+| `tesstkAcqsDspsSttus.json` | `share_treasury` | 정기 | 자기주식 취득 방법별 기초·취득·처분·소각·기말 |
+| `irdsSttus.json` | `share_capital_changes` | 정기 | 증자·감자 이력 |
+| `exctvSttus.json` | `people_executives` | 정기 | 임원 |
+| `empSttus.json` | `people_employees` | 정기 | 직원 수, 평균 근속, 1인 평균 급여 |
+
+`fnlttSinglIndx.json` 값은 연결재무제표가 있으면 연결, 없으면 별도 계정으로 계산돼 있다(2025 연간 부채비율 실측: 카카오 82.487 = 연결, 삼성전자 29.937 = 연결, 경남스틸 39.662 = 별도). 응답에 접수번호가 없어서 `fin_ratios`는 공시 목록에서 그 기간 보고서(정정본 우선)를 찾아 링크를 붙이고, 주요계정 한 번으로 기준을 가려 `meta.basis`에 적는다. `exctvSttus.json`은 회사마다 미등기임원을 싣는 정도가 다르다(삼성전자 2026 반기는 등기 8명만, 경남스틸 2025는 미등기 8명 포함).
+
+"정기"는 `corp_code, bsns_year, reprt_code`다. `fnlttSinglAcnt.json`은 `fs_div`를 줘도 연결·별도 행을 함께 돌려주므로 서버가 응답의 `fs_div`로 고른다. 소형사 중에는 손익계산서 없이 포괄손익계산서(`CIS`) 한 장만 공시하는 곳이 있다(경남스틸 2025 사업보고서).
+
 ---
 
 ## dart_client.py 사용법

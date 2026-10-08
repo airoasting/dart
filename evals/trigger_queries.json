@@ -1,0 +1,19 @@
+{
+  "note": "발동 판단 점검용. 2026-10-08 대리 점검(서브에이전트가 스킬 목록만 보고 고름) 14/14 일치. claude -p 실측(run_eval)은 설치된 dart와 같은 설명이 겹쳐 쓰지 않았다.",
+  "queries": [
+    {"query": "카카오 최대주주 지분율 요즘 어떻게 돼?", "should_trigger": true, "last": "dart"},
+    {"query": "삼전 등기이사 누구누구야? 임기도 알려줘", "should_trigger": true, "last": "dart"},
+    {"query": "에코프로비엠 작년에 배당 얼마 줬어", "should_trigger": true, "last": "dart"},
+    {"query": "/dart 현대차", "should_trigger": true, "last": "dart"},
+    {"query": "네이버 3분기 실적 리포트 만들어줘", "should_trigger": true, "last": "dart"},
+    {"query": "하이브 직원 평균 연봉이 공시 기준으로 얼마야", "should_trigger": true, "last": "dart"},
+    {"query": "셀트리온 자사주 지금 몇 주 들고 있어?", "should_trigger": true, "last": "dart"},
+    {"query": "LG에너지솔루션 최근 일주일 공시 뭐 나왔는지 정리해줘", "should_trigger": true, "last": "dart"},
+    {"query": "테슬라 10-K에서 부채비율 뽑아줘", "should_trigger": false, "last": "none"},
+    {"query": "삼성전자 지금 주가 얼마야", "should_trigger": false, "last": "none"},
+    {"query": "부채비율이 뭔지 쉽게 설명해줘", "should_trigger": false, "last": "none"},
+    {"query": "삼성전자, SK하이닉스, LG전자 영업이익률을 한 표로 비교하는 리포트 만들어줘", "should_trigger": false, "last": "none"},
+    {"query": "이 엑셀 재무제표에서 ROE 계산 수식 만들어줘", "should_trigger": false, "last": "anthropic-skills:xlsx"},
+    {"query": "우리 회사 사업보고서 초안 목차 잡아줘", "should_trigger": false, "last": "none"}
+  ]
+}

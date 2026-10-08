@@ -33,6 +33,20 @@ SKILL.md의 단계가 멈췄는데 그 단계 설명으로 풀리지 않을 때 
 | V2가 DART 공시 부문 숫자를 `unverified`로 | dart.fss.or.kr 뷰어는 WebFetch에 목차만 보인다 | V2 템플릿대로 `dart_text.py <rcpNo> "영업부문"`으로 본문 표를 읽게 한다(단위 천원·백만원을 억원으로 바꿔 비교) |
 | C층 출처 기록 없음 | V1·V2가 없거나 `unverified` | 검증 에이전트를 다시 돌리거나, 확인 못 한 항목을 조각에서 뺀다(부문은 `est: true`) |
 
+## 빠른 조회 (DART 도구 16개, `mcp_server.py`)
+
+| 증상 | 원인 | 해결 |
+|---|---|---|
+| `error`와 `candidates`가 온다 | 회사 이름이 여러 회사에 걸린다 | 후보를 보여 주고 고르게 한 뒤, 고른 종목코드를 `corp`에 넣어 다시 부른다 |
+| `note`: "데이터가 없습니다 (status 013)" | 그 기간 보고서에 그 항목이 없다. 재무 지표는 2023년 3분기 이전이 없고, 1분기 보고서에는 직원 급여가 빠진 회사가 많다 | 기간을 바꿔 한 번 더 보거나, 없다고 그대로 알린다 |
+| `truncated`가 붙는다 | 응답이 4만 자를 넘어 뒤쪽 행을 덜어 냈다 | `hint`대로 `statement`·`limit`·`size`를 좁혀 다시 부른다 |
+| `fin_statements`에 IS가 없고 CIS가 왔다 | 손익을 포괄손익계산서 한 장으로 공시한 회사(소형사에 흔하다) | 정상. `meta.statement_note`에 적혀 있다 |
+| `filing_search`가 "기간을 3개월 안으로" | `corp` 없이 시장 전체를 찾을 때의 DART 제한 | `from`·`to`를 좁히거나 `corp`를 준다 |
+| MCP로 연결했는데 도구가 안 보인다 | 앱이 `python3`를 못 찾거나 경로가 틀렸다 | Claude Desktop은 `~`를 풀지 않는다. 설정에 전체 경로를 쓰고, `python3` 대신 `which python3`가 알려 주는 전체 경로를 쓴다. 터미널에서 `mcp_server.py --list`가 도는지 먼저 본다 |
+| 모든 도구가 "DART_API_KEY가 없습니다" | 앱이 다른 폴더에서 서버를 띄워 작업 폴더 `.env`를 못 본다 | 키를 스킬 루트 `.env`(`~/.claude/skills/dart/.env`)에 둔다. 그 위치는 어디서 띄워도 찾는다 |
+
+`requests`가 없는 파이썬에서도 돈다(`http_compat.py`가 표준 라이브러리로 접속한다).
+
 ## 화면 · 유지보수
 
 | 증상 | 원인 | 해결 |

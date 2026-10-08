@@ -404,7 +404,8 @@ def fetch_dart(src):
 
 
 def fetch_provisional_text(rcept_no):
-    import io, zipfile, requests
+    import io, zipfile
+    from http_compat import requests
     r = requests.get("https://opendart.fss.or.kr/api/document.xml",
                      params={"crtfc_key": _load_key(), "rcept_no": rcept_no}, timeout=20)
     try:

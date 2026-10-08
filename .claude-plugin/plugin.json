@@ -1,5 +1,18 @@
 {
   "name": "dart",
-  "description": "DART 공시 재무 데이터로 인터랙티브 애널리스트 HTML 리포트를 만드는 스킬",
-  "version": "2.1.0"
+  "description": "DART 공시 재무 데이터로 인터랙티브 애널리스트 HTML 리포트를 만드는 스킬, 그리고 DART 공시 도구 16개를 담은 MCP 서버",
+  "version": "2.1.0",
+  "author": {
+    "name": "airoasting"
+  },
+  "repository": "https://github.com/airoasting/dart",
+  "license": "MIT",
+  "mcpServers": {
+    "dart": {
+      "command": "python3",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/assets/mcp_server.py"
+      ]
+    }
+  }
 }

@@ -9,7 +9,10 @@ CLI:  python3 price.py 035720   →  JSON 한 줄
 """
 from __future__ import annotations
 import sys, json, datetime
-import requests
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from http_compat import requests  # noqa: E402
 
 
 def _naver_daily(stock_code: str, days: int = 400):

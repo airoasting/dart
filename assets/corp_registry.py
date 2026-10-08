@@ -914,7 +914,7 @@ def _redact(e: object, key: str | None) -> str:
 
 def verify_live(corp: dict, api_key: str | None = None, timeout: int = 15) -> dict:
     """DART company.json으로 corp_code가 정말 이 종목코드의 회사인지 확인한다."""
-    import requests
+    from http_compat import requests
 
     key = api_key or _load_api_key()
     if not key:
@@ -973,7 +973,7 @@ class _KindTable(html.parser.HTMLParser):
 
 
 def fetch_krx_listed(timeout: int = 30) -> list[dict]:
-    import requests
+    from http_compat import requests
 
     r = requests.get(KIND_LIST_URL, params={"method": "download", "searchType": "13"},
                      headers={"User-Agent": "Mozilla/5.0"}, timeout=timeout)
@@ -1001,7 +1001,7 @@ def fetch_krx_listed(timeout: int = 30) -> list[dict]:
 
 def fetch_mcap_ranks(timeout: int = 15) -> dict[str, int]:
     """코스피·코스닥 시가총액 상위 종목의 통합 순위 {종목코드: 순위}. 후보 정렬에만 쓴다 (실패해도 갱신은 계속)."""
-    import requests
+    from http_compat import requests
 
     vals: dict[str, float] = {}
     for market in ("KOSPI", "KOSDAQ"):
@@ -1019,7 +1019,7 @@ def fetch_mcap_ranks(timeout: int = 15) -> dict[str, int]:
 
 def fetch_krx_delist_reasons(timeout: int = 30) -> dict[str, tuple[str, str]]:
     """KIND 상장폐지현황: {종목코드: (폐지일, 폐지사유)}. 폐지 종목 안내 문구용 (실패해도 갱신은 계속)."""
-    import requests
+    from http_compat import requests
 
     out: dict[str, tuple[str, str]] = {}
     for page in range(1, 10):
@@ -1039,7 +1039,7 @@ def fetch_krx_delist_reasons(timeout: int = 30) -> dict[str, tuple[str, str]]:
 
 
 def fetch_dart_corps(api_key: str, timeout: int = 60) -> list[dict]:
-    import requests
+    from http_compat import requests
     import xml.etree.ElementTree as ET
 
     r = requests.get(DART_CORPCODE_URL, params={"crtfc_key": api_key}, timeout=timeout)

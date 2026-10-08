@@ -30,6 +30,8 @@
 | **투자자 시각** | 13인의 전설적 투자자가 이 종목을 본다면 어떻게 평가할지 담습니다 |
 | **전문가 평가** | 맨 아래에 RED(논리), SILVER(분야 전문가), GOLD(실제 독자) 세 관점이 리포트 자체를 10점 만점으로 평가하고 고칠 점을 남깁니다. 참고용입니다 |
 
+리포트까지 필요 없고 "카카오 최대주주 지분율", "삼성전자 직원 평균 급여"처럼 숫자 몇 개만 궁금하면 그냥 그렇게 물으면 됩니다. 스킬이 리포트 대신 [DART 도구 16개](#mcp-도구로-쓰기)로 바로 찾아, 어느 보고서 기준인지와 공시 원문 링크를 붙여 답합니다.
+
 ## 믿을 수 있나 (데이터 출처)
 
 - **종목**은 금융감독원 공시 목록과 한국거래소의 현재 상장 목록을 맞물려 찾습니다. "현대차", "삼전", "하닉" 같은 약칭, "네이버" 같은 한글 표기, 영문명, 종목코드, 우선주, 그리고 "쌍용차", "포스코케미칼" 같은 주요 옛 회사명을 알아듣습니다. 이름이 애매하면 추측하지 않고 후보를 보여 드리고, 상장폐지된 종목은 그렇다고 알려 드립니다. 리츠와 상장 인프라 펀드는 결산 구조가 달라 만들지 않고, 스팩은 실적이 거의 없다는 점을 먼저 알려 드린 뒤 원하실 때만 만듭니다.
@@ -78,7 +80,7 @@
 
 ## 쓰는 법 (설치는 한 번만)
 
-터미널이 익숙하면 방법 A, 대화로 끝내고 싶으면 방법 B를 고르면 됩니다. 준비물은 둘 다 같습니다. [opendart.fss.or.kr](https://opendart.fss.or.kr)에서 무료로 받는 DART API 키, 그리고 Python(`requests`, `pandas`)입니다.
+터미널이 익숙하면 방법 A, 대화로 끝내고 싶으면 방법 B를 고르면 됩니다. 준비물은 둘 다 같습니다. [opendart.fss.or.kr](https://opendart.fss.or.kr)에서 무료로 받는 DART API 키, 그리고 Python 3.9 이상입니다. 추가 패키지는 없어도 됩니다(`requests`가 깔려 있으면 그것을 씁니다).
 
 ### 방법 A. 터미널에서 직접 설치
 
@@ -90,17 +92,19 @@
    ```env
    DART_API_KEY=발급받은_키
    ```
-3. **패키지 설치**: `pip install requests pandas`
+3. **확인**: 아래 명령이 카카오의 대표자와 주소를 보여 주면 키와 파이썬이 모두 준비된 것입니다.
+   ```bash
+   python3 ~/.claude/skills/dart/assets/mcp_server.py --call corp_profile '{"corp": "카카오"}'
+   ```
 
 ### 방법 B. Claude Desktop에서 자연어로 설치
 
-Claude Desktop 대화창에 아래 문장을 그대로 붙여넣으면, 클로드가 저장소를 내려받고 패키지를 깔고 API 키 설정까지 안내합니다.
+Claude Desktop 대화창에 아래 문장을 그대로 붙여넣으면, 클로드가 저장소를 내려받고 API 키 설정까지 안내합니다.
 
 ```
 아래 스킬을 설치해줘.
 - 저장소: https://github.com/airoasting/dart
 - 설치 위치: ~/.claude/skills/dart (git clone)
-- 그다음 pip install requests pandas
 - ~/.claude/skills/dart/.env 에 DART_API_KEY 넣는 것까지 도와줘
 DART API 키는 https://opendart.fss.or.kr 에서 무료로 발급받아 알려줄게.
 ```
@@ -116,6 +120,14 @@ DART API 키는 https://opendart.fss.or.kr 에서 무료로 발급받아 알려�
 /dart SK하이닉스 1Q2026
 /dart 005380
 네이버 실적 리포트 만들어줘
+```
+
+리포트 없이 숫자만 물어도 됩니다. 1분 안팎에 답이 옵니다.
+
+```
+카카오 최대주주 지분이 올해 상반기에 줄었어?
+경남스틸 작년 부채비율이랑 ROE 얼마야
+삼성전자 등기임원 임기 만료 순으로 정리해줘
 ```
 
 회사 이름이 애매하면 리포트를 만들기 전에 "이 회사가 맞나요?"라고 먼저 여쭤봅니다.
@@ -135,6 +147,90 @@ python3 ~/.claude/skills/dart/assets/html2pdf.py output/카카오_20260704_01.ht
 브라우저에서 `Cmd+P`로 직접 뽑아도 됩니다. 리포트에 인쇄 보정이 들어 있어서 화면과 같은 내용이 나옵니다. 인쇄 설정에서 "배경 그래픽"만 켜 주세요.
 
 페이지 번호까지 붙이고 싶다면 `pip install playwright && python3 -m playwright install chromium`을 한 번 실행해 두면 됩니다.
+
+---
+
+## MCP 도구로 쓰기
+
+리포트 한 편까지는 필요 없고 숫자 몇 개만 확인하고 싶을 때 씁니다. 클로드에 이 서버를 연결해 두면, 대화 중에 "이 회사 부채비율은?"이라고 물었을 때 클로드가 DART 공시에서 해당 숫자를 꺼내 원문 링크와 함께 답합니다. 도구는 16개입니다.
+
+**리포트 스킬과 같은 기반을 씁니다.** 회사 이름 해석, API 키 위치, 재시도와 키 가림 규칙이 리포트와 똑같습니다. 서버도 리포트도 파이썬만 있으면 돕니다. `requests`가 깔려 있지 않아도 표준 라이브러리로 접속합니다.
+
+### 특징
+
+- **회사 이름을 그대로 넣습니다.** 모든 도구의 `corp`에 "카카오", "하닉", "005930", DART 고유번호 중 무엇을 넣어도 됩니다. 고유번호를 먼저 찾는 단계가 필요 없고, 이름이 애매하면 추측하지 않고 후보를 돌려줍니다.
+- **기간을 비워 두면 가장 최근 보고서를 씁니다.** `year`를 비우면 가장 최근에 나온 분기·반기·사업보고서를 찾아 씁니다. 3월 결산 같은 비12월 결산과 기재정정 보고서도 감안합니다. 어떤 보고서를 골랐는지는 응답의 `meta`에 남습니다.
+- **연결 재무제표가 없으면 별도 재무제표를 씁니다.** 연결 재무제표를 내지 않는 소형사도 별도 재무제표로 숫자를 찾습니다.
+- **모든 응답에 DART 원문 링크가 붙습니다.** 숫자를 공시 원문에서 바로 확인할 수 있습니다.
+- **비상장사도 조회됩니다.** DART에 등록된 약 11만 9천 곳(2026-10-04 기준)은 `corp_resolve`의 `scope: "all"`로 찾고, 8자리 고유번호를 넣어 조회합니다.
+
+### 도구 목록 (16개)
+
+분석하는 순서대로 묶었습니다. 회사, 공시, 재무, 지분·자본, 사람 순입니다.
+
+`정기` 표시가 있는 도구는 `corp`, `year`, `period`를 받습니다. `year`는 사업연도 4자리이고, `period`는 `Q1`(1분기), `H1`(반기), `Q3`(3분기), `FY`(사업보고서) 중 하나입니다. 둘 다 비우면 가장 최근 정기보고서를 쓰고, `year`만 주면 `FY`로 봅니다.
+
+| # | 도구 | 돌려주는 것 | 입력 |
+|---|------|------|------|
+| 1 | `corp_resolve` | 이름·약칭·옛 이름·종목코드를 DART 고유번호로 바꿉니다. 애매하면 후보를 돌려줍니다 | `query`, `scope: "listed" \| "all"`, `limit` |
+| 2 | `corp_profile` | 기업 개황. 대표자, 업종 코드, 주소, 홈페이지, 설립일, 결산월 | `corp` |
+| 3 | `filing_search` | 공시 목록 검색. 각 건에 원문 링크가 붙습니다 | `corp`, `from`, `to`, `kind`, `market`, `page`, `size` |
+| 4 | `filing_latest_periodic` | 가장 최근 정기보고서와 그 연도·기간 | `corp` |
+| 5 | `fin_key_accounts` | 주요 재무 계정. 매출, 영업이익, 순이익, 자산·부채·자본 | `정기`, `basis` |
+| 6 | `fin_statements` | 전체 재무제표. 재무상태표, 손익, 포괄손익, 현금흐름, 자본변동 | `정기`, `basis`, `statement: "all" \| "BS" \| "IS" \| "CIS" \| "CF" \| "SCE"` |
+| 7 | `fin_ratios` | 재무 지표. 수익성(ROE 등), 안정성(부채비율 등), 성장성, 활동성 | `정기`, `group: "all" \| "profitability" \| "stability" \| "growth" \| "activity"` |
+| 8 | `fin_dividends` | 배당. 주당 배당금, 배당 성향, 시가 배당률 | `정기` |
+| 9 | `share_outstanding` | 발행 주식 수, 자기주식 수, 유통 주식 수 | `정기` |
+| 10 | `share_top_holders` | 최대주주와 특수관계인의 보유 주식 수와 지분율 | `정기` |
+| 11 | `share_block_reports` | 5% 대량보유 보고. 최근 접수순 | `corp`, `limit` |
+| 12 | `share_insider_reports` | 임원·주요주주 소유 보고. 최근 접수순 | `corp`, `limit` |
+| 13 | `share_treasury` | 자기주식 취득·처분·소각 현황 | `정기` |
+| 14 | `share_capital_changes` | 증자·감자 이력 | `정기` |
+| 15 | `people_executives` | 임원 현황. 직위, 등기 여부, 경력, 임기 | `정기` |
+| 16 | `people_employees` | 직원 현황. 인원, 평균 근속연수, 1인 평균 급여 | `정기` |
+
+`basis`는 `auto`(기본, 연결이 없으면 별도), `consolidated`(연결만), `separate`(별도만)입니다. `filing_search`의 `kind`는 `periodic`(정기), `major`(주요사항), `ownership`(지분) 등이고, `market`은 `kospi`, `kosdaq`, `konex`, `other`입니다. `corp`를 비우면 시장 전체에서 찾되, DART 제한 때문에 기간이 3개월을 넘을 수 없습니다.
+
+재무 지표(`fin_ratios`)는 DART가 계산해 둔 값이고, 2023년 3분기 보고서부터 있습니다. 분기·반기 값은 연환산하지 않은 숫자입니다. 금액은 DART 원본 그대로 원 단위입니다.
+
+### 연결하기
+
+스킬을 설치했다면 연결하지 않아도 대화에서 바로 씁니다. 스킬이 같은 도구를 명령줄로 부르기 때문입니다. 아래 연결은 스킬 없이 MCP 도구로만 쓰고 싶을 때, 또는 다른 MCP 앱에서 쓰고 싶을 때 합니다.
+
+위 [쓰는 법](#쓰는-법-설치는-한-번만)대로 설치하고 API 키를 넣었다면, 아래 중 쓰는 앱 하나만 하면 됩니다.
+
+**Claude Code**: 한 줄이면 됩니다. 모든 프로젝트에서 쓸 수 있게 사용자 범위로 등록합니다.
+
+```bash
+claude mcp add --scope user dart -- python3 ~/.claude/skills/dart/assets/mcp_server.py
+```
+
+**Claude Desktop**: 설정의 개발자 탭에서 설정 파일(`claude_desktop_config.json`)을 열어 아래를 넣고 앱을 다시 켭니다. 경로의 `사용자이름`은 본인 것으로 바꿉니다. Desktop은 `~`를 풀지 않으니 전체 경로를 씁니다.
+
+```json
+{
+  "mcpServers": {
+    "dart": {
+      "command": "python3",
+      "args": ["/Users/사용자이름/.claude/skills/dart/assets/mcp_server.py"]
+    }
+  }
+}
+```
+
+**플러그인으로 설치했다면** 따로 할 일이 없습니다. `.claude-plugin/plugin.json`에 서버가 등록돼 있어 플러그인과 함께 켜집니다.
+
+**연결 전에 터미널에서 바로 확인**할 수도 있습니다.
+
+```bash
+python3 ~/.claude/skills/dart/assets/mcp_server.py --list
+```
+
+```bash
+python3 ~/.claude/skills/dart/assets/mcp_server.py --call share_top_holders '{"corp": "카카오"}'
+```
+
+연결되면 이렇게 물으면 됩니다. "카카오 최대주주 지분율이 지난 반기에 어떻게 변했어?", "SK하이닉스 직원 1인 평균 급여 알려줘", "삼성전자 최근 5% 대량보유 보고 보여줘", "경남스틸 2025년 부채비율은?"
 
 ---
 
@@ -166,12 +262,15 @@ python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
 │   ├── dart_text.py            # 공시 원문 텍스트 검색 (V2 부문 검증용)
 │   ├── html2pdf.py             # 리포트 HTML → PDF (A4)
 │   ├── dart_client.py          # DART API 클라이언트 (재시도·키 가림)
+│   ├── mcp_server.py           # DART 도구 16개 MCP 서버 (표준 라이브러리, stdio)
+│   ├── http_compat.py          # requests가 없으면 urllib으로 대신 접속
 │   ├── corp_registry.py        # 종목 찾기: 이름·약칭·코드 → DART 고유번호
 │   ├── corp_codes_listed.csv   # 현재 상장사 (DART ∩ 한국거래소)
 │   ├── corp_codes_delisted.csv # 상장폐지·이전 종목 (안내용)
 │   ├── corp_codes_meta.json    # 목록 생성 시각·건수
 │   └── corp_aliases.csv        # 약칭 → 종목코드
-├── tests/                      # 종목 찾기·조립 회귀 테스트 (python3 -m unittest discover -s tests)
+├── tests/                      # 종목 찾기·조립·MCP 서버 회귀 테스트 (python3 -m unittest discover -s tests)
+├── evals/                      # 빠른 조회 평가 (질문·채점기·결과, skill-creator 형식)
 ├── investor_persona/           # 13인 투자자 철학 파일 (_ALL.md 통합본)
 └── references/                 # 예외 상황 안내(종목 찾기·잠정실적·문제 해결·PDF)와 설계 기록
 ```

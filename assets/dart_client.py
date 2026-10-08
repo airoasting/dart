@@ -11,10 +11,10 @@ import time
 from pathlib import Path
 from typing import Any
 
-import requests
-
 BASE_URL = "https://opendart.fss.or.kr/api"
-sys.path.insert(0, str(Path(__file__).resolve().parent))   # corp_registry 동봉 모듈
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # corp_registry·http_compat 동봉 모듈
+
+from http_compat import requests  # noqa: E402  (requests가 없으면 urllib 대체품)
 
 
 def _load_api_key() -> str:
