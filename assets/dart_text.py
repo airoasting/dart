@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DART 공시 원문을 텍스트로 꺼내 검색어 주변만 보여 준다 (V2 검증 에이전트용).
+"""DART 공시 원문을 텍스트로 꺼내 검색어 주변만 보여 준다 (A2b 부문 조사·V2b 검증 에이전트용).
 
 dart.fss.or.kr 뷰어 페이지(dsaf001/main.do?rcpNo=...)는 프레임과 스크립트로 그려져서 WebFetch로는 목차만 보인다.
 같은 공시를 OpenDART document.xml로 받으면 본문 표까지 텍스트로 나온다.

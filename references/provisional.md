@@ -17,8 +17,8 @@
    없으면 사용자에게 알리고 직전 분기로 할지 묻는다.
 2. 원문 읽기: `verify_report.fetch_provisional_text(rcept_no)`가 원문 텍스트를 준다. 매출·영업이익·순이익의 당기·전년동기 값을 읽는다.
 3. B·C 에이전트에게 넘길 사실을 facts 출력과 같은 형식으로 직접 쓴다(예: `"매출 17,479억 → 19,421억 (+1,942억, +11.1%)"`). 재무상태와 주가 줄은 빼거나, 주가는 `python3 ~/.claude/skills/dart/assets/price.py <종목코드>`로 채운다(웹 검색 주가는 쓰지 않는다. 게이트가 KRX 일봉으로 대조한다).
-4. 리서치 에이전트(A1·A2·B·C)와 검증(V1·V2)은 SKILL.md Step 4와 같다.
-5. data.json은 조립 스크립트 대상이 아니다. `~/.claude/skills/dart/assets/data.example.json`을 복사해 값만 바꾼다. meta 키는 하나도 빼지 않는다(빌더가 미치환 토큰으로 멈춘다). 조각 파일(A1·A2·B·C·V1·V2)의 내용은 `js`와 `audit.web`·`audit.claims`에 옮긴다. 조립 스크립트가 대신 만들던 값은 직접 채운다: `js.CONS`는 ANALYSTS의 의견을 센 값, `meta.coverage_note`는 "표의 N개 증권사 기준 (전체 커버리지 집계는 미확인)", `js.DELTA`는 SEGS의 부문별 차이와 합계, CHIPS의 `dot`은 cls에 맞춰 `var(--coral)`·`var(--grn)`·`var(--dn)`. `audit.src`에는 아래 다섯 키가 모두 있어야 게이트가 돈다:
+4. 리서치 에이전트(A1·A2a·A2b·B·C)와 검증(V1·V2a·V2b)은 SKILL.md Step 4와 같다. 정기보고서가 없으니 A2b의 `{RCEPT}`에는 "없음"을 넣어 IR 자료에서 찾게 한다.
+5. data.json은 조립 스크립트 대상이 아니다. `~/.claude/skills/dart/assets/data.example.json`을 복사해 값만 바꾼다. meta 키는 하나도 빼지 않는다(빌더가 미치환 토큰으로 멈춘다). 조각 파일(A1·A2a·A2b·B·C·V1·V2a·V2b)의 내용은 `js`와 `audit.web`·`audit.claims`에 옮긴다. 조립 스크립트가 대신 만들던 값은 직접 채운다: `js.CONS`는 ANALYSTS의 의견을 센 값, `meta.coverage_note`는 "표의 N개 증권사 기준 (전체 커버리지 집계는 미확인)", `js.DELTA`는 SEGS의 부문별 차이와 합계, CHIPS의 `dot`은 cls에 맞춰 `var(--coral)`·`var(--grn)`·`var(--dn)`. `audit.src`에는 아래 다섯 키가 모두 있어야 게이트가 돈다:
    ```json
    "src": {"corp_code": "<8자리>", "year": "<사업연도>", "reprt_code": "<분기 코드>", "kind": "provisional", "rcept_no": "<잠정실적 공시 번호>"}
    ```

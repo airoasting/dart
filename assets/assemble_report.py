@@ -23,12 +23,15 @@
 
 조각 파일 (<dir> 안, 모두 순수 JSON)
   A1.json  {"NEWS": [...]}                                           뉴스 에이전트
-  A2.json  {"ANALYSTS": [...], "SEGS": [...], "filter_cats": [...]}      증권사·부문 에이전트
+  A2a.json {"ANALYSTS": [...]}                                       증권사 에이전트
            (CONS·커버리지 문구는 이 스크립트가 ANALYSTS에서 만든다)
+  A2b.json {"SEGS": [...], "filter_cats": [...]}                     부문 매출 에이전트
+           (예전 형식인 A2.json 하나에 셋을 다 담아도 된다. A2a·A2b가 있으면 그쪽을 쓴다)
   B.json   [... 13개 PERSONAS ...]                                    페르소나 에이전트
   C.json   {"BULLS": [...], "BEARS": [...], "CHIPS": [...]}            강세·약세 에이전트
   V1.json  {"web": [...], "claims": [...]}                            A1 출처 검증 (선택)
-  V2.json  {"web": [...], "claims": [...]}                            A2 출처 검증 (선택)
+  V2a.json {"web": [...], "claims": [...]}                            A2a 출처 검증 (선택)
+  V2b.json {"web": [...], "claims": [...]}                            A2b 출처 검증 (선택, 예전 형식은 V2.json)
 
 검증 장부의 corrected 항목에 "patch": {필드: 값}을 넣으면 해당 항목(ANALYSTS는 firm, NEWS는 url,
 SEGS는 name으로 찾는다)에 그대로 반영한다. 사람이 다시 옮겨 적지 않는다.
@@ -224,16 +227,24 @@ def _apply_patches(js: dict, ledgers: list[dict]) -> None:
                             e["url"] = patch["url"]
 
 
+def _load_a2(parts: pathlib.Path) -> tuple[dict, tuple[str, ...]]:
+    """증권사(A2a)와 부문(A2b)을 따로 조사하면 둘을 합친다. 예전 A2.json 하나도 읽는다. (조사 결과, 있어야 할 검증 장부)"""
+    if (parts / "A2a.json").exists() or (parts / "A2b.json").exists():
+        return {**_load(parts / "A2a.json"), **_load(parts / "A2b.json")}, ("V1", "V2a", "V2b")
+    return _load(parts / "A2.json"), ("V1", "V2")
+
+
 def build(a) -> None:
     c = collect(a)
     parts = pathlib.Path(a.parts)
-    A1, A2, B, C = (_load(parts / f) for f in ("A1.json", "A2.json", "B.json", "C.json"))
+    A1, B, C = (_load(parts / f) for f in ("A1.json", "B.json", "C.json"))
+    A2, ledger_names = _load_a2(parts)
     review = _load(parts / "R.json", False)   # 전문가 평가는 조립된 data.json을 읽고 쓰므로 첫 조립에는 없다
     if review is None:
         print("ℹ️  R.json 없음: 전문가 평가 없이 조립했다. 이 data.json으로 R 에이전트를 돌리고 다시 조립한다.", file=sys.stderr)
     elif review_problems(review):
         sys.exit("R.json 형식이 맞지 않다: " + "; ".join(review_problems(review)) + ". 같은 템플릿으로 R을 다시 띄운다.")
-    ledgers = [x for x in (_load(parts / "V1.json", False), _load(parts / "V2.json", False)) if x]
+    ledgers = [x for x in (_load(parts / f"{v}.json", False) for v in ledger_names) if x]
     corp, r, raw, lb, px = c["corp"], c["r"], c["raw"], c["labels"], c["px"]
 
     # 1) 조각을 화면 데이터 모양으로 → 2) 검증 patch 반영 → 3) 그 결과로 검사·계산 (patch가 계산에 들어가야 한다)
@@ -260,7 +271,7 @@ def build(a) -> None:
         s25, s26 = s25 + d25, s26 + d26
     if abs(s25 - r["rev"][1]) > len(segs) or abs(s26 - r["rev"][0]) > len(segs):
         sys.exit(f"SEGS 합계가 총매출과 다르다: 전년 {s25} vs {r['rev'][1]}, 당기 {s26} vs {r['rev'][0]}. "
-                 "A2.json의 부문 숫자를 고치거나 차이를 연결조정 행(est: true)으로 넣고 다시 조립한다.")
+                 "A2b.json(예전 형식은 A2.json)의 부문 숫자를 고치거나 차이를 연결조정 행(est: true)으로 넣고 다시 조립한다.")
     delta = [{"name": s["name"], "d": s["q26"] - s["q25"], "est": s["est"]} for s in segs]
     delta.append({"name": "합계", "d": sum(x["d"] for x in delta), "tot": True})
     js["DELTA"] = delta
@@ -269,7 +280,7 @@ def build(a) -> None:
 
     bad = [x["firm"] for x in js["ANALYSTS"] if not isinstance(x.get("tp"), (int, float)) or x["tp"] <= 0]
     if bad:
-        sys.exit(f"증권사 목표가가 없다: {bad}. A2.json에서 목표가(tp, 원 단위 정수)가 확인된 증권사만 남기고 다시 조립한다.")
+        sys.exit(f"증권사 목표가가 없다: {bad}. A2a.json(예전 형식은 A2.json)에서 목표가(tp, 원 단위 정수)가 확인된 증권사만 남기고 다시 조립한다.")
     # ANALYSTS가 비어 있으면 '커버리지 없음' 리포트다(중소형주에 흔하다). 목표가 칸은 숫자 없이 표시한다
     # 컨센 수는 표의 의견에서 다시 센다 (patch로 의견이 바뀌어도 맞도록)
     js["CONS"] = {k: sum(1 for x in js["ANALYSTS"] if x["r"].lower() == k) for k in ("buy", "hold", "sell")}
@@ -292,8 +303,6 @@ def build(a) -> None:
         "name": corp["corp_name"], "base_date": dt.date.today().strftime("%Y.%m.%d"), "code": corp["stock_code"],
         "period_full": a.period_note or lb["note"] or f"{lb['prv_full']} vs {lb['cur_full']}",
         "basis": ("연결" if a.fs_div == "CFS" else "개별") + " · 전년은 이번 보고서의 비교 수치(재작성 반영)",
-        "price": f"{px['close']:,}", "price_chg": f"{px['change_pct']:+.2f}% ({int(d[4:6])}/{int(d[6:])} 종가)",
-        "w52_range": px["w52_range"],
         "nav_label": f"{lb['nav']} 실적", "kpi_label": f"{lb['nav']} 실적 요약",
         "rev_val": f"{r['rev'][0]:,}", "rev_dir": "up" if r["rev"][0] >= r["rev"][1] else "down",
         "rev_yoy": yoy_text("rev"), "rev_sub": f"{lb['prv_s']} &nbsp;{r['rev'][1]:,}억",
@@ -309,7 +318,7 @@ def build(a) -> None:
         "cons_buy_pct": f"{cons['buy'] / n * 100:.1f}%", "cons_buy": str(cons["buy"]),
         "cons_hold_pct": f"{cons['hold'] / n * 100:.1f}%", "cons_hold": str(cons["hold"]),
         "cons_sell_pct": f"{cons['sell'] / n * 100:.1f}%", "cons_sell": str(cons["sell"]),
-        "tp_cur": f"{px['close']:,}원",
+        "tp_cur": f"{px['close']:,}원 ({int(d[4:6])}/{int(d[6:])} 종가)",
         "tp_low": f"{min(tps):,}원" if tps else "없음", "tp_avg": f"{tp_avg:,}원" if tps else "없음",
         "tp_high": f"{max(tps):,}원" if tps else "없음",
         "tp_upside": f"{(tp_avg - px['close']) / px['close'] * 100:+.1f}%" if tps else "해당 없음",
@@ -332,7 +341,7 @@ def build(a) -> None:
     out = pathlib.Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
-    missing = [v for v in ("V1", "V2") if not (parts / f"{v}.json").exists()]
+    missing = [v for v in ledger_names if not (parts / f"{v}.json").exists()]
     print(f"✅ {out}  (검증 장부 {len(web)}건" + (f", 아직 없는 출처 검증: {', '.join(missing)})" if missing else ")"))
 
 

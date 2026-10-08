@@ -68,7 +68,7 @@ DART 공시로 두 가지 일을 한다. 먼저 요청이 어느 쪽인지 고�
 | 1 | 종목 확정 | `corp_registry.py "<이름>" --verify` |
 | 2 | 기간 정하기 | `assemble_report.py period --corp-code <c>` |
 | 3 | 사실 뽑기 | `assemble_report.py facts --corp-code <c> <args>` |
-| 4 | 병렬 조사와 출처 검증 → 조각 파일 | 서브에이전트 A1·A2·B·C, V1·V2 |
+| 4 | 병렬 조사와 출처 검증 → 조각 파일 | 서브에이전트 A1·A2a·A2b·B·C, V1·V2a·V2b |
 | 5 | data.json 조립과 전문가 평가 | `assemble_report.py build ...` → 에이전트 R → 다시 `build` |
 | 6 | 숫자 검증 게이트 | `verify_report.py <data.json>` |
 | 7 | HTML 빌드·전달 | `build_report.py <data.json>` |
@@ -134,16 +134,17 @@ python3 ~/.claude/skills/dart/assets/assemble_report.py facts --corp-code <corp_
 
 ## Step 4. 병렬 조사와 출처 검증
 
-**한 메시지에서 4개 에이전트를 `run_in_background`로 동시에 띄운다.** 프롬프트는 **`references/agent-prompts.md`의 템플릿에 값만 채워** 그대로 쓴다. 템플릿에 파일 형식, 필드의 뜻과 단위, 할당량, 금지 사항이 다 들어 있다. 각 에이전트는 결과를 조각 폴더에 순수 JSON으로 직접 쓰고 "done"만 답한다. 메인은 결과를 옮겨 적지 않는다.
+**한 메시지에서 5개 에이전트를 `run_in_background`로 동시에 띄운다.** 프롬프트는 **`references/agent-prompts.md`의 템플릿에 값만 채워** 그대로 쓴다. 템플릿에 파일 형식, 필드의 뜻과 단위, 할당량, 금지 사항이 다 들어 있다. 각 에이전트는 결과를 조각 폴더에 순수 JSON으로 직접 쓰고 "done"만 답한다. 메인은 결과를 옮겨 적지 않는다.
 
 | 에이전트 | 하는 일 | 쓰는 파일 |
 |---|---|---|
 | **A1** | 뉴스 5건 | `A1.json` |
-| **A2** | 증권사 5곳, 사업부문 매출 | `A2.json` |
+| **A2a** | 증권사 5곳 | `A2a.json` |
+| **A2b** | 사업부문 매출 (DART 본문 표) | `A2b.json` |
 | **B** | 투자자 13인 평가 | `B.json` |
 | **C** | 강세·약세 논거 각 5개, KPI 칩 3~4개 | `C.json` |
 
-**출처 검증은 조사와 겹쳐 돌린다.** A1이 끝났다는 알림이 오면 곧바로 **V1**(A1.json 검증 → `V1.json`)을, A2가 끝나면 **V2**(A2.json 검증 → `V2.json`)를 띄운다(같은 템플릿 문서). 다른 에이전트를 기다리지 않는다. 검증은 작성한 에이전트와 다른 에이전트가 해야 의미가 있다. 원문을 직접 열어 본 것만 `confirmed`이고, 틀린 것은 `corrected`와 함께 `patch`에 고친 값을 넣는다. 조립 스크립트가 patch를 반영하니 메인이 다시 고치지 않는다.
+**출처 검증은 조사와 겹쳐 돌린다.** A1이 끝났다는 알림이 오면 곧바로 **V1**(A1.json 검증 → `V1.json`)을, A2a가 끝나면 **V2a**(→ `V2a.json`)를, A2b가 끝나면 **V2b**(→ `V2b.json`)를 띄운다(같은 템플릿 문서). 다른 에이전트를 기다리지 않는다. 증권사와 부문을 한 에이전트에 맡기면 그 하나가 5분 넘게 걸려 전체를 붙잡는다. 그래서 둘로 나눈다. 검증은 작성한 에이전트와 다른 에이전트가 해야 의미가 있다. 원문을 직접 열어 본 것만 `confirmed`이고, 틀린 것은 `corrected`와 함께 `patch`에 고친 값을 넣는다. 조립 스크립트가 patch를 반영하니 메인이 다시 고치지 않는다.
 
 조립 전에 두 가지를 확인한다.
 
@@ -154,7 +155,7 @@ python3 ~/.claude/skills/dart/assets/assemble_report.py facts --corp-code <corp_
 
 ## Step 5. data.json 조립
 
-A1·A2·B·C·V1·V2 파일이 모두 생기면 조립한다(첫 조립에는 R.json이 없다는 안내가 나온다. 정상이다):
+A1·A2a·A2b·B·C·V1·V2a·V2b 파일이 모두 생기면 조립한다(첫 조립에는 R.json이 없다는 안내가 나온다. 정상이다):
 
 ```bash
 python3 ~/.claude/skills/dart/assets/assemble_report.py build --corp-code <corp_code> <args> \

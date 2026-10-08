@@ -121,6 +121,28 @@ class Build(unittest.TestCase):
         with self.assertRaises(SystemExit):
             run_build(self.d, vals={k: v for k, v in VALS.items() if k != "op"})
 
+    def test_split_analyst_and_segment_parts(self):
+        """증권사(A2a)와 부문(A2b)을 따로 조사해도 예전 A2.json과 같은 data.json이 나온다."""
+        write_parts(self.d)
+        legacy = run_build(self.d)
+        a2 = json.loads((self.d / "A2.json").read_text(encoding="utf-8"))
+        v2 = json.loads((self.d / "V2.json").read_text(encoding="utf-8"))
+        for f in ("A2.json", "V2.json"):
+            (self.d / f).unlink()
+        write_parts(self.d, **{"A2.json": None, "V2.json": None,
+                               "A2a.json": {"ANALYSTS": a2["ANALYSTS"]},
+                               "A2b.json": {"SEGS": a2["SEGS"], "filter_cats": a2["filter_cats"]},
+                               "V2a.json": v2, "V2b.json": {"web": [], "claims": []}})
+        split = run_build(self.d)
+        self.assertEqual(split["js"], legacy["js"])
+        self.assertEqual(split["meta"], legacy["meta"])
+        self.assertEqual(split["js"]["ANALYSTS"][0]["tp"], 310000)     # V2a의 patch가 반영된다
+
+    def test_split_parts_need_both_halves(self):
+        write_parts(self.d, **{"A2.json": None, "A2a.json": {"ANALYSTS": []}})
+        with self.assertRaises(SystemExit):
+            run_build(self.d)
+
     def test_verification_files_optional(self):
         write_parts(self.d, **{"V1.json": None, "V2.json": None})
         data = run_build(self.d)

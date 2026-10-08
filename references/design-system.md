@@ -14,7 +14,7 @@ HTML `<style>` 태그 안에 아래 CSS를 **그대로** 삽입한다.
 | 3 | 테마 전환 트랜지션 | 모든 카드·표면에 .22s ease |
 | 4 | Body & 래퍼 | 폰트, 배경, max-width |
 | 5 | 서피스 클래스 | .nr, .ni, .ni-sm |
-| 6 | 헤더 | .hdr, .price-now, .price-chg |
+| 6 | 헤더 | .hdr, .hdr-l |
 | 7 | 스킵 링크 | 접근성 |
 | 8 | Sticky Nav | 7개 링크, progress bar |
 | 9 | 테마 토글 버튼 | .theme-btn |
@@ -168,10 +168,6 @@ body {
 .hdr-l h1 { font-size:1.76rem; font-weight:800; letter-spacing:-.5px; }
 .hdr-l h1 span { color:var(--coral); }
 .hdr-l p  { margin-top:6px; font-size:.87rem; color:var(--t2); }
-.hdr-r    { text-align:right; }
-.price-now { font-size:1.62rem; font-weight:700; }
-.price-chg { font-size:.90rem; font-weight:600; color:var(--up); margin-top:3px; }
-.price-meta{ font-size:.78rem; color:var(--t3); margin-top:3px; }
 ```
 
 ---

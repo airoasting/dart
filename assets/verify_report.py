@@ -7,7 +7,7 @@ data.json의 모든 숫자를 세 층으로 다시 대조한다. 통과(PASS)해
 
   A. 산술 정합   meta 텍스트 ↔ js 숫자, YoY·마진·합계·기여도·컨센·업사이드를 다시 계산해 대조
   B. 원천 대조   종목명·종목코드·corp_code가 한 회사인지 확인하고(상장 목록 + DART 기업개황),
-                 DART API를 다시 호출해 매출·영업이익·순이익을, KRX 일봉으로 주가·등락·52주를 대조
+                 DART API를 다시 호출해 매출·영업이익·순이익을, KRX 일봉으로 현재가(목표가 기준 종가)를 대조
                  (서술 속 숫자의 대조 풀도 여기서 만든다)
   C. 출처 장부   웹에서 온 숫자(증권사 목표가, 부문 매출, 뉴스, 컨센)는 audit.web에 검증 기록이 있어야 하고,
                  CHIPS·BULLS·BEARS·페르소나 평가 속 숫자는 A·B 풀에 있거나 audit.claims에 출처가 있어야 한다
@@ -274,7 +274,6 @@ def check_arithmetic(d, R: Report, pool):
 
     # 주가·목표가
     curr = js.get("CURR")
-    R.eq(L, "meta.price = js.CURR", first(nums(m.get("price", ""))), curr, 0)
     R.eq(L, "meta.tp_cur = js.CURR", first(nums(m.get("tp_cur", ""))), curr, 0)
     tp = {k: first(nums(m.get(f"tp_{k}", ""))) for k in ("low", "avg", "high")}
     if None not in tp.values():
@@ -626,9 +625,9 @@ def check_price(d, R: Report, pool):
     L = "B 원천(KRX)"
     m, js = d.get("meta", {}), d.get("js", {})
     code = m.get("code")
-    mt = re.search(r"\((\d{1,2})/(\d{1,2})\s*종가\)", plain(m.get("price_chg", "")))
+    mt = re.search(r"\((\d{1,2})/(\d{1,2})\s*종가\)", plain(m.get("tp_cur", "")))
     if not mt:
-        R.add(L, False, "meta.price_chg", "'(M/D 종가)' 표기를 찾지 못함", "형식: '-1.18% (9/29 종가)'")
+        R.add(L, False, "meta.tp_cur", "'(M/D 종가)' 표기를 찾지 못함", "형식: '32,475원 (10/8 종가)'")
         return
     from price import _naver_daily
     rows = _naver_daily(code, days=760)
@@ -637,22 +636,15 @@ def check_price(d, R: Report, pool):
     mm, dd = int(mt.group(1)), int(mt.group(2))
     idx = max((i for i, r in enumerate(rows) if int(r[0][4:6]) == mm and int(r[0][6:]) == dd), default=None)
     if idx is None:
-        R.add(L, False, "meta.price_chg 날짜", f"{mm}/{dd} 거래일 데이터 없음")
+        R.add(L, False, "meta.tp_cur 날짜", f"{mm}/{dd} 거래일 데이터 없음")
         return
     date, close = rows[idx][0], rows[idx][1]
     R.eq(L, f"종가 {date} = js.CURR", js.get("CURR"), close, 0, "price.py 결과를 그대로 쓴다")
     if idx > 0:
-        chg = (close - rows[idx - 1][1]) / rows[idx - 1][1] * 100
-        shown = re.findall(r"([+-]?\d+(?:\.\d+)?)\s*%", plain(m.get("price_chg", "")))
-        if shown:
-            R.eq(L, "meta.price_chg 등락률", to_num(shown[0]), round(chg, decimals(shown[0])), pct_tol(0, shown[0]))
-        pool.add_pct(chg)
+        pool.add_pct((close - rows[idx - 1][1]) / rows[idx - 1][1] * 100)
     start = (datetime.datetime.strptime(date, "%Y%m%d") - datetime.timedelta(days=365)).strftime("%Y%m%d")
     win = [r for r in rows[: idx + 1] if r[0] >= start]
     lo, hi = min(r[3] for r in win), max(r[2] for r in win)
-    w = nums(m.get("w52_range", ""))
-    ok = len(w) == 2 and w[0] == lo and w[1] == hi
-    R.add(L, ok, "meta.w52_range", f"표기 {m.get('w52_range')} / KRX {lo:,} ~ {hi:,} (기준 {date}, 365일)")
     pool.add_won(close, lo, hi)
     if close:
         for v in (lo, hi):

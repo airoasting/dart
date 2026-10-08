@@ -114,10 +114,6 @@ body {
 .hdr-l h1 { font-size:1.76rem; font-weight:800; letter-spacing:-.5px; }
 .hdr-l h1 span { color:var(--coral); }
 .hdr-l p  { margin-top:6px; font-size:.87rem; color:var(--t2); }
-.hdr-r    { text-align:right; }
-.price-now { font-size:1.62rem; font-weight:700; }
-.price-chg { font-size:.90rem; font-weight:600; color:var(--up); margin-top:3px; }
-.price-meta{ font-size:.78rem; color:var(--t3); margin-top:3px; }
 
 /* ─── sticky nav ─── */
 .sticky-nav {
@@ -314,6 +310,9 @@ body {
 
 /* ─── analyst table ─── */
 .at-wrap { overflow-x:auto; }
+#atBody td.r, #atBody td.at-date { white-space:nowrap; }
+.at-firm { word-break:keep-all; }   /* 줄을 바꾸면 '증권' 앞에서만 바꾼다 */
+.at-note { min-width:180px; max-width:260px; font-size:.84rem; color:var(--t2); line-height:1.5; }
 table  { width:100%; border-collapse:collapse; font-size:.88rem; }
 th     { font-weight:600; color:var(--t3); padding:10px 14px; text-align:left;
          border-bottom:1px solid var(--bdr); font-size:.74rem;
@@ -617,11 +616,6 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
   <div class="hdr-l">
     <h1><span>{{name}}</span> ({{code}}) 실적 대시보드</h1>
     <p>{{period_full}} &nbsp;|&nbsp; {{basis}} 기준 &nbsp;|&nbsp; 기준일: {{base_date}}{{verify_badge}}</p>
-  </div>
-  <div class="hdr-r">
-    <div class="price-now">{{price}}<span style="font-size:.93rem;color:var(--t2);font-weight:500">원</span></div>
-    <div class="price-chg">{{price_chg}}</div>
-    <div class="price-meta">52W {{w52_range}} &nbsp;|&nbsp; KRX</div>
   </div>
 </div>
 </div>
@@ -1154,13 +1148,13 @@ function buildMarket(){
     tr.className='link-row';
     tr.onclick=()=>window.open(`https://search.naver.com/search.naver?where=news&query=${encodeURIComponent(NAME+' '+a.firm+' 목표가 '+a.date)}`, '_blank');
     tr.innerHTML=`
-      <td><strong>${a.firm}</strong></td>
+      <td class="at-firm"><strong>${a.firm.replace(/증권$/,'<wbr>증권')}</strong></td>
       <td><span class="badge ${a.r==='Buy'?'badge-buy':a.r==='Hold'?'badge-hold':'badge-sell'}">${a.r}</span></td>
       <td class="r"><strong>${a.tp.toLocaleString('ko-KR')}원</strong></td>
       <td class="r">${action} ${Math.abs(delta)>0?Math.abs(delta).toLocaleString('ko-KR')+'원':''}</td>
       <td class="r ${upside>=0?'pos':'neg'}">${upside>=0?'+':''}${upside}%</td>
-      <td style="font-size:.82rem;color:var(--t2)">${a.date}</td>
-      <td style="font-size:.84rem;color:var(--t2)">${a.note}</td>`;
+      <td class="at-date" style="font-size:.82rem;color:var(--t2)">${a.date}</td>
+      <td><div class="at-note">${a.note}</div></td>`;
     tbody.appendChild(tr);
   });
 

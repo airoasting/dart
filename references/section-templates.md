@@ -11,7 +11,7 @@
 |---|------|------|
 | 1 | 문서 헤드 | DOCTYPE, meta, Chart.js, Pretendard |
 | 2 | 스킵 링크 | 접근성 |
-| 3 | 헤더 | 종목명, 주가, 분기 정보 |
+| 3 | 헤더 | 종목명, 분기 정보 |
 | 4 | Sticky Nav | 7개 메뉴 + 테마 토글 |
 | 5 | sec-kpi | KPI 카드 3개 + 인사이트 칩 |
 | 6 | sec-growth | 매출 델타 차트 (waterfall) |
@@ -72,11 +72,6 @@
   <div class="hdr-l">
     <h1><span>{종목명}</span> ({종목코드}) 실적 대시보드</h1>
     <p>{분기} vs {전년동기} &nbsp;|&nbsp; 연결 기준 &nbsp;|&nbsp; 기준일: {YYYY.MM.DD}</p>
-  </div>
-  <div class="hdr-r">
-    <div class="price-now">{주가}<span style="font-size:.93rem;color:var(--t2);font-weight:500">원</span></div>
-    <div class="price-chg">{등락률}% ({날짜} 종가)</div>
-    <div class="price-meta">52W {저가} ~ {고가} &nbsp;|&nbsp; KRX</div>
   </div>
 </div>
 </div>
@@ -693,13 +688,13 @@ function buildMarket(){
     tr.className='link-row';
     tr.onclick=()=>window.open(`https://search.naver.com/search.naver?where=news&query=${encodeURIComponent('{기업명} '+a.firm+' 목표가 '+a.date)}`, '_blank');
     tr.innerHTML=`
-      <td><strong>${a.firm}</strong></td>
+      <td class="at-firm"><strong>${a.firm.replace(/증권$/,'<wbr>증권')}</strong></td>
       <td><span class="badge ${badgeCls}">${a.r}</span></td>
       <td class="r"><strong>${a.tp.toLocaleString('ko-KR')}원</strong></td>
       <td class="r">${action} ${Math.abs(delta)>0?Math.abs(delta).toLocaleString('ko-KR')+'원':''}</td>
       <td class="r pos">+${upside}%</td>
-      <td style="font-size:.82rem;color:var(--t2)">${a.date}</td>
-      <td style="font-size:.84rem;color:var(--t2)">${a.note}</td>`;
+      <td class="at-date" style="font-size:.82rem;color:var(--t2)">${a.date}</td>
+      <td><div class="at-note">${a.note}</div></td>`;
     tbody.appendChild(tr);
   });
 
