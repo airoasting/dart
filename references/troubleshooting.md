@@ -6,7 +6,6 @@ SKILL.md의 단계가 멈췄는데 그 단계 설명으로 풀리지 않을 때 
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
-| "DART_API_KEY가 없습니다" | 키 미설정 | `~/.claude/skills/dart/.env`에 `DART_API_KEY=발급받은_키` 한 줄. 키는 opendart.fss.or.kr에서 무료 |
 | 종목을 못 찾음 (신규 상장·사명 변경) | 목록이 오래됨 | `corp_registry.py --refresh` 뒤 다시 찾는다 |
 | status 020 · "일일 호출 한도" | DART 일일 한도(2만 건) 초과. `DartClient`가 이미 두 번 더 시도한 결과 | 내일 다시 하거나 다른 키 |
 | status 800 · "DART에 접속하지 못했다" | DART 점검 또는 네트워크 | 잠시 뒤 다시 |
@@ -37,9 +36,7 @@ SKILL.md의 단계가 멈췄는데 그 단계 설명으로 풀리지 않을 때 
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
-| `error`와 `candidates`가 온다 | 회사 이름이 여러 회사에 걸린다 | 후보를 보여 주고 고르게 한 뒤, 고른 종목코드를 `corp`에 넣어 다시 부른다 |
 | `note`: "데이터가 없습니다 (status 013)" | 그 기간 보고서에 그 항목이 없다. 재무 지표는 2023년 3분기 이전이 없고, 1분기 보고서에는 직원 급여가 빠진 회사가 많다 | 기간을 바꿔 한 번 더 보거나, 없다고 그대로 알린다 |
-| `truncated`가 붙는다 | 응답이 4만 자를 넘어 뒤쪽 행을 덜어 냈다 | `hint`대로 `statement`·`limit`·`size`를 좁혀 다시 부른다 |
 | `fin_statements`에 IS가 없고 CIS가 왔다 | 손익을 포괄손익계산서 한 장으로 공시한 회사(소형사에 흔하다) | 정상. `meta.statement_note`에 적혀 있다 |
 | `filing_search`가 "기간을 3개월 안으로" | `corp` 없이 시장 전체를 찾을 때의 DART 제한 | `from`·`to`를 좁히거나 `corp`를 준다 |
 | MCP로 연결했는데 도구가 안 보인다 | 앱이 `python3`를 못 찾거나 경로가 틀렸다 | Claude Desktop은 `~`를 풀지 않는다. 설정에 전체 경로를 쓰고, `python3` 대신 `which python3`가 알려 주는 전체 경로를 쓴다. 터미널에서 `mcp_server.py --list`가 도는지 먼저 본다 |

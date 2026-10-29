@@ -47,3 +47,15 @@ skill-creator 기준(발동, 절차, 산출물, 효율, 도구, 재현)에 이 �
 | **종합** | **6.8** | **9.8** | |
 
 질문 → MCP 도구 호출 → 답은 플러그인 2.2.1 설치본으로 확인했다(2026-10-08, 경남스틸 `fin_ratios`·카카오 `share_top_holders`). 10점에 남은 것은 실제 발동률 측정 하나다. 결함이 아니라 아직 재지 못한 항목이다.
+
+## 적재 예산
+
+매 실행에 읽히는 파일의 상한이다. 기능을 더할 때 넘으면 설계 이유·이력·중복부터 덜어 낸다.
+
+| 파일 | 상한 | 2026-10-29 |
+|---|---:|---:|
+| `SKILL.md` | 18KB | 18.0KB (이전 20.8KB) |
+| `references/agent-prompts.md` | 12KB | 11.8KB |
+| `investor_persona/_ALL.md` (에이전트 B) | 18KB | 16.7KB (이전 35.7KB) |
+
+측정: `wc -c SKILL.md references/agent-prompts.md investor_persona/_ALL.md`

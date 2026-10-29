@@ -173,20 +173,6 @@ class DartClient:
             corp_registry.apply_live_check(res, api_key=self.api_key)   # CLI --verify와 같은 상태 전환
         return res
 
-    def download_corp_codes(self, dest: str | Path | None = None) -> Path:
-        """전체 기업 corp_code zip 다운로드 (corpCode.xml). 기본 위치는 캐시 폴더."""
-        import corp_registry
-
-        path = Path(dest) if dest else corp_registry.cache_dir() / "corpCode.zip"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            resp = self.session.get(f"{BASE_URL}/corpCode.xml", params={"crtfc_key": self.api_key}, timeout=60)
-            resp.raise_for_status()
-        except requests.RequestException as e:
-            raise DartError(_redact(e, self.api_key)) from None
-        path.write_bytes(resp.content)
-        return path
-
     def load_corp_codes(self, listed_only: bool = True):
         """상장사(기본) 또는 전체 기업 목록을 DataFrame으로. 전체 목록은 캐시에 없으면 갱신해 만든다."""
         import pandas as pd
@@ -217,10 +203,6 @@ class DartClient:
         hit = df[df["corp_name"].map(corp_registry.norm).str.contains(key, regex=False)]
         return hit[cols].reset_index(drop=True)
 
-    def find_corp_from_assets(self, keyword: str):
-        """번들 상장사 목록에서 검색 (네트워크 불필요). find_corp(listed_only=True)와 같다."""
-        return self.find_corp(keyword, listed_only=True)
-
     def get_financial_statements(
         self,
         corp_code: str,
@@ -241,29 +223,10 @@ class DartClient:
             fs_div=fs_div,
         )
 
-    def get_financial_key(
-        self,
-        corp_code: str,
-        bsns_year: str,
-        reprt_code: str = "11011",
-        fs_div: str = "CFS",
-    ) -> dict[str, Any]:
-        """주요재무정보 (fnlttSinglAcnt.json) — 핵심 계정만, 빠른 조회용."""
-        return self._get(
-            "fnlttSinglAcnt.json",
-            corp_code=corp_code,
-            bsns_year=bsns_year,
-            reprt_code=reprt_code,
-            fs_div=fs_div,
-        )
-
     def get_dividend(self, corp_code: str, bsns_year: str, reprt_code: str = "11011") -> dict[str, Any]:
         """배당 정보 (alotMatter.json)."""
         return self._get("alotMatter.json", corp_code=corp_code, bsns_year=bsns_year, reprt_code=reprt_code)
 
-    def get_stock_status(self, corp_code: str, bsns_year: str, reprt_code: str = "11011") -> dict[str, Any]:
-        """주식 현황 (stockTotqySttus.json)."""
-        return self._get("stockTotqySttus.json", corp_code=corp_code, bsns_year=bsns_year, reprt_code=reprt_code)
 
 
 if __name__ == "__main__":

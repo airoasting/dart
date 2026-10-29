@@ -70,10 +70,6 @@ def eok_of(s) -> list[float]:
     return out
 
 
-def pcts(s) -> list[float]:
-    return [to_num(m) for m in re.findall(r"([+-]?\d[\d,]*(?:\.\d+)?)\s*%(?!p)", plain(s))]
-
-
 def decimals(token: str) -> int:
     return len(token.split(".")[1]) if "." in token else 0
 

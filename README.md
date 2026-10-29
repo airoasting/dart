@@ -271,14 +271,14 @@ python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
 │   └── corp_aliases.csv        # 약칭 → 종목코드
 ├── tests/                      # 종목 찾기·조립·MCP 서버 회귀 테스트 (python3 -m unittest discover -s tests)
 ├── evals/                      # 빠른 조회 평가 (질문·채점기·결과, skill-creator 형식)
-├── investor_persona/           # 13인 투자자 철학 파일 (_ALL.md 통합본)
-└── references/                 # 예외 상황 안내(종목 찾기·잠정실적·문제 해결·PDF)와 설계 기록
+├── investor_persona/           # 13인 투자자 철학 (_ALL.md 한 파일)
+└── references/                 # 에이전트 프롬프트와 예외 상황 안내(종목 찾기·잠정실적·문제 해결·PDF)
 ```
 </details>
 
 ## 투자자 페르소나
 
-`investor_persona/`에는 13인의 투자자 철학 파일이 들어 있습니다. 각 파일은 개요, 핵심 원칙, 분석 절차, 판단 규칙, 위험 규칙, 환각 방지 규칙 순으로, 그 투자자의 원칙과 판단 절차, 그리고 지어내지 않기 위한 규칙을 담습니다. 스킬은 이 13개를 합친 통합본 `investor_persona/_ALL.md` 한 파일을 읽어 적용합니다.
+`investor_persona/_ALL.md` 한 파일에 13인의 투자자 철학이 들어 있습니다. 인물마다 개요, 핵심 원칙, 판단 규칙, 위험 규칙, 지어내지 말 것을 담고, 13인 공통 규칙은 맨 앞에 한 번만 둡니다.
 
 매수, 보유, 매도 판단은 고정돼 있지 않습니다. 각 투자자의 판단 규칙을 실제 기업 데이터에 적용해 매번 새로 결정합니다.
 
