@@ -108,9 +108,8 @@ def gate_status(data_path):
 
 def gate_markup(ok, why, state):
     if ok:
-        n = len(state["rounds"])
         return (f' &nbsp;|&nbsp; <span style="color:var(--grn)">숫자 검증 통과</span> '
-                f'<span style="color:var(--t3)">({state.get("checks", 0)}개 항목 · {n}회차 · {state.get("verified_at", "")})</span>'), ""
+                f'<span style="color:var(--t3)">(숫자 {state.get("checks", 0)}개 원천 대조 · {state.get("verified_at", "")})</span>'), ""
     banner = ('<div role="alert" style="background:var(--dn);color:#fff;padding:10px 16px;font-size:.88rem;'
               'font-weight:600;text-align:center">⚠ 숫자 검증 미통과 리포트입니다. 일부 수치가 원천과 대조되지 않았습니다. '
               f'({html.escape(why)})</div>\n')

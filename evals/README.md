@@ -52,10 +52,10 @@ skill-creator 기준(발동, 절차, 산출물, 효율, 도구, 재현)에 이 �
 
 매 실행에 읽히는 파일의 상한이다. 기능을 더할 때 넘으면 설계 이유·이력·중복부터 덜어 낸다.
 
-| 파일 | 상한 | 2026-10-29 |
+| 파일 | 상한 | 2026-10-29 (2.4.0) |
 |---|---:|---:|
-| `SKILL.md` | 18KB | 18.0KB (이전 20.8KB) |
-| `references/agent-prompts.md` | 12KB | 11.8KB |
-| `investor_persona/_ALL.md` (에이전트 B) | 18KB | 16.7KB (이전 35.7KB) |
+| `SKILL.md` | 22KB | 21.6KB (2.3.2 18.0KB. 사용자에게 하는 말 표와 전달 예문, B·C 순서, R 고침 한 번이 더해졌다) |
+| `references/agent-prompts.md` | 18KB | 17.3KB (2.3.2 11.8KB. B·C 공통 뉴스 규칙, C 결론·다음에 볼 것, R의 target·limit) |
+| `investor_persona/_ALL.md` (에이전트 B) | 18KB | 17.2KB |
 
 측정: `wc -c SKILL.md references/agent-prompts.md investor_persona/_ALL.md`

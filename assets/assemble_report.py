@@ -45,6 +45,7 @@ import argparse
 import datetime as dt
 import json
 import pathlib
+import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -55,8 +56,20 @@ from verify_report import fetch_dart, review_problems, turn_label   # noqa: E402
 import corp_registry                                  # noqa: E402
 from price import get_prev_close                      # noqa: E402
 
-BS_KEYS = ("자산총계", "부채총계", "자본총계", "현금및현금성자산")
-CHIP_DOT = {"co": "var(--coral)", "gn": "var(--grn)", "dn": "var(--dn)"}   # template.html에 있는 색만 쓴다
+BS_KEYS = ("자산총계", "부채총계", "자본총계", "지배주주자본", "비지배지분", "현금및현금성자산",
+           "단기차입금", "장기차입금", "미지급법인세", "이연법인세부채", "이익잉여금", "예수부채")
+# 이름이 회사마다 달라 account_id로 고정한다 (카카오 2Q26 실측 id)
+BS_IDS = {"ifrs-full_EquityAttributableToOwnersOfParent": "지배주주자본",
+          "ifrs-full_NoncontrollingInterests": "비지배지분",
+          "ifrs-full_CurrentBorrowingsAndCurrentPortionOfNoncurrentBorrowings": "단기차입금",
+          "ifrs-full_ShorttermBorrowings": "단기차입금",
+          "ifrs-full_LongtermBorrowings": "장기차입금",
+          "ifrs-full_CurrentTaxLiabilitiesCurrent": "미지급법인세",
+          "ifrs-full_CurrentTaxLiabilities": "미지급법인세",
+          "ifrs-full_CurrentDepositsFromCustomers": "예수부채",
+          "ifrs-full_DeferredTaxLiabilities": "이연법인세부채",
+          "ifrs-full_RetainedEarnings": "이익잉여금"}
+CHIP_DOT = {"co": "var(--coral)", "gn": "var(--up)", "dn": "var(--dn)"}   # 좋음은 오름 색, 나쁨은 내림 색   # template.html에 있는 색만 쓴다
 
 
 def _pct(c, p):
@@ -141,7 +154,7 @@ def collect(a) -> dict:
     corp = _corp(a.corp_code)
     if a.fiscal_month is None:
         a.fiscal_month = corp["fiscal_month"] or 12
-    vals, items, _div, _bs = _fetch(a)
+    vals, items, _div, prev = _fetch(a)
     cur = sorted({it.get("currency") for it in items if it.get("currency")} - {"KRW"})
     if cur:   # 국내 상장 외국 기업(950xxx 등)은 달러 등으로 공시한다. 원 단위로 읽으면 모든 숫자가 틀린다
         sys.exit(f"이 회사는 재무제표를 {', '.join(cur)}로 공시한다. 원화(억원) 기준인 이 리포트로는 만들 수 없다. "
@@ -156,20 +169,29 @@ def collect(a) -> dict:
     q = REPRT_Q[str(a.reprt)]
     fy = fiscal_label_year(a.year, a.reprt, a.fiscal_month)
     if a.scope == "annual":
-        cur_full, prv_full, cur_s, prv_s, nav = f"FY {fy}", f"FY {fy - 1}", f"FY{fy % 100:02d}", f"FY{(fy - 1) % 100:02d}", f"{fy % 100:02d} FY"
+        cur_full, prv_full, cur_s, prv_s, nav = f"FY {fy}", f"FY {fy - 1}", f"FY{fy % 100:02d}", f"FY{(fy - 1) % 100:02d}", f"FY{fy % 100:02d}"
     else:
         cur_full, prv_full = f"{q} {fy}", f"{q} {fy - 1}"
-        cur_s, prv_s, nav = f"{q}{fy % 100:02d}", f"{q}{(fy - 1) % 100:02d}", f"{fy % 100:02d} {q}"
+        cur_s, prv_s = f"{q}{fy % 100:02d}", f"{q}{(fy - 1) % 100:02d}"
+        nav = cur_s
 
     note = fiscal_period_note(q, fy, a.fiscal_month, a.scope == "annual")
 
     bs = {}
     for it in items:
         nm = it.get("account_nm", "").strip()
+        nm = BS_IDS.get(it.get("account_id"), nm)
         if it.get("sj_div") == "BS" and nm in BS_KEYS and nm not in bs:
             bs[nm] = (_amt_won(it.get("thstrm_amount")), _amt_won(it.get("frmtrm_amount")))
+    (sy, sm), (py, pm), (ey, em) = period_bounds(a.year, a.reprt, a.fiscal_month)
+    bs_label = f"재무상태 ({py}.{pm:02d}말 → {ey}.{em:02d}말)"     # 비교는 전기말이다(전년 동기말이 아니다)
+    cum = f"{sy}.{sm:02d}~{ey}.{em:02d} 누적"
+    bridge = pl_bridge(items, a, raw["np"])
+    cash = cash_flow(items)
+    scope = scope_notes(items, bridge)
+    restated = restatement(prev, raw, a)
 
-    px = get_prev_close(corp["stock_code"])
+    px = _price(corp["stock_code"], getattr(a, "parts", None), fresh=getattr(a, "cmd", None) == "facts")
     if not px:
         sys.exit("KRX 일봉을 받지 못했다(price.py). 잠시 뒤 다시 실행한다. 다른 소스로 채우지 않는다.")
 
@@ -192,14 +214,278 @@ def collect(a) -> dict:
         "회사": f"{corp['corp_name']} ({corp['stock_code']}, {corp['market_label']})",
         "기간": f"{prv_full} → {cur_full}" + (" (연결)" if a.fs_div == "CFS" else " (개별)"),
         "매출": line("rev", "매출"),
-        "영업이익": line("op", "영업이익") + f", OPM {opm[0]:.1f}% → {opm[1]:.1f}% ({pp_shown(*opm):+.1f}pp)",
-        "순이익": line("np", "순이익") + f", NPM {npm[0]:.1f}% → {npm[1]:.1f}%",
-        "재무상태": {k: f"{_bs_fmt(v[1], v[0])[0]} → {_bs_fmt(v[1], v[0])[1]}" for k, v in bs.items() if None not in v},
+        "영업이익": line("op", "영업이익") + f", 영업이익률 {opm[0]:.1f}% → {opm[1]:.1f}% ({pp_shown(*opm):+.1f}%p)",
+        "순이익": line("np", "순이익") + f", 순이익률 {npm[0]:.1f}% → {npm[1]:.1f}%",
+        bs_label: {k: f"{_bs_fmt(v[1], v[0])[0]} → {_bs_fmt(v[1], v[0])[1]}" for k, v in bs.items() if None not in v},
         "주가": f"{px['close']:,}원 ({int(d[4:6])}/{int(d[6:])} 종가, {px['change_pct']:+.2f}%), 52주 {px['w52_range']}원",
     }
+    if bridge:
+        facts["순이익 구성"] = bridge["lines"]
+    if cash:
+        facts[f"현금흐름 ({cum})"] = cash
+    if scope:
+        facts["함께 읽을 것"] = scope
+    if restated:
+        facts["전년 수치 재작성"] = restated
+    qoq = prev_quarter(a, raw)
+    if qoq:
+        facts[f"직전 분기({qoq['label']}) 대비"] = qoq["lines"]
+    val = valuation(a, px, items)
+    if val:
+        facts["시가총액"] = val
     return {"corp": corp, "raw": raw, "r": r, "opm": opm, "npm": npm, "px": px, "facts": facts,
+            "bridge": bridge, "restated": restated, "restated_raw": getattr(restatement, "last", []) if restated else [],
             "chg": {k: chg(k) for k in ("rev", "op", "np")},
             "labels": {"note": note, "cur_full": cur_full, "prv_full": prv_full, "cur_s": cur_s, "prv_s": prv_s, "nav": nav, "fy": fy}}
+
+
+def period_bounds(year, reprt, fiscal_month):
+    """(누적 시작 연·월, 전기말 연·월, 당기말 연·월). DART bsns_year는 기간 끝 월의 연도다."""
+    fm = int(fiscal_month or 12)
+    em = (fm + REPRT_OFFSET[str(reprt)] - 1) % 12 + 1
+    ey = int(year)
+    sm = fm % 12 + 1
+    sy = ey if sm <= em else ey - 1
+    py, pm = (sy - 1, 12) if sm == 1 else (sy, sm - 1)
+    return (sy, sm), (py, pm), (ey, em)
+
+
+def _by_id(items, *sj):
+    return {it.get("account_id"): it for it in items if it.get("sj_div") in sj}
+
+
+def _qpair(it, a):
+    """facts의 매출·이익과 같은 기간의 (당기, 전년) 원 단위. 4Q 단독은 3Q 누적을 빼야 해서 None."""
+    if str(a.reprt) == "11011" and a.scope == "quarter":
+        return None
+    cur = _amt_won(it.get("thstrm_amount"))
+    prv = _amt_won(it.get("frmtrm_q_amount")) if str(a.reprt) != "11011" else None
+    if prv is None:
+        prv = _amt_won(it.get("frmtrm_amount"))
+    return None if None in (cur, prv) else (cur, prv)
+
+
+def pl_bridge(items, a, np_raw):
+    """영업이익 아래에서 순이익까지: 세전이익, 법인세, 계속영업, 중단영업, 지배주주순이익.
+    순이익이 크게 바뀐 원인이 공시 숫자에 있을 때 에이전트가 '원인 확인 필요'로 남기지 않게 한다."""
+    ids = _by_id(items, "IS", "CIS")
+    rows = (("세전이익", "ifrs-full_ProfitLossBeforeTax"), ("법인세", "ifrs-full_IncomeTaxExpenseContinuingOperations"),
+            ("계속영업이익", "ifrs-full_ProfitLossFromContinuingOperations"),
+            ("중단영업이익", "ifrs-full_ProfitLossFromDiscontinuedOperations"),
+            ("계속영업이익 지배주주 몫", "ifrs-full_IncomeFromContinuingOperationsAttributableToOwnersOfParent"),
+            ("중단영업이익 지배주주 몫", "ifrs-full_IncomeFromDiscontinuedOperationsAttributableToOwnersOfParent"),
+            ("지배주주순이익", "ifrs-full_ProfitLossAttributableToOwnersOfParent"))
+    got = {}
+    for label, aid in rows:
+        pr = _qpair(ids[aid], a) if aid in ids else None
+        if pr:
+            got[label] = pr
+    if len(got) < 2:
+        return None
+    eok = lambda v: round(v / 1e8)
+    lines = [f"{k} {eok(p):,}억 → {eok(c):,}억" for k, (c, p) in got.items()]
+    if "세전이익" in got and "법인세" in got and all(got["세전이익"]):
+        (tc, tp), (bc, bp) = got["법인세"], got["세전이익"]
+        lines.insert(2, f"실효세율(법인세 ÷ 세전이익) {tp / bp * 100:.1f}% → {tc / bc * 100:.1f}%")
+    parent = getattr(a, "np_basis", "total") == "parent"     # 순이익 기준과 같은 기준의 중단영업으로 나눈다
+    dkey, ckey = ("중단영업이익 지배주주 몫", "계속영업이익 지배주주 몫") if parent else ("중단영업이익", "계속영업이익")
+    if dkey in got:
+        dc, dp = got[dkey]
+        npc, npp = np_raw
+        lines.append(f"{'지배주주' if parent else ''}순이익 증감 {round(npc - npp):+,}억 가운데 {dkey} 증감 {eok(dc - dp):+,}억")
+    if not parent:   # 연결 기준이면 지배주주 몫 줄은 참고로만 (계속영업 지배주주 몫은 생략해 줄 수를 줄인다)
+        lines = [x for x in lines if not x.startswith("계속영업이익 지배주주 몫")]
+    return {"lines": lines, "rows": got, "keys": (ckey, dkey)}
+
+
+CF_TOTALS = {"Operating": "ifrs-full_CashFlowsFromUsedInOperatingActivities",
+             "Investing": "ifrs-full_CashFlowsFromUsedInInvestingActivities",
+             "Financing": "ifrs-full_CashFlowsFromUsedInFinancingActivities"}
+SCOPE_IDS = ("ifrs-full_CashFlowsFromLosingControlOfSubsidiariesOrOtherBusinessesClassifiedAsInvestingActivities",)
+
+
+def _cf_sections(items):
+    """현금흐름표를 활동별로 나눈다. 하위 줄은 회사마다 dart_·비표준 id라 id가 아니라 표 순서(소계 뒤 다음 소계 전)로 묶는다."""
+    cf = [it for it in items if it.get("sj_div") == "CF"]
+    cf.sort(key=lambda it: int(it.get("ord") or 0))
+    out, cur = {}, None
+    for it in cf:
+        key = next((k for k, aid in CF_TOTALS.items() if it.get("account_id") == aid), None)
+        if key:
+            cur = key
+            out[key] = {"total": it, "subs": []}
+        elif cur and not str(it.get("account_id", "")).startswith(("ifrs-full_IncreaseDecrease", "ifrs-full_EffectOfExchange")):
+            out[cur]["subs"].append(it)
+    return out
+
+
+def cash_flow(items):
+    """영업·투자·재무활동 현금흐름(누적), 투자·재무활동에서 가장 큰 항목, 차입·상환 합계, 배당금 지급."""
+    sec = _cf_sections(items)
+    out = []
+    for label, key in (("영업활동", "Operating"), ("투자활동", "Investing"), ("재무활동", "Financing")):
+        if key not in sec:
+            continue
+        v = _amt_won(sec[key]["total"].get("thstrm_amount"))
+        if v is None:
+            continue
+        txt = f"{label} {_bs_fmt(v, v)[0]}"
+        subs = [(abs(_amt_won(it.get("thstrm_amount")) or 0), it) for it in sec[key]["subs"]]
+        if key != "Operating" and subs:
+            big = max(subs, key=lambda x: x[0])[1]
+            bv = _amt_won(big.get("thstrm_amount"))
+            txt += f" (가장 큰 항목: {big.get('account_nm', '').strip()} {_bs_fmt(bv, bv)[0]})"
+        out.append(txt)
+    fin = sec.get("Financing", {}).get("subs", [])
+    borrow = sum(_amt_won(it.get("thstrm_amount")) or 0 for it in fin if "차입" in it.get("account_nm", "") and "상환" not in it.get("account_nm", ""))
+    repay = sum(_amt_won(it.get("thstrm_amount")) or 0 for it in fin if "상환" in it.get("account_nm", "") and "차입" in it.get("account_nm", ""))
+    if borrow or repay:
+        out.append(f"차입금 차입 {_bs_fmt(borrow, borrow)[0]}, 상환 {_bs_fmt(repay, repay)[0]}")
+    div = next((it for it in fin if it.get("account_id") == "ifrs-full_DividendsPaidClassifiedAsFinancingActivities"), None)
+    dv = _amt_won(div.get("thstrm_amount")) if div else None
+    if dv:
+        out.append(f"배당금 지급 {_bs_fmt(dv, dv)[0]}")
+    return out or None
+
+
+def scope_notes(items, bridge):
+    """연결 범위 변동·자본 직접 처분손익·중단영업 귀속 비율처럼 따로 읽으면 오독하는 줄을 묶어 밝힌다."""
+    out = []
+    cf = [it for it in items if it.get("sj_div") == "CF"]
+    sc = next((it for it in cf if it.get("account_id") in SCOPE_IDS), None)
+    v = _amt_won(sc.get("thstrm_amount")) if sc else None
+    if v:
+        out.append(f"연결 범위가 바뀌었다({sc.get('account_nm', '').strip()} {_bs_fmt(v, v)[0]}). 재무상태의 차입금·무형자산·비지배지분 증감에는 "
+                   "연결에서 빠진 회사 몫이 섞여 있어, 상환·개선이나 악화로 읽지 않는다.")
+    fv = next((it for it in cf if "FairValueThroughOtherComprehensiveIncome" in (it.get("account_id") or "")
+               and "Proceeds" in (it.get("account_id") or "")), None)
+    fvv = _amt_won(fv.get("thstrm_amount")) if fv else None
+    if fvv and fvv >= 1e11:
+        out.append(f"기타포괄손익-공정가치 금융자산을 {_bs_fmt(fvv, fvv)[0]} 처분했다. 이 처분손익은 손익계산서가 아니라 자본(이익잉여금 등)에 바로 반영되고, "
+                   "관련 세금은 이연법인세부채 감소와 미지급법인세 증가로 나타날 수 있다.")
+    rows = (bridge or {}).get("rows", {})
+    if "중단영업이익" in rows and "중단영업이익 지배주주 몫" in rows:
+        (tc, tp), (pc, pp_) = rows["중단영업이익"], rows["중단영업이익 지배주주 몫"]
+        if tc and tp and abs(pc / tc - pp_ / tp) * 100 >= 20:
+            out.append(f"중단영업 손실 가운데 지배주주 몫 비율이 {pp_ / tp * 100:.0f}% → {pc / tc * 100:.0f}%로 바뀌었다. "
+                       "지분율과 다르게 움직이면 처분·재측정 손실이 섞였을 수 있으나, 공시 주석을 확인하기 전에는 단정하지 않는다.")
+    return out or None
+
+
+def _np_bridge_text(bridge):
+    """KPI 순이익 칸 아래 한 줄. 중단영업이 있을 때만."""
+    rows = (bridge or {}).get("rows", {})
+    ckey, dkey = (bridge or {}).get("keys", ("계속영업이익", "중단영업이익"))
+    if ckey not in rows or dkey not in rows:
+        return ""
+    who = "지배주주 " if "지배주주" in dkey else ""
+    return f"{who}계속영업 {round(rows[ckey][0] / 1e8):,}억 · 중단영업 {round(rows[dkey][0] / 1e8):,}억"
+
+
+def prev_quarter_src(a):
+    """직전 분기 보고서의 (bsns_year, reprt_code). 연간 리포트면 None."""
+    if a.scope == "annual":
+        return None
+    _, _, (ey, em) = period_bounds(a.year, a.reprt, a.fiscal_month)
+    pm, py = (em - 3, ey) if em > 3 else (em + 9, ey - 1)
+    cyc = {"11013": "11011", "11012": "11013", "11014": "11012", "11011": "11014"}
+    return str(py), cyc[str(a.reprt)]
+
+
+def prev_quarter(a, raw):
+    """직전 분기 대비(전 분기 단독 값). 4Q는 연간 − 3Q 누적을 fetch_dart가 계산한다. 못 받으면 넣지 않는다."""
+    src = prev_quarter_src(a)
+    if not src:
+        return None
+    try:
+        pv, *_ = fetch_dart({**_src(a), "year": src[0], "reprt_code": src[1], "scope": "quarter"})
+    except Exception:
+        return None
+    lines = []
+    for k, label in (("rev", "매출"), ("op", "영업이익")):
+        c_, p_ = raw[k][0], (pv.get(k) or (None,))[0]
+        if p_ is None:
+            continue
+        lab = turn_label(c_, p_)
+        y = _pct(c_, p_)
+        lines.append(f"{label} {round(p_):,}억 → {round(c_):,}억 ({lab or (f'{y:+.1f}%' if y is not None else 'N/A')})")
+    lab = fiscal_label(src[0], src[1], a.fiscal_month)
+    return {"label": lab, "lines": lines} if lines else None
+
+
+def valuation(a, px, items):
+    """시가총액 = 발행주식총수(보통주, 보고서 기준일) × 전 거래일 종가, PBR = 시가총액 ÷ 지배주주자본."""
+    try:
+        r = DartClient(timeout=15)._get("stockTotqySttus.json", corp_code=a.corp_code, bsns_year=str(a.year),
+                                        reprt_code=str(a.reprt))
+        row = next(x for x in r.get("list", []) if x.get("se") == "보통주")
+        shares = _amt_won(row.get("istc_totqy"))
+    except Exception:
+        return None
+    eq = next((_amt_won(it.get("thstrm_amount")) for it in items
+               if it.get("account_id") == "ifrs-full_EquityAttributableToOwnersOfParent"), None)
+    if not shares:
+        return None
+    cap = shares * px["close"]
+    d = px["date"]
+    out = f"{_bs_fmt(cap, cap)[0]} ({int(d[4:6])}/{int(d[6:])} 종가 × 보고서 기준일 보통주 {shares:,}주)"
+    if eq:
+        out += f", 지배주주자본 대비 PBR {cap / eq:.2f}배"
+    return out
+
+
+def _restated_note(c):
+    """KPI 맨 아래 각주 한 문장. 중단영업이 있으면 재작성 이유로 밝힌다."""
+    rs = c.get("restated_raw") or []
+    if not rs:
+        return []
+    why = "중단영업 재분류 등" if (c.get("bridge") or {}).get("rows", {}).get("중단영업이익") else "회계 기준 변경 등"
+    parts = ", ".join(f"{label} {y:+.1f}%" for label, y in rs)
+    return [f"전년 숫자는 이번 보고서에 다시 실린 값이다({why}). 기사의 증가율({parts})은 처음 발표한 전년과 견준 것이라 "
+            "연결 범위가 달라 같은 기준의 성장률로 보지 않는다."]
+
+
+def restatement(prev, raw, a):
+    """작년 보고서에 처음 실린 전년 숫자와 이번 보고서의 비교 숫자가 다르면(중단영업 재분류 등) 한 줄로 밝힌다.
+    기사는 처음 발표한 숫자 기준 증가율을 쓰는 일이 많아, 밝히지 않으면 독자가 두 증가율을 맞춰 보지 못한다."""
+    if str(a.reprt) == "11011" and a.scope == "quarter":
+        return None
+    from verify_report import _find
+    out, raw_out = [], []
+    for k, label in (("rev", "매출"), ("op", "영업이익")):
+        it = _find(prev, k)
+        p0 = _amt_won(it.get("thstrm_amount")) if it else None
+        cur, prv = raw[k]
+        if p0 is None or abs(p0 / 1e8 - prv) < 1:
+            continue
+        y0 = _pct(cur, p0 / 1e8)
+        out.append(f"{label}: 처음 발표한 전년 {round(p0 / 1e8):,}억, 이번 보고서의 전년 {round(prv):,}억. "
+                   f"처음 발표한 전년과 견주면 {y0:+.1f}%(기사 증가율이 다른 이유. 연결 범위가 달라 성장률이 아니다)")
+        raw_out.append((label, y0))
+    restatement.last = raw_out
+    return out or None
+
+
+PRICE_PIN = "_price.json"
+PIN_MAX_DAYS = 14
+
+
+def _price(code: str, parts: str | None, fresh: bool) -> dict | None:
+    """facts가 받은 종가를 조각 폴더에 고정하고, build는 그 값을 다시 쓴다.
+    facts와 build 사이에 날짜가 바뀌어도(16시를 넘기거나 다음 날 다시 조립) 본문 숫자와 게이트 기준이 같다."""
+    pin = pathlib.Path(parts) / PRICE_PIN if parts else None
+    if pin and pin.exists() and not fresh:
+        px = json.loads(pin.read_text(encoding="utf-8"))
+        age = (dt.date.today() - dt.date.fromisoformat(px.get("saved", "1970-01-01"))).days
+        if px.get("code") == code and age <= PIN_MAX_DAYS:
+            return px
+        print(f"ℹ️  {pin}이 다른 종목이거나 {PIN_MAX_DAYS}일보다 오래돼 종가를 새로 받는다.", file=sys.stderr)
+    px = get_prev_close(code)
+    if px and pin:
+        pin.parent.mkdir(parents=True, exist_ok=True)
+        px = {**px, "code": code, "saved": dt.date.today().isoformat()}
+        pin.write_text(json.dumps(px, ensure_ascii=False), encoding="utf-8")
+    return px
 
 
 def _load(p: pathlib.Path, need=True):
@@ -245,17 +531,30 @@ def build(a) -> None:
     elif review_problems(review):
         sys.exit("R.json 형식이 맞지 않다: " + "; ".join(review_problems(review)) + ". 같은 템플릿으로 R을 다시 띄운다.")
     ledgers = [x for x in (_load(parts / f"{v}.json", False) for v in ledger_names) if x]
+    stale = False
+    if review is not None:
+        body = [parts / f for f in ("A1.json", "A2a.json", "A2b.json", "A2.json", "B.json", "C.json") if (parts / f).exists()]
+        stale = max(f.stat().st_mtime for f in body) > (parts / "R.json").stat().st_mtime
+        if stale:
+            print("⚠️  R.json이 본문 조각보다 오래됐다. 고친 본문을 평가하려면 R을 다시 띄우고 다시 조립한다.", file=sys.stderr)
     corp, r, raw, lb, px = c["corp"], c["r"], c["raw"], c["labels"], c["px"]
 
     # 1) 조각을 화면 데이터 모양으로 → 2) 검증 patch 반영 → 3) 그 결과로 검사·계산 (patch가 계산에 들어가야 한다)
     segs = [{"name": s["name"], "sub": s.get("sub", ""), "cat": s.get("cat", "other"), "q25": s["q25"], "q26": s["q26"],
              "est": s.get("est", True)} for s in A2["SEGS"]]          # est가 없으면 추정으로 본다(보수적)
-    analysts = [{k: x.get(k) for k in ("firm", "r", "tp", "from", "date", "note")} for x in A2["ANALYSTS"]]
+    analysts = [{k: x.get(k) for k in ("firm", "r", "tp", "from", "dir", "date", "note")} for x in A2["ANALYSTS"]]
     chips = [{"cls": c_["cls"], "dot": CHIP_DOT.get(c_["cls"], "var(--coral)"), "txt": c_["txt"]} for c_ in C["CHIPS"]]
-    js = {"CHIPS": chips, "SEGS": segs, "TOT25": r["rev"][1], "TOT26": r["rev"][0], "DELTA": [],
+    if not (C.get("HEADLINE") or "").strip():
+        sys.exit("C.json에 HEADLINE(맨 위 결론 2문장)이 없다. agent-prompts.md의 C 템플릿으로 C를 다시 띄운다.")
+    n_sent = len([x for x in re.split(r"(?<=다)\.\s*", C["HEADLINE"].strip()) if x.strip()])
+    if n_sent > 2 or len(C["HEADLINE"]) > 220:
+        print(f"⚠️  HEADLINE이 {n_sent}문장·{len(C['HEADLINE'])}자다. 회의에서 그대로 말할 2문장으로 줄이도록 C를 다시 띄운다.", file=sys.stderr)
+    js = {"HEADLINE": C["HEADLINE"].strip(), "WATCH": C.get("WATCH", [])[:3],
+          "NOTES": _restated_note(c), "NP_BRIDGE": _np_bridge_text(c["bridge"]),
+          "CHIPS": chips, "SEGS": segs, "TOT25": r["rev"][1], "TOT26": r["rev"][0], "DELTA": [],
           "CURR": px["close"], "NAME": corp["corp_name"], "CONS": {},
           "ANALYSTS": analysts, "BULLS": C["BULLS"], "BEARS": C["BEARS"], "NEWS": A1["NEWS"], "PERSONAS": B,
-          "REVIEW": review and {"scene": review["scene"], "reviews": sorted(
+          "REVIEW": review and {"scene": review["scene"], "stale": stale, "reviews": sorted(
               review["reviews"], key=lambda x: ("RED", "SILVER", "GOLD").index(x["role"]))}}
     _apply_patches(js, ledgers)
 
@@ -286,34 +585,45 @@ def build(a) -> None:
     js["CONS"] = {k: sum(1 for x in js["ANALYSTS"] if x["r"].lower() == k) for k in ("buy", "hold", "sell")}
 
     tps = [x["tp"] for x in js["ANALYSTS"]]
+    flow = {"상향": 0, "하향": 0, "유지": 0, "직전 목표가 없음": 0}
+    for x in js["ANALYSTS"]:
+        f, dr = x.get("from"), x.get("dir")
+        if not f:   # 직전 목표가 숫자는 없어도 원문이 방향을 말하면 그 방향으로 센다(폭은 미확인)
+            flow[{"up": "상향", "down": "하향", "same": "유지"}.get(dr, "직전 목표가 없음")] += 1
+        else:
+            flow["상향" if x["tp"] > f else "하향" if x["tp"] < f else "유지"] += 1
+    dates = sorted(x["date"] for x in js["ANALYSTS"] if x.get("date"))
     tp_avg = round(sum(tps) / len(tps)) if tps else None
     cons, n = js["CONS"], sum(js["CONS"].values()) or 1
 
     def yoy_text(k):
         cur, prv = r[k]
         ch = c["chg"][k]
-        return f"{cur - prv:+,}억 &nbsp;({ch}{' YoY' if ch.endswith('%') else ''})"
+        return f"{cur - prv:+,}억 &nbsp;({'전년 대비 ' if ch.endswith('%') else ''}{ch})"
 
     def margin(label, pair):
-        return f"{label} &nbsp;{pair[0]:.1f}%<span class=\"arr\"> → </span><span class=\"b\">{pair[1]:.1f}%</span>"
+        cls = "b" if pair[1] >= pair[0] else "b dn"      # 이익률이 내려가면 빨강
+        return f"{label} &nbsp;{pair[0]:.1f}%<span class=\"arr\"> → </span><span class=\"{cls}\">{pair[1]:.1f}%</span>"
 
     d = px["date"]
     fy = lb["fy"]
     meta = {
         "name": corp["corp_name"], "base_date": dt.date.today().strftime("%Y.%m.%d"), "code": corp["stock_code"],
         "period_full": a.period_note or lb["note"] or f"{lb['prv_full']} vs {lb['cur_full']}",
-        "basis": ("연결" if a.fs_div == "CFS" else "개별") + " · 전년은 이번 보고서의 비교 수치(재작성 반영)",
+        "basis": ("연결" if a.fs_div == "CFS" else "개별") + " 기준(전년은 이번 보고서에 다시 실린 수치)",
         "nav_label": f"{lb['nav']} 실적", "kpi_label": f"{lb['nav']} 실적 요약",
         "rev_val": f"{r['rev'][0]:,}", "rev_dir": "up" if r["rev"][0] >= r["rev"][1] else "down",
         "rev_yoy": yoy_text("rev"), "rev_sub": f"{lb['prv_s']} &nbsp;{r['rev'][1]:,}억",
         "op_val": f"{r['op'][0]:,}", "op_dir": "up" if r["op"][0] >= r["op"][1] else "down",
-        "op_yoy": yoy_text("op"), "op_sub": margin("OPM", c["opm"]),
+        "op_yoy": yoy_text("op"), "op_sub": margin("영업이익률", c["opm"]),
         "np_val": f"{r['np'][0]:,}", "np_dir": "up" if r["np"][0] >= r["np"][1] else "down",
-        "np_yoy": yoy_text("np"), "np_sub": margin("NPM", c["npm"]),
+        "np_yoy": yoy_text("np"), "np_sub": margin("순이익률", c["npm"]),
         "g_net": f"{delta[-1]['d']:+,}억", "g_up": f"{up:+,}억", "g_dn": f"{dn:+,}억" if dn else "0억",
         "q_prev_full": lb["prv_full"], "q_cur_full": lb["cur_full"], "q_prev_short": lb["prv_s"], "q_cur_short": lb["cur_s"],
-        "mix_prev": f"비중{(fy - 1) % 100:02d}", "mix_cur": f"비중{fy % 100:02d}",
-        "coverage_note": (f"표의 {len(tps)}개 증권사 기준 (전체 커버리지 집계는 미확인)" if tps else
+        "mix_prev": f"{lb['prv_s']} 비중", "mix_cur": f"{lb['cur_s']} 비중",
+        "coverage_note": (f"증권사 {len(tps)}곳 기준" + (f"(보고서 {dates[0]}~{dates[-1]})" if dates else "")
+                          + " · 목표가 " + ", ".join(f"{k} {v}" for k, v in flow.items() if v)
+                          + " · 전체 커버리지는 미확인" if tps else
                           "실적 발표 뒤 나온 증권사 보고서를 찾지 못했다 (커버리지 없음, 미확인)"),   # 실제 건수로 만든다
         "cons_buy_pct": f"{cons['buy'] / n * 100:.1f}%", "cons_buy": str(cons["buy"]),
         "cons_hold_pct": f"{cons['hold'] / n * 100:.1f}%", "cons_hold": str(cons["hold"]),
@@ -410,8 +720,9 @@ def main(argv=None) -> int:
         p.add_argument("--scope", default="quarter", choices=["quarter", "annual"])
         p.add_argument("--np-basis", default="total", choices=["total", "parent"])
         p.add_argument("--fiscal-month", type=int, default=None, help="생략하면 상장사 목록의 결산월")
+        p.add_argument("--parts", required=name == "build",
+                       help="조각 폴더. facts에 주면 종가를 여기 고정해 build가 같은 값을 쓴다")
         if name == "build":
-            p.add_argument("--parts", required=True)
             p.add_argument("--period-note", default="")
             p.add_argument("-o", "--out", required=True)
     a = ap.parse_args(argv)

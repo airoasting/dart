@@ -30,7 +30,7 @@
   --cdn:   rgba(140,35,15,.75);
   --cdnb:  #8B2010;
   --up:    #D96244;
-  --dn:    #DC2626;
+  --dn:    #2563EB;   /* 국내 시장 관례: 오르면 빨강 계열, 내리면 파랑 */
   --grn:   #059669;
   --silver: #8A94A6;
   --gold:   #B8860B;
@@ -68,7 +68,7 @@
   --cdn:   rgba(200,50,30,.75);
   --cdnb:  #8B2010;
   --up:    #E07050;
-  --dn:    #EF4444;
+  --dn:    #60A5FA;
   --grn:   #22C55E;
   --silver: #A7B0C0;
   --gold:   #E0B341;
@@ -239,19 +239,28 @@ body {
 .kpi-val  { font-size:2.05rem; font-weight:800; letter-spacing:-1.5px; line-height:1; }
 .kpi-unit { font-size:.93rem; font-weight:500; color:var(--t2); margin-left:2px; }
 .kpi-yoy  { font-size:1rem; font-weight:700; margin-top:10px; }
-.kpi-yoy.up { color:var(--up); } .kpi-yoy.dn { color:var(--dn); }
+.kpi-yoy.up { color:var(--up); } .kpi-yoy.dn, .kpi-yoy.down { color:var(--dn); }
 .kpi-div  { height:1px; background:var(--bdr); margin:14px 0; }
 .kpi-sub  { font-size:.84rem; color:var(--t2); display:flex; align-items:center; gap:5px; }
 .kpi-sub .arr { color:var(--t3); }
-.kpi-sub .b   { color:var(--grn); font-weight:700; }
+.kpi-sub .b   { color:var(--up); font-weight:700; }
+.kpi-sub .b.dn { color:var(--dn); }
 
 /* ─── insight chips ─── */
 .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+.kpi-sub2 { font-size:.80rem; color:var(--t3); margin-top:4px; }
+.headline { font-size:1.02rem; font-weight:600; line-height:1.6; color:var(--t1); margin:0 0 16px;
+            padding:12px 16px; border-left:4px solid var(--coral); background:var(--bg2, rgba(0,0,0,.03)); border-radius:6px; }
+.headline:empty, .kpi-notes:empty, .kpi-sub2:empty { display:none; }
+.watch { margin:0 0 14px; font-size:.88rem; color:var(--t2); }
+.watch-ttl { font-weight:700; color:var(--t1); margin-bottom:4px; }
+.watch ul { margin:0; padding-left:18px; line-height:1.6; }
+.kpi-notes { font-size:.80rem; color:var(--t2); line-height:1.55; margin-top:10px; }
 .chip  { padding:6px 14px; border-radius:20px; font-size:.83rem; font-weight:600;
          display:flex; align-items:center; gap:6px;
          background:var(--bg-e); border:1px solid var(--bdr); }
 .chip .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-.chip.co { color:var(--coral); } .chip.dn { color:var(--dn); } .chip.gn { color:var(--grn); }
+.chip.co { color:var(--coral); } .chip.dn { color:var(--dn); } .chip.gn { color:var(--up); }
 
 /* ─── controls ─── */
 .ctrls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
@@ -524,7 +533,7 @@ tr.link-row:hover td { background:var(--row-hover) !important; }
     --t1:#111111; --t2:#4B5563; --t3:#6B7280;
     --coral:#C0522F; --coral-d:#A24428; --coral-l:rgba(192,82,47,.80);
     --coral-a22:rgba(192,82,47,.22); --coral-a35:rgba(192,82,47,.35);
-    --up:#C0522F; --dn:#C02626; --grn:#047857;
+    --up:#C0522F; --dn:#1D4ED8; --grn:#047857;
     --card-shadow:none; --row-hover:transparent;
     --td-border:rgba(0,0,0,.10); --q-bg:rgba(0,0,0,.06);
     --prog-track:rgba(0,0,0,.10);
@@ -614,8 +623,8 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div class="wrap">
 <div class="hdr">
   <div class="hdr-l">
-    <h1><span>{{name}}</span> ({{code}}) 실적 대시보드</h1>
-    <p>{{period_full}} &nbsp;|&nbsp; {{basis}} 기준 &nbsp;|&nbsp; 기준일: {{base_date}}{{verify_badge}}</p>
+    <h1><span>{{name}}</span> ({{code}}) 실적 리포트</h1>
+    <p>{{period_full}} &nbsp;|&nbsp; {{basis}} &nbsp;|&nbsp; 기준일: {{base_date}}{{verify_badge}}</p>
   </div>
 </div>
 </div>
@@ -644,6 +653,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <!-- ══ 실적 요약 ════════════════════════════════════ -->
 <div id="sec-kpi" class="sec-label">{{kpi_label}}</div>
 <div class="sc nr full">
+  <div class="headline" id="headline"></div>
   <div class="kpi-grid">
     <div class="kpi-card nr">
       <div class="kpi-lbl">전체 매출</div>
@@ -665,9 +675,12 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
       <div class="kpi-yoy {{np_dir}}">{{np_yoy}}</div>
       <div class="kpi-div"></div>
       <div class="kpi-sub">{{np_sub}}</div>
+      <div class="kpi-sub kpi-sub2" id="npBridge"></div>
     </div>
   </div>
-  <div class="chips" id="perfChips"></div>
+  <div class="chips" id="perfChips" style="margin-top:16px"></div>
+  <div class="watch" id="watchBox"><div class="watch-ttl">다음에 볼 것</div><ul id="watchList"></ul></div>
+  <div class="kpi-notes" id="kpiNotes"></div>
 </div>
 
 <!-- ══ 성장 기여도 ════════════════════════════════════ -->
@@ -704,8 +717,8 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
     <div class="dp-grid">
       <div class="dp-item ni-sm"><div class="dp-lbl">{{q_prev_full}}</div><div class="dp-val" id="dp25"></div></div>
       <div class="dp-item ni-sm"><div class="dp-lbl">{{q_cur_full}}</div><div class="dp-val" id="dp26"></div></div>
-      <div class="dp-item ni-sm"><div class="dp-lbl">δ 절대</div><div class="dp-val" id="dpD"></div></div>
-      <div class="dp-item ni-sm"><div class="dp-lbl">YoY %</div><div class="dp-val" id="dpP"></div></div>
+      <div class="dp-item ni-sm"><div class="dp-lbl">증감</div><div class="dp-val" id="dpD"></div></div>
+      <div class="dp-item ni-sm"><div class="dp-lbl">전년 대비</div><div class="dp-val" id="dpP"></div></div>
       <div class="dp-item ni-sm"><div class="dp-lbl">믹스 변화</div><div class="dp-val" id="dpM"></div></div>
     </div>
   </div>
@@ -714,8 +727,8 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
     <table><thead><tr>
       <th>사업부문</th><th>구분</th>
       <th class="r">{{q_prev_short}}</th><th class="r">{{q_cur_short}}</th>
-      <th class="r">δ(억)</th><th class="r">YoY%</th>
-      <th class="r">{{mix_prev}}</th><th class="r">{{mix_cur}}</th><th class="r">믹스Δ</th>
+      <th class="r">증감(억)</th><th class="r">전년 대비</th>
+      <th class="r">{{mix_prev}}</th><th class="r">{{mix_cur}}</th><th class="r">비중 변화</th>
     </tr></thead><tbody id="tB"></tbody></table>
   </div>
   <div class="fn" id="fn1"></div>
@@ -730,22 +743,22 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
   <div class="cons-wrap">
     <div class="cons-pie">
       <canvas id="consChart" style="max-width:150px;max-height:150px"></canvas>
-      <div class="cons-lbl">Buy {{cons_buy}} &nbsp;|&nbsp; Hold {{cons_hold}} &nbsp;|&nbsp; Sell {{cons_sell}}</div>
+      <div class="cons-lbl">매수 {{cons_buy}} &nbsp;|&nbsp; 보유 {{cons_hold}} &nbsp;|&nbsp; 매도 {{cons_sell}}</div>
     </div>
     <div>
       <div class="cons-rows" style="margin-bottom:16px">
         <div class="cons-row">
-          <span class="nm" style="color:var(--coral)">Buy</span>
+          <span class="nm" style="color:var(--coral)">매수</span>
           <div class="cons-bw"><div class="cons-b" style="width:{{cons_buy_pct}};background:var(--coral)"></div></div>
           <span class="cnt" style="color:var(--coral)">{{cons_buy}}</span>
         </div>
         <div class="cons-row">
-          <span class="nm" style="color:#4B5563">Hold</span>
+          <span class="nm" style="color:#4B5563">보유</span>
           <div class="cons-bw"><div class="cons-b" style="width:{{cons_hold_pct}};background:#9CA3AF"></div></div>
           <span class="cnt" style="color:#4B5563">{{cons_hold}}</span>
         </div>
         <div class="cons-row">
-          <span class="nm" style="color:var(--dn)">Sell</span>
+          <span class="nm" style="color:var(--dn)">매도</span>
           <div class="cons-bw"><div class="cons-b" style="width:{{cons_sell_pct}};background:var(--dn)"></div></div>
           <span class="cnt" style="color:var(--dn)">{{cons_sell}}</span>
         </div>
@@ -755,7 +768,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
         <div class="tp-item"><div class="l">최저 목표가</div><div class="v">{{tp_low}}</div></div>
         <div class="tp-item"><div class="l">평균 목표가</div><div class="v" style="color:var(--coral)">{{tp_avg}}</div></div>
         <div class="tp-item"><div class="l">최고 목표가</div><div class="v">{{tp_high}}</div></div>
-        <div class="tp-item"><div class="l">Implied Upside</div><div class="v tp-upside" data-sign="{{tp_upside}}">{{tp_upside}}</div></div>
+        <div class="tp-item"><div class="l">평균 목표가까지</div><div class="v tp-upside" data-sign="{{tp_upside}}">{{tp_upside}}</div></div>
       </div>
     </div>
   </div>
@@ -766,7 +779,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
       <thead><tr>
         <th>증권사</th><th>투자의견</th>
         <th class="r">목표가</th><th class="r">변동</th>
-        <th class="r">Upside</th><th>날짜</th><th>코멘트</th>
+        <th class="r">상승 여력</th><th>날짜</th><th>코멘트</th>
       </tr></thead>
       <tbody id="atBody"></tbody>
     </table>
@@ -774,11 +787,11 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 </div>
 <div class="bb-grid" style="margin-bottom:24px">
   <div class="bb-card nr bb-bull">
-    <div class="bb-head"><span class="icon">📈</span><span class="ttl" style="color:var(--coral)">Bull Case 5가지</span></div>
+    <div class="bb-head"><span class="icon">📈</span><span class="ttl" style="color:var(--coral)">강세 논거 5가지</span></div>
     <div id="bullList"></div>
   </div>
   <div class="bb-card nr bb-bear">
-    <div class="bb-head"><span class="icon">📉</span><span class="ttl" style="color:var(--dn)">Bear Case 5가지</span></div>
+    <div class="bb-head"><span class="icon">📉</span><span class="ttl" style="color:var(--dn)">약세 논거 5가지</span></div>
     <div id="bearList"></div>
   </div>
 </div>
@@ -793,11 +806,11 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div id="sec-persona" class="sec-label">투자자 시각</div>
 <div class="sc nr full">
   <div class="sh">
-    <div class="sann">13인의 전설적 투자자가 본 {{name}}</div>
+    <div class="sann">13인 투자자가 본 {{name}}</div>
   </div>
   <div class="persona-summary nr" id="personaSummary"></div>
   <div class="persona-grid" id="personaGrid"></div>
-  <div class="disc">※ 투자자 시각은 각 인물의 공개된 투자 철학·발언을 기반으로 AI가 시뮬레이션한 가상 평가이며, 실제 의견이 아닙니다.</div>
+  <div class="disc">※ 투자자 시각은 각 인물의 공개된 투자 철학·발언을 기반으로 AI가 시뮬레이션한 가상 평가이고, 실제 의견이 아니다.</div>
 </div>
 
 <!-- ══ 전문가 평가 ════════════════════════════════════ -->
@@ -809,19 +822,19 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
     <div class="review-avg" id="reviewAvg"></div>
   </div>
   <div class="review-cards" id="reviewCards"></div>
-  <div class="disc">※ RED(논리)·SILVER(분야 전문가)·GOLD(실제 독자) 세 관점의 AI 평가로, 10점 만점이며 참고용입니다. 9.5점이 그대로 써도 되는 수준입니다. 숫자의 정확성은 이 평가와 별개로 숫자 검증 게이트가 원천과 대조해 확인했습니다.</div>
+  <div class="disc">※ RED(논리)·SILVER(분야 전문가)·GOLD(실제 독자) 세 관점의 AI 평가다(10점 만점, 참고용). "남은 한계"는 이 리포트를 읽을 때 감안할 점이다. 숫자의 정확성은 이 평가와 별개로 숫자 검증 게이트가 원천과 대조했다.</div>
 </div>
 </div>
 
 </div><!-- /inner wrap -->
 
 <div class="invest-disclaimer">
-  <strong>투자위험 고지사항 (Investment Risk Disclosure)</strong><br>
-  본 자료는 공개된 IR 자료·뉴스·리서치 보고서를 기반으로 정보 제공 목적으로만 작성되었으며, 특정 금융투자상품의 매수·매도를 권유하거나 투자를 권고하지 않습니다.
-  본 자료에 포함된 일부 수치는 추정치를 포함하고 있으며, 실제 수치와 다를 수 있습니다.
-  금융투자상품 거래 시 원금 손실이 발생할 수 있으며, 투자에 관한 최종 판단과 그에 따른 손익의 책임은 전적으로 투자자 본인에게 있습니다.
-  과거의 수익률이나 투자 실적이 미래의 수익을 보장하지 않습니다.
-  「투자자 시각」 섹션은 각 인물의 공개된 투자 철학을 기반으로 AI가 시뮬레이션한 가상 평가이며, 해당 인물의 실제 의견이 아닙니다.
+  <strong>투자위험 고지</strong><br>
+  이 자료는 공시·IR 자료·뉴스·증권사 보고서를 바탕으로 정보 제공 목적으로만 만들었고, 특정 금융투자상품의 매수·매도를 권유하지 않는다.
+  추정치로 표시한 수치는 실제와 다를 수 있다.
+  금융투자상품 거래에서는 원금 손실이 생길 수 있고, 투자 판단과 그 손익의 책임은 투자자 본인에게 있다.
+  과거의 실적이 미래의 수익을 보장하지 않는다.
+  「투자자 시각」 섹션은 각 인물의 공개된 투자 철학을 기반으로 AI가 시뮬레이션한 가상 평가이고, 해당 인물의 실제 의견이 아니다.
 </div>
 
 <script>
@@ -929,6 +942,20 @@ document.addEventListener('keydown',e=>{
     if(tag!=='INPUT'&&tag!=='TEXTAREA'&&tag!=='SELECT'){toggleTheme();}
   }
 });
+
+/* ═══════════════ 결론·다음에 볼 것·각주 (옛 데이터에는 없다) ═══════════════ */
+function buildHeadline(){
+  const hl=typeof HEADLINE!=='undefined'?HEADLINE:'';
+  document.getElementById('headline').textContent=hl||'';
+  const w=typeof WATCH!=='undefined'?WATCH:[];
+  const box=document.getElementById('watchBox');
+  if(!w.length){ box.style.display='none'; }
+  else{ const ul=document.getElementById('watchList'); w.forEach(t=>{const li=document.createElement('li'); li.textContent=t; ul.appendChild(li);}); }
+  const nb=typeof NP_BRIDGE!=='undefined'?NP_BRIDGE:'';
+  document.getElementById('npBridge').textContent=nb||'';
+  const notes=typeof NOTES!=='undefined'?NOTES:[];
+  document.getElementById('kpiNotes').textContent=notes.length?'* '+notes.join(' '):'';
+}
 
 /* ═══════════════ INSIGHT CHIPS ═══════════════ */
 function buildChips(){
@@ -1078,7 +1105,7 @@ function showDp(seg){
   const pEl=document.getElementById('dpP');
   pEl.textContent=p===null?'N/A':(sgn(p)+p.toFixed(1)+'%');
   pEl.style.color=p===null?'var(--t2)':p>=0?'var(--up)':'var(--dn)';
-  const mxD=seg.q26>0?((seg.q26/TOT26-seg.q25/TOT25)*100).toFixed(1)+'pp':'-';
+  const mxD=seg.q26>0?((seg.q26/TOT26-seg.q25/TOT25)*100).toFixed(1)+'%p':'-';
   document.getElementById('dpM').textContent=`${mx25} → ${mx26} (${mxD})`;
   document.getElementById('dp').classList.add('on');
 }
@@ -1098,7 +1125,7 @@ function renderTbl(){
       <td class="r ${p===null?'':p>=0?'pos':'neg'}">${p===null?'N/A':sgn(p)+p.toFixed(1)+'%'}</td>
       <td class="r">${m25}%</td>
       <td class="r">${m26==='-'?'-':m26+'%'}</td>
-      <td class="r ${mD==='N/A'?'':parseFloat(mD)>=0?'pos':'neg'}">${mD==='N/A'?'N/A':sgn(parseFloat(mD))+mD+'pp'}</td>`;
+      <td class="r ${mD==='N/A'?'':parseFloat(mD)>=0?'pos':'neg'}">${mD==='N/A'?'N/A':sgn(parseFloat(mD))+mD+'%p'}</td>`;
     tb.appendChild(tr);
   });
 }
@@ -1111,12 +1138,14 @@ function togTable(){
 }
 /* 각주는 데이터에서 만든다: est:true 부문만 추정치로 밝힌다 */
 (function(){
-  const est=SEGS.filter(s=>s.est).map(s=>s.name);
+  const est=SEGS.filter(s=>s.est&&s.name!=='연결조정').map(s=>s.name);   // 연결조정은 반올림 차이다
   document.getElementById('fn1').textContent=est.length
     ? '* 추정치: '+est.join(', ')+' (원문에서 확인하지 못했거나, 비중으로 역산·합계를 맞춘 값)'
-    : '* 모든 부문 숫자는 출처(정기보고서·IR) 그대로다.';
+    : '* 모든 부문 숫자는 출처(정기보고서·IR) 그대로다'+(SEGS.some(s=>s.name==='연결조정')?'. 연결조정은 부문 합계와 총매출의 반올림 차이다.':'.');
   const de=document.getElementById('deltaEst');
-  if(de) de.style.display=DELTA.some(x=>x.est&&!x.tot)?'':'none';
+  const body=SEGS.filter(s=>s.name!=='연결조정');
+  if(de){ de.style.display=DELTA.some(x=>x.est&&!x.tot&&x.name!=='연결조정')?'':'none';
+          if(body.length&&body.every(s=>s.est)) de.textContent='* 부문 매출은 모두 추정치'; }
 })();
 
 /* ═══════════════ MARKET TAB ═══════════════ */
@@ -1127,7 +1156,7 @@ function buildMarket(){
   const cw=document.querySelector('.cons-wrap'); if(cw) cw.style.display=hasCons?'':'none';
   if(hasCons) consChartInst=new Chart(document.getElementById('consChart').getContext('2d'),{
     type:'doughnut',
-    data:{labels:['Buy','Hold','Sell'],
+    data:{labels:['매수','보유','매도'],
           datasets:[{data:[CONS.buy,CONS.hold,CONS.sell],
             backgroundColor:['rgba(201,100,66,.85)','rgba(156,163,175,.7)','rgba(146,32,16,.85)'],
             borderWidth:0,borderRadius:4}]},
@@ -1138,18 +1167,18 @@ function buildMarket(){
   const tbody=document.getElementById('atBody');
   tbody.innerHTML='';
   if(!ANALYSTS.length){
-    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--t2);padding:18px">실적 발표 뒤 나온 증권사 보고서를 찾지 못했습니다 (커버리지 없음)</td></tr>';
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--t2);padding:18px">실적 발표 뒤 나온 증권사 보고서를 찾지 못했다 (커버리지 없음)</td></tr>';
   }
   ANALYSTS.forEach(a=>{
     const delta=(a.from==null)?null:a.tp-a.from;   // 직전 목표가가 원문에 없으면 방향을 지어내지 않는다
-    const action=delta===null?`<span class="act-ke">미확인</span>`:delta>0?`<span class="act-up">▲ 상향</span>`:delta<0?`<span class="act-dn">▼ 하향</span>`:`<span class="act-ke">유지</span>`;
+    const action=delta===null?(a.dir==='down'?`<span class="act-dn">▼ 하향(폭 미확인)</span>`:a.dir==='up'?`<span class="act-up">▲ 상향(폭 미확인)</span>`:`<span class="act-ke" title="원문에 직전 목표가가 없다">–</span>`):delta>0?`<span class="act-up">▲ 상향</span>`:delta<0?`<span class="act-dn">▼ 하향</span>`:`<span class="act-ke">유지</span>`;
     const upside=((a.tp-CURR)/CURR*100).toFixed(1);
     const tr=document.createElement('tr');
     tr.className='link-row';
     tr.onclick=()=>window.open(`https://search.naver.com/search.naver?where=news&query=${encodeURIComponent(NAME+' '+a.firm+' 목표가 '+a.date)}`, '_blank');
     tr.innerHTML=`
       <td class="at-firm"><strong>${a.firm.replace(/증권$/,'<wbr>증권')}</strong></td>
-      <td><span class="badge ${a.r==='Buy'?'badge-buy':a.r==='Hold'?'badge-hold':'badge-sell'}">${a.r}</span></td>
+      <td><span class="badge ${a.r==='Buy'?'badge-buy':a.r==='Hold'?'badge-hold':'badge-sell'}">${({Buy:'매수',Hold:'보유',Sell:'매도'})[a.r]||a.r}</span></td>
       <td class="r"><strong>${a.tp.toLocaleString('ko-KR')}원</strong></td>
       <td class="r">${action} ${Math.abs(delta)>0?Math.abs(delta).toLocaleString('ko-KR')+'원':''}</td>
       <td class="r ${upside>=0?'pos':'neg'}">${upside>=0?'+':''}${upside}%</td>
@@ -1219,7 +1248,8 @@ function buildReview(){
   const meta={RED:['var(--dn)','이성 비평가 · 논리와 근거'],
               SILVER:['var(--silver)','분야 전문가 · 업종 실무 해석'],
               GOLD:['var(--gold)','실제 독자 · 이것으로 결정할 수 있는가']};
-  document.getElementById('reviewScene').textContent='GOLD 독자 장면: '+REVIEW.scene;
+  document.getElementById('reviewScene').textContent='GOLD 독자 장면: '+REVIEW.scene+
+    (REVIEW.stale?' (이 평가 뒤에 본문 일부가 고쳐졌다)':'');
   const avg=REVIEW.reviews.reduce((a,r)=>a+r.score,0)/REVIEW.reviews.length;
   document.getElementById('reviewAvg').innerHTML='평균 <b>'+avg.toFixed(1)+'</b> / 10';
   const box=document.getElementById('reviewCards'); box.innerHTML='';
@@ -1227,12 +1257,12 @@ function buildReview(){
     const [color,who]=meta[r.role]||['var(--t2)',''];
     const card=document.createElement('div'); card.className='review-card nr'; card.style.setProperty('--rc',color);
     card.innerHTML='<div class="review-top"><span class="review-role"></span><span class="review-score"></span></div>'+
-      '<div class="review-who"></div><div class="review-cmt"></div><div class="review-fix"><b>고칠 점</b> <span></span></div>';
+      '<div class="review-who"></div><div class="review-cmt"></div><div class="review-fix"><b>남은 한계</b> <span></span></div>';
     card.querySelector('.review-role').textContent=r.role;
     card.querySelector('.review-score').innerHTML=(+r.score).toFixed(1)+' <small>/ 10</small>';
     card.querySelector('.review-who').textContent=who;
     card.querySelector('.review-cmt').textContent=r.comment;
-    card.querySelector('.review-fix span').textContent=r.fix;
+    card.querySelector('.review-fix span').textContent=r.limit||r.fix;
     box.appendChild(card);
   });
 }
@@ -1333,7 +1363,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
   /* 한 단계가 실패해도 나머지 섹션은 그린다.
      (CDN 차단 시 Chart 미정의로 전체 렌더가 죽던 문제) */
-  [['chips',buildChips],['delta',buildDeltaChart],['segment',drawSeg],
+  [['headline',buildHeadline],['chips',buildChips],['delta',buildDeltaChart],['segment',drawSeg],
    ['market',buildMarket],['news',buildNews],['persona',buildPersonas],['review',buildReview],
    ['scroll',initScrollAnim]].forEach(([name,fn])=>{
     try{ fn(); }catch(e){ console.error('['+name+'] 렌더 실패:',e); }
@@ -1345,8 +1375,8 @@ window.addEventListener('DOMContentLoaded',()=>{
       el.insertAdjacentHTML('beforeend',
         '<div style="position:absolute;inset:0;display:flex;align-items:center;'+
         'justify-content:center;text-align:center;padding:20px;font-size:.85rem;'+
-        'color:var(--t2);line-height:1.7">차트 라이브러리(CDN)를 불러오지 못했습니다.<br>'+
-        '네트워크 연결을 확인하거나 아래 데이터 테이블을 참고하세요.</div>');
+        'color:var(--t2);line-height:1.7">차트 라이브러리(CDN)를 불러오지 못했다.<br>'+
+        '네트워크 연결을 확인하거나 아래 데이터 표를 본다.</div>');
     });
     try{
       const w=document.getElementById('dtW');

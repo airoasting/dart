@@ -98,6 +98,8 @@ def review_problems(rv) -> list[str]:
         for f in ("comment", "fix"):
             if not str(r.get(f, "")).strip():
                 out.append(f"{r.get('role')}의 {f}가 비었다")
+        if r.get("target") not in (None, "B", "C", "none"):
+            out.append(f"{r.get('role')}의 target은 B·C·none 중 하나다: {r.get('target')}")
     return out
 
 
@@ -219,16 +221,22 @@ def check_arithmetic(d, R: Report, pool):
         R.eq(L, "SEGS q26 합계 = TOT26", sum(s["q26"] for s in segs), tot26, tol, hint)
         cats = {}
         for s in segs:
+            if s.get("est"):   # 추정·역산 값은 서술 근거가 되지 못한다
+                continue
             pool.add_eok(s["q25"], s["q26"], s["q26"] - s["q25"])
+            pool.add_lab("매출", s["q25"], s["q26"], s["q26"] - s["q25"])
             if s["q25"]:
                 pool.add_pct(yoy(s["q26"], s["q25"]))
+                pool.add_plab("매출", yoy(s["q26"], s["q25"]))
             if tot25 and tot26:
                 pool.add_pct(s["q25"] / tot25 * 100, s["q26"] / tot26 * 100)
                 pool.add_pp(s["q26"] / tot26 * 100 - s["q25"] / tot25 * 100)
+                pool.add_plab("매출", s["q25"] / tot25 * 100, s["q26"] / tot26 * 100, s["q26"] / tot26 * 100 - s["q25"] / tot25 * 100)
             c = cats.setdefault(s.get("cat", ""), [0, 0])
             c[0] += s["q25"]; c[1] += s["q26"]
         for a, b in cats.values():
             pool.add_eok(a, b, b - a)
+            pool.add_lab("매출", a, b, b - a)
             if a:
                 pool.add_pct(yoy(b, a))
 
@@ -337,6 +345,17 @@ def _load_key():
     return find_api_key()
 
 
+def prev_quarter_src(src):
+    """직전 분기 보고서의 (bsns_year, reprt_code). 연간이면 None. assemble_report와 같은 규칙."""
+    if src.get("scope") == "annual":
+        return None
+    fm = int(src.get("fiscal_month") or 12)
+    em = (fm + {"11013": 3, "11012": 6, "11014": 9, "11011": 12}[str(src["reprt_code"])] - 1) % 12 + 1
+    ey = int(src["year"])
+    py = ey if em > 3 else ey - 1
+    return str(py), {"11013": "11011", "11012": "11013", "11014": "11012", "11011": "11014"}[str(src["reprt_code"])]
+
+
 def q3_year(year, fiscal_month=12) -> str:
     """사업보고서(bsns_year=year)와 같은 회계연도의 3분기보고서 bsns_year.
 
@@ -390,12 +409,12 @@ def fetch_dart(src):
         div = c.get_dividend(src["corp_code"], year, rc).get("list", [])
     except Exception:
         div = []
-    try:   # 전년 동기말 재무상태표 (서술의 '전년 자산·자본' 대조용)
+    try:   # 작년 같은 보고서: 전년 동기말 재무상태표와 처음 발표한 전년 손익 (재작성 전 숫자. 기사가 이 기준으로 쓴다)
         rp = c.get_financial_statements(src["corp_code"], str(int(year) - 1), rc, fs)
-        prev_bs = [it for it in rp.get("list", []) if it.get("sj_div") == "BS"]
+        prev = [it for it in rp.get("list", []) if it.get("sj_div") in ("BS", "IS", "CIS")]
     except Exception:
-        prev_bs = []
-    return vals, items, div, prev_bs
+        prev = []
+    return vals, items, div, prev
 
 
 def fetch_provisional_text(rcept_no):
@@ -454,7 +473,7 @@ def check_dart(d, R: Report, pool):
         return
 
     try:
-        vals, items, div, prev_bs = fetch_dart(src)
+        vals, items, div, prev = fetch_dart(src)
     except LookupError as e:
         R.add(L, False, "DART 재조회", str(e), "audit.src의 corp_code·year·reprt_code·fs_div를 확인한다")
         return
@@ -513,8 +532,101 @@ def check_dart(d, R: Report, pool):
                     rv = _eok(_amt(rev_it.get(ccol)))
                     if rv and a[ccol] is not None:
                         pool.add_pct(a[ccol] / rv * 100)
+    for it in items:   # 계정 라벨별 값과 (당기 − 비교) 증감, 증가율
+        labs = labels_of(it.get("account_nm", "").strip(), it.get("account_id") or "")
+        a = {c: _eok(_amt(it.get(c))) for c in cols}
+        for lab in labs:
+            pool.add_lab(lab, *a.values())
+            for cur_c, prv_c in (("thstrm_amount", "frmtrm_q_amount"), ("thstrm_amount", "frmtrm_amount"),
+                                 ("thstrm_add_amount", "frmtrm_add_amount")):
+                if a[cur_c] is not None and a[prv_c] is not None:
+                    pool.add_lab(lab, a[cur_c] - a[prv_c])
+                    if a[prv_c] and lab in PCT_LABELS:
+                        pool.add_plab(lab, yoy(a[cur_c], a[prv_c]))
+    for it in prev:    # 전년 동기말 재무상태, 처음 발표한 전년 손익
+        for lab in labels_of(it.get("account_nm", "").strip(), it.get("account_id") or ""):
+            pool.add_lab(lab, _eok(_amt(it.get("thstrm_amount"))))
+    for it in items:
+        a = {c: _eok(_amt(it.get(c))) for c in cols}
+        for prv_c in ("frmtrm_q_amount", "frmtrm_amount"):
+            if a["thstrm_amount"] is not None and a[prv_c] is not None:
+                pool.pairs.append((a[prv_c], a["thstrm_amount"]))
+    rv_c, rv_p = vals.get("rev", (None, None))
+    for k, lab in (("rev", "매출"), ("op", "영업이익"), ("np_total", "순이익"), ("np_parent", "순이익")):
+        c_, p_ = vals.get(k, (None, None))
+        if c_ is not None and p_ is not None:
+            pool.add_lab(lab, c_, p_, c_ - p_)
+            if p_:
+                pool.add_plab(lab, yoy(c_, p_))
+            pool.pairs.append((p_, c_))
+            if k != "rev" and rv_c and rv_p:   # 이익률과 그 변화폭
+                pool.pairs.append((p_ / rv_p * 100, c_ / rv_c * 100))
+                pool.add_plab(lab, c_ / rv_c * 100, p_ / rv_p * 100, c_ / rv_c * 100 - p_ / rv_p * 100,
+                              float(f"{c_ / rv_c * 100:.1f}") - float(f"{p_ / rv_p * 100:.1f}"))
     by_id = {it.get("account_id"): it for it in items if it.get("sj_div") in ("BS", "IS", "CIS")}
-    pool.add_eok(*[_eok(_amt(it.get("thstrm_amount"))) for it in prev_bs])
+    pool.add_eok(*[_eok(_amt(it.get("thstrm_amount"))) for it in prev])   # 전년 동기말 BS, 처음 발표한 전년 손익
+    # 직전 분기 대비 (assemble_report.prev_quarter와 같은 규칙)
+    pq = prev_quarter_src(src)
+    if pq:
+        try:
+            pv, *_ = fetch_dart({**src, "year": pq[0], "reprt_code": pq[1], "scope": "quarter"})
+            for k in ("rev", "op", "np_total", "np_parent"):
+                c_, p_ = vals.get(k, (None,))[0], (pv.get(k) or (None,))[0]
+                if p_ is not None:
+                    pool.add_eok(p_)
+                    pool.add_lab({"rev": "매출", "op": "영업이익"}.get(k, "순이익"), p_)
+                    if c_ is not None:
+                        pool.add_eok(c_ - p_)
+                        if p_:
+                            pool.qoq.append(yoy(c_, p_))
+                            pool.add_plab({"rev": "매출", "op": "영업이익"}.get(k, "순이익"), yoy(c_, p_))
+        except Exception:
+            pass
+    # 차입·상환 합계(재무활동 하위 줄), 중단영업 지배주주 귀속 비율, 실효세율
+    cf = sorted((it for it in items if it.get("sj_div") == "CF"), key=lambda it: int(it.get("ord") or 0))
+    fin, borrow, repay = False, 0, 0
+    for it in cf:
+        aid = it.get("account_id") or ""
+        if aid.startswith("ifrs-full_CashFlowsFromUsedIn"):
+            fin = aid.endswith("FinancingActivities")
+            continue
+        nm = it.get("account_nm", "")
+        if fin and "차입" in nm:
+            v_ = _amt(it.get("thstrm_amount")) or 0
+            if "상환" in nm:
+                repay += v_
+            else:
+                borrow += v_
+    pool.add_eok(_eok(borrow), _eok(repay))
+    ids_ = {it.get("account_id"): it for it in items if it.get("sj_div") in ("IS", "CIS")}
+    for num_id, den_id, lab in (("ifrs-full_IncomeFromDiscontinuedOperationsAttributableToOwnersOfParent",
+                                 "ifrs-full_ProfitLossFromDiscontinuedOperations", "중단영업"),
+                                ("ifrs-full_IncomeTaxExpenseContinuingOperations", "ifrs-full_ProfitLossBeforeTax", "법인세")):
+        a_it, b_it = ids_.get(num_id), ids_.get(den_id)
+        if a_it and b_it:
+            for ccol in cols:
+                a_, b_ = _amt(a_it.get(ccol)), _amt(b_it.get(ccol))
+                if a_ is not None and b_:
+                    pool.add_pct(a_ / b_ * 100)
+                    if lab:
+                        pool.add_plab(lab, a_ / b_ * 100)
+    # 시가총액·PBR 재료 (종가는 check_price가 안다)
+    eq_it = next((it for it in items if it.get("account_id") == "ifrs-full_EquityAttributableToOwnersOfParent"), None)
+    pool.parent_eq = _amt(eq_it.get("thstrm_amount")) if eq_it else None
+    try:
+        from dart_client import DartClient
+        r = DartClient(api_key=_load_key(), timeout=15)._get("stockTotqySttus.json", corp_code=src["corp_code"],
+                                                             bsns_year=str(src["year"]), reprt_code=str(src["reprt_code"]))
+        row = next(x for x in r.get("list", []) if x.get("se") == "보통주")
+        pool.shares = _amt(row.get("istc_totqy"))
+    except Exception:
+        pool.shares = None
+    same_basis = str(src.get("reprt_code")) != "11011" or src.get("scope") == "annual"   # 4Q 단독은 작년 연간과 못 견준다
+    for k in ("rev", "op", "np_total", "np_parent") if same_basis else ():   # 처음 발표한 전년 대비 증가율 (기사 제목의 숫자)
+        it0, cur = _find(prev, k), vals.get(k, (None, None))[0]
+        p0 = _eok(_amt(it0.get("thstrm_amount"))) if it0 else None
+        if cur is not None and p0:
+            pool.orig.append(yoy(cur, p0))
     for it in items:   # EPS는 원 단위 그대로
         if "EarningsLossPerShare" in (it.get("account_id") or ""):
             pool.add_won(*[_amt(it.get(c)) for c in cols])
@@ -625,8 +737,8 @@ def check_price(d, R: Report, pool):
     if not mt:
         R.add(L, False, "meta.tp_cur", "'(M/D 종가)' 표기를 찾지 못함", "형식: '32,475원 (10/8 종가)'")
         return
-    from price import _naver_daily
-    rows = _naver_daily(code, days=760)
+    from price import _naver_daily, _settled
+    rows = _settled(_naver_daily(code, days=760))   # 장중 오늘 행은 종가가 아니다
     if not rows:
         raise ConnectionError("KRX 일봉을 받지 못함")
     mm, dd = int(mt.group(1)), int(mt.group(2))
@@ -642,6 +754,13 @@ def check_price(d, R: Report, pool):
     win = [r for r in rows[: idx + 1] if r[0] >= start]
     lo, hi = min(r[3] for r in win), max(r[2] for r in win)
     pool.add_won(close, lo, hi)
+    shares = getattr(pool, "shares", None)
+    if shares:   # 시가총액 = 보통주 발행주식총수 × 종가, PBR = 시가총액 ÷ 지배주주자본
+        cap = shares * close
+        pool.add_eok(cap / 1e8)
+        pool.add_won(shares)
+        if getattr(pool, "parent_eq", None):
+            pool.add_x(cap / pool.parent_eq)
     if close:
         for v in (lo, hi):
             pool.add_pct((close - v) / v * 100, (v - close) / close * 100)
@@ -650,45 +769,187 @@ def check_price(d, R: Report, pool):
 # ───────────────────────── C. 출처 장부 ─────────────────────────
 
 class Pool:
-    """서술 속 숫자를 대조할 사실 풀."""
+    """서술 속 숫자를 대조할 사실 풀. 부호 있는 값을 그대로 둔다(방향이 뒤집힌 서술을 잡는다)."""
 
     def __init__(self):
         self.eok, self.pct, self.pp, self.won, self.x = [], [], [], [], []
+        self.lab = {}    # 계정 라벨 → 억원 값(부호 있음). 라벨 바로 뒤 금액은 그 계정 값이어야 한다
+        self.plab = {}   # 계정 라벨 → %·%p 값(증가율·이익률). 매출·영업이익·순이익만
+        self.ext = {"eok": [], "pct": [], "pp": [], "won": [], "x": [], "man": []}   # 확인된 기사·증권사 note의 숫자(출처를 밝혀야 쓴다)
+        self.orig = []   # 처음 발표한 전년 대비 증가율('처음 발표'·'기사'를 밝혀야 쓴다)
+        self.qoq = []    # 직전 분기 대비 증가율('전년'이라 쓴 문장에서는 안 된다)
+        self.pairs = []  # (비교, 당기) 쌍. 'A에서 B로'가 거꾸로 쓰였는지 본다
 
     def _put(self, lst, vals):
-        lst.extend(abs(v) for v in vals if v is not None)
+        lst.extend(float(v) for v in vals if v is not None)
 
+    def add_lab(self, label, *v): self._put(self.lab.setdefault(label, []), v)
+    def add_plab(self, label, *v): self._put(self.plab.setdefault(label, []), v)
     def add_eok(self, *v): self._put(self.eok, v)
     def add_pct(self, *v): self._put(self.pct, v)
     def add_pp(self, *v): self._put(self.pp, v)
     def add_won(self, *v): self._put(self.won, v)
     def add_x(self, *v): self._put(self.x, v)
 
-    def has(self, kind, val, tok, tol=None):
-        val = abs(val)
+    @staticmethod
+    def _match(vals, val, t, sign):
+        if sign:   # 부호(또는 늘었다·줄었다)를 말했으면 부호까지 맞아야 한다
+            return any(abs(x - sign * abs(val)) <= t for x in vals)
+        return any(abs(abs(x) - abs(val)) <= t for x in vals)
+
+    def tol(self, kind, val, tok, tol=None):
         if kind == "eok":
-            t = max(TOL_EOK, tol or 0)
-            return any(abs(x - val) <= t for x in self.eok)
+            return max(TOL_EOK, tol or 0)
         if kind in ("pct", "pp"):
-            t = pct_tol(val, tok)
-            src = self.pct if kind == "pct" else self.pp + self.pct   # 'pp'를 %로 쓰는 경우 허용
-            return any(abs(x - val) <= t for x in src)
+            return pct_tol(abs(val), tok)
         if kind == "won":
-            return any(abs(x - val) <= max(1, val * 0.0005) for x in self.won)
+            return max(1, abs(val) * 0.0005)
         if kind == "x":   # '2배' → ±0.5, '1.9배' → ±0.05
-            return any(abs(x - val) <= 0.5 * 10 ** (-decimals(tok)) + 1e-9 for x in self.x)
-        if kind == "man":   # '4.9만'(원) 또는 '1,100만'(건수)
-            return any(abs(x - val * 10000) <= 5000 * 10 ** (-decimals(tok)) for x in self.won)
-        return False
+            return 0.5 * 10 ** (-decimals(tok)) + 1e-9
+        return 0
+
+    def has(self, kind, val, tok, tol=None, sign=None, src=None):
+        if kind == "man":   # '4.9만'(원) 또는 '1,100만'(건수). 기사 숫자(src)는 '만' 그대로 견준다
+            if src is not None:
+                return any(abs(abs(x) - abs(val)) <= 0.5 * 10 ** (-decimals(tok)) for x in src)
+            return any(abs(abs(x) - abs(val) * 10000) <= 5000 * 10 ** (-decimals(tok)) for x in self.won)
+        vals = src if src is not None else {"eok": self.eok, "pct": self.pct + self.qoq, "pp": self.pp + self.pct,
+                                            "won": self.won, "x": self.x}.get(kind, [])
+        return self._match(vals, val, self.tol(kind, val, tok, tol), sign)
+
+    def has_lab(self, label, kind, val, tok, tol=None, sign=None):
+        book = self.lab if kind == "eok" else self.plab if kind in ("pct", "pp") else {}
+        vals = book.get(label)
+        if not vals:          # 그 계정의 값을 모르면 라벨 검사를 하지 않는다
+            return True
+        return self._match(vals, val, self.tol(kind, val, tok, tol), sign)
+
+
+# 서술에서 금액 바로 앞에 오는 계정 라벨. '계속영업이익'·'중단영업이익'은 순이익 쪽이라 영업이익에서 뺀다
+LABEL = re.compile(r"(?P<l>매출|계속영업|중단영업|세전이익|법인세|차입금|(?<!계속)(?<!중단)(?<!세전)영업(?:이익|익|손실)|당기순(?:이익|손실)|순(?:이익|익|손실)|자산|부채|자본|현금)")
+LABEL_ALIAS = {"영업익": "영업이익", "영업손실": "영업이익", "순익": "순이익", "순손실": "순이익",
+               "당기순이익": "순이익", "당기순손실": "순이익"}
+PCT_LABELS = ("매출", "영업이익", "순이익", "세전이익", "법인세", "계속영업", "중단영업")   # %·%p도 계정을 맞춰 본다
+DIR_LEAD = re.compile(r"^[\s)]*(?:이나|나|만큼|씩|가량|정도|넘게|이상|이|가)?\s*(?:(?:크게|급히|더|또)\s*)?")
+DIR_UP = re.compile(r"(늘|증가|개선|확대|상승|올랐|올라|커졌|불었|급증|뛰었|높아)")
+DIR_DN = re.compile(r"(줄|감소|하락|축소|악화|내렸|내려|떨어|작아졌|빠졌|급감|쪼그라|뒷걸음|역성장|반토막|낮아|꺾였)")
+NEGATE = re.compile(r"않|아니")
+NUM = r"\d[\d,]*(?:\.\d+)?(?:\s*조(?:\s*\d[\d,]*\s*억)?)?"
+FROM_TO = re.compile(rf"(?P<a>{NUM})\s*(?P<ua>억|%|원)?\s*에서\s*(?P<b>{NUM})\s*(?P<ub>억|%|원)?\s*(?:으로|로)(?P<rest>[^.,]{{0,14}})")
+
+
+def verb_dir(after: str):
+    """숫자 바로 뒤 말이 방향을 말하면 +1/-1. '180억으로 줄었다'는 수준이라 None, 부정문도 None."""
+    if re.match(r"^\s*(?:으로|로|에서|까지)", after):
+        return None
+    if NEGATE.search(after[:12]):
+        return None
+    a = DIR_LEAD.sub("", after, count=1)
+    if DIR_UP.match(a):
+        return 1
+    if DIR_DN.match(a):
+        return -1
+    return None
+
+
+def from_to_conflicts(text: str, pairs=()):
+    """'A에서 B로 늘었다·줄었다'가 숫자의 실제 방향(B − A)과 엇갈리거나, 원천의 (비교 → 당기)를 거꾸로 쓴 곳."""
+    out = []
+    for m in FROM_TO.finditer(plain(text)):
+        unit = m.group("ub") or m.group("ua") or ""
+        ta, tb = claim_tokens(m.group("a") + (m.group("ua") or unit)), claim_tokens(m.group("b") + unit)
+        if not (ta and tb):
+            continue
+        a, b = ta[0][1], tb[0][1]
+        vd = DIR_UP.search(m.group("rest")) and 1 or DIR_DN.search(m.group("rest")) and -1 or None
+        if vd and not NEGATE.search(m.group("rest")) and b - a and (b - a > 0) != (vd > 0):
+            out.append((m.group(0).strip(), "늘었다·줄었다가 두 숫자의 실제 방향과 반대다"))
+            continue
+        tol = lambda x: max(TOL_EOK, abs(x) * 0.006)    # 조 단위 반올림까지
+        fwd = any(abs(p - a) <= tol(p) and abs(c - b) <= tol(c) for p, c in pairs)
+        rev = any(abs(c - a) <= tol(c) and abs(p - b) <= tol(p) for p, c in pairs)
+        if rev and not fwd:
+            out.append((m.group(0).strip(), "비교 기간과 당기 숫자의 앞뒤가 바뀌었다"))
+    return out
+SENT_END = re.compile(r"[.!?。]\s|[,;]")         # 라벨은 같은 문장, 같은 쉼표 마디 안에서만 잇는다
+JOSA = re.compile(r"(으로|에서|까지|부터|보다|은|는|이|가|을|를|도|의|과|와|로|만|에)$")
+# 라벨로 읽는 낱말 전체. '금융자산', '리스부채', '자본금'처럼 하위 계정 낱말은 라벨이 아니다
+LABEL_WORDS = {"매출", "매출액", "총매출", "영업이익", "계속영업", "계속영업이익", "중단영업", "중단영업이익", "중단영업손실",
+               "세전이익", "법인세", "법인세비용", "미지급법인세", "차입금", "단기차입금", "장기차입금", "순이익", "당기순이익",
+               "지배주주순이익", "자산", "자산총계", "총자산", "부채", "부채총계", "총부채", "자본", "자본총계", "지배주주자본",
+               "현금", "현금및현금성자산", "현금성자산", "보유현금", "현금흐름", "영업활동현금흐름",
+               "매출증가율", "영업이익률", "순이익률", "지배주주순이익률",
+               "영업익", "영업손실", "순익", "순손실", "당기순손실"}
+
+
+def find_labels(seg: str):
+    """seg 안의 라벨 (위치순). 라벨 낱말이 하위 계정 이름의 일부면 건너뛴다."""
+    out = []
+    for mt in LABEL.finditer(seg):
+        a, b = mt.start(), mt.end()
+        while a > 0 and "가" <= seg[a - 1] <= "힣":
+            a -= 1
+        while b < len(seg) and "가" <= seg[b] <= "힣":
+            b += 1
+        word = seg[a:b]
+        for _ in range(2):
+            word = JOSA.sub("", word) if word not in LABEL_WORDS else word
+        if word in LABEL_WORDS:
+            out.append(LABEL_ALIAS.get(mt.group("l"), mt.group("l")))
+    return out
+LABEL_GAP = re.compile(r"^[\s→~∼〜,()·\-]*(?:에서)?\s*$")   # 'A억 → B억', 'A억에서 B억으로'는 앞 라벨을 잇는다
+LABEL_AFTER = re.compile(r"^\s*\S*(?:난|든|한|된)\s+")       # '1,810억 늘어난 영업이익'처럼 꾸미는 말 바로 뒤 라벨       # 'A억 → B억'처럼 숫자 사이가 화살표뿐이면 앞 라벨을 잇는다
+MAN_WON = re.compile(r"(\d+)만\s*(\d[\d,]{0,4})\s*원")
+RANGE = re.compile(r"(\d[\d,]*(?:\.\d+)?)(\s*[~∼〜]\s*)(\d[\d,]*(?:\.\d+)?)\s*(원|억|조|%)")
+
+
+# 라벨은 합계 계정에만 붙인다(매출원가·매출채권이 '매출', 자본금이 '자본'이 되지 않게)
+LABEL_IDS = {
+    "매출": {"ifrs-full_Revenue"},
+    "영업이익": {"dart_OperatingIncomeLoss", "ifrs-full_ProfitLossFromOperatingActivities"},
+    "세전이익": {"ifrs-full_ProfitLossBeforeTax"},
+    "법인세": {"ifrs-full_IncomeTaxExpenseContinuingOperations", "ifrs-full_CurrentTaxLiabilitiesCurrent",
+               "ifrs-full_CurrentTaxLiabilities", "ifrs-full_IncomeTaxesPaidRefundClassifiedAsOperatingActivities"},
+    "계속영업": {"ifrs-full_ProfitLossFromContinuingOperations", "ifrs-full_IncomeFromContinuingOperationsAttributableToOwnersOfParent",
+               "ifrs-full_ProfitLossFromContinuingOperationsAttributableToNoncontrollingInterests"},
+    "중단영업": {"ifrs-full_ProfitLossFromDiscontinuedOperations", "ifrs-full_IncomeFromDiscontinuedOperationsAttributableToOwnersOfParent",
+               "ifrs-full_ProfitLossFromDiscontinuedOperationsAttributableToNoncontrollingInterests"},
+    "순이익": {"ifrs-full_ProfitLoss", "ifrs-full_ProfitLossAttributableToOwnersOfParent",
+             "ifrs-full_ProfitLossAttributableToNoncontrollingInterests"},
+    "자산": {"ifrs-full_Assets", "ifrs-full_CurrentAssets", "ifrs-full_NoncurrentAssets", "ifrs-full_CashAndCashEquivalents"},
+    "부채": {"ifrs-full_Liabilities", "ifrs-full_CurrentLiabilities", "ifrs-full_NoncurrentLiabilities"},
+    "자본": {"ifrs-full_Equity", "ifrs-full_EquityAttributableToOwnersOfParent", "ifrs-full_NoncontrollingInterests"},
+    "현금": {"ifrs-full_CashAndCashEquivalents", "ifrs-full_CashFlowsFromUsedInOperatingActivities",
+           "ifrs-full_CashFlowsFromUsedInInvestingActivities", "ifrs-full_CashFlowsFromUsedInFinancingActivities",
+           "ifrs-full_IncreaseDecreaseInCashAndCashEquivalents"},
+    "차입금": {"ifrs-full_CurrentBorrowingsAndCurrentPortionOfNoncurrentBorrowings", "ifrs-full_ShorttermBorrowings",
+             "ifrs-full_LongtermBorrowings", "ifrs-full_Borrowings"},
+}
+# 표준 계정 id를 쓰지 않는 회사(소형사)는 합계 계정 이름으로 본다
+LABEL_NAMES = {"매출": ("매출액", "영업수익", "수익(매출액)", "매출"), "영업이익": ("영업이익", "영업이익(손실)"),
+               "순이익": ("당기순이익", "당기순이익(손실)", "분기순이익", "반기순이익"), "자산": ("자산총계",),
+               "부채": ("부채총계",), "자본": ("자본총계",), "현금": ("현금및현금성자산",)}
+
+
+def labels_of(account_nm: str, account_id: str = "") -> set[str]:
+    """계정이 서술에서 불릴 수 있는 라벨. 합계 계정만. '현금및현금성자산'은 현금이자 자산이다."""
+    out = {lab for lab, ids in LABEL_IDS.items() if account_id in ids}
+    nm = acc_name(account_nm or "")
+    out |= {lab for lab, names in LABEL_NAMES.items() if nm in names}
+    return out
 
 
 TOKEN = re.compile(
-    r"(?P<approx>약\s*)?(?P<n>[+-]?\d[\d,]*(?:\.\d+)?)\s*(?P<u>조\s*\d[\d,]*\s*억|조|억|만|원|%p|pp|%|배)(?!\w*년)")
+    r"(?P<approx>약\s*)?(?P<n>[+-]?\d[\d,]*(?:\.\d+)?)\s*(?P<u>백만\s*원|천\s*원|bp|조\s*\d[\d,]*\s*억|조|억|만|원|%p|pp|%|배)(?!\w*년)")
 
 
-def claim_tokens(text):
+def claim_tokens(text, with_label=False):
+    """서술 속 (종류, 값, 표기, 숫자, 허용오차[, 라벨]). '29,100 ~ 69,700원'은 앞 숫자에도 단위를 붙여 본다."""
     out = []
-    for mt in TOKEN.finditer(plain(text)):
+    t = MAN_WON.sub(lambda m: f"{int(m.group(1)) * 10000 + int(m.group(2).replace(',', '')):,}원", plain(text))   # 3만5000원 → 35,000원
+    t = RANGE.sub(lambda m: f"{m.group(1)}{m.group(4)}{m.group(2)}{m.group(3)}{m.group(4)}", t)
+    prev_end, prev_lab = 0, None
+    for mt in TOKEN.finditer(t):
         n, u = mt.group("n"), re.sub(r"\s+", "", mt.group("u"))
         v = to_num(n)
         tol = None
@@ -697,12 +958,38 @@ def claim_tokens(text):
         elif u == "조":
             kind, v = "eok", v * 10000
             tol = 5000 * 10 ** (-decimals(n))          # 31.9조 → ±500억
+            if not decimals(n) and not mt.group("approx"):
+                tol = min(tol, abs(v) * 0.05)          # '1조'를 ±50%로 받지 않는다(넓게는 '약 1조')
+        elif u in ("백만원", "천원"):
+            kind, v = "eok", v / (100 if u == "백만원" else 100000)
+        elif u == "bp":
+            kind, v = "pp", v / 100
         else:
             kind = {"억": "eok", "%": "pct", "%p": "pp", "pp": "pp", "원": "won", "만": "man", "배": "x"}[u]
         if mt.group("approx") and kind == "eok":
             tol = max(tol or 0, abs(v) * 0.01)        # '약 3,400억' → ±1%
         tok = mt.group(0).strip()
-        out.append((kind, v, tok, n, tol))
+        gap = t[prev_end:mt.start()]
+        seg = SENT_END.split(gap)[-1]                 # 라벨은 같은 문장 안에서만 잇는다
+        labs = find_labels(seg)
+        lab = tuple(dict.fromkeys(labs)) if labs else (prev_lab if LABEL_GAP.match(gap) else None)
+        prev_end, prev_lab = mt.end(), lab
+        vd = verb_dir(t[mt.end():mt.end() + 16])
+        if n.startswith(("+", "-")):
+            sign = 1 if n.startswith("+") else -1
+            if vd and vd != sign:
+                sign = 0                                   # '+731억 감소'처럼 부호와 동사가 엇갈린다
+        else:
+            sign = vd
+        if not lab:   # '1,810억 늘어난 영업이익'처럼 라벨이 꾸미는 말 바로 뒤에 오면
+            ahead = t[mt.end():mt.end() + 16]
+            m2 = LABEL_AFTER.match(ahead)
+            la = find_labels(ahead[m2.end():m2.end() + 8]) if m2 else []
+            lab = (la[0],) if la and ahead[m2.end():].lstrip().startswith(tuple(LABEL_WORDS)) else None
+        s0 = t.rfind(". ", 0, mt.start())
+        s1 = t.find(". ", mt.end())
+        sent = t[s0 + 2 if s0 >= 0 else 0: s1 if s1 >= 0 else len(t)]
+        out.append((kind, v, tok, n, tol, lab, sign, sent) if with_label else (kind, v, tok, n, tol))
     return out
 
 
@@ -776,24 +1063,76 @@ def check_ledger(d, R: Report, pool, tps, tp):
 
     # 서술 속 숫자
     claims = {norm_claim(c.get("text", "")): c for c in (audit.get("claims") or [])}
-    texts = [("CHIPS", i, c.get("txt", "")) for i, c in enumerate(js.get("CHIPS", []))]
+    texts = [("HEADLINE", 0, js.get("HEADLINE", ""))]
+    texts += [("WATCH", i, w) for i, w in enumerate(js.get("WATCH", []))]
+    texts += [("NOTES", i, w) for i, w in enumerate(js.get("NOTES", []))] + [("NP_BRIDGE", 0, js.get("NP_BRIDGE", ""))]
+    texts += [("CHIPS", i, c.get("txt", "")) for i, c in enumerate(js.get("CHIPS", []))]
     for sec in ("BULLS", "BEARS"):
         texts += [(sec, i, f"{x.get('t', '')} {x.get('d', '')}") for i, x in enumerate(js.get(sec, []))]
     texts += [("PERSONAS", p.get("name", i), p.get("eval", "")) for i, p in enumerate(js.get("PERSONAS", []))]
     texts += [("SEGS.sub", sg.get("name", i), sg.get("sub", "")) for i, sg in enumerate(js.get("SEGS", []))]   # 화면에 나온다
     rv = js.get("REVIEW") or {}
     texts += [("REVIEW", "scene", rv.get("scene", ""))]
-    texts += [("REVIEW", r.get("role", i), f"{r.get('comment', '')} {r.get('fix', '')}") for i, r in enumerate(rv.get("reviews") or [])]
+    texts += [("REVIEW", r.get("role", i), f"{r.get('comment', '')} {r.get('fix', '')} {r.get('limit', '')}")
+              for i, r in enumerate(rv.get("reviews") or [])]
+    # 확인된 기사·증권사 note의 숫자: 출처(매체·증권사·'보도'·'추정')를 밝힌 문장에서만 쓸 수 있다
+    sources = set()
+    for n in js.get("NEWS", []):
+        e = entry("NEWS", n.get("url"))
+        if e and e.get("status") in ok_status:
+            sources.add(n.get("src", ""))
+            for kind, v, tok, num, tol in claim_tokens(f"{n.get('h', '')} {n.get('body', '')}"):
+                if kind in pool.ext:
+                    pool.ext[kind].append(v if kind != "eok" or not tol else v)
+    for a in js.get("ANALYSTS", []):
+        e = entry("ANALYSTS", a["firm"])
+        if e and e.get("status") in ok_status:
+            sources.add(a["firm"])
+            for kind, v, tok, num, tol in claim_tokens(a.get("note") or ""):
+                if kind in pool.ext:
+                    pool.ext[kind].append(v)
+    sources = {x for x in sources if x}
+    attrib = re.compile("|".join(re.escape(x) for x in sources) or r"(?!x)x")   # 출처 이름(매체·증권사)만 인정한다
+
+    def why_fail(kind, v, n, tol, lab, sign, text):
+        """None이면 통과. 아니면 실패 이유. text는 그 숫자가 든 문장, lab은 같은 마디의 계정 라벨들."""
+        if sign == 0:
+            return "부호(+/−)와 늘었다·줄었다가 서로 엇갈린다"
+        if kind in pool.ext and pool.has(kind, v, n, tol, None, src=pool.ext[kind]) and attrib.search(text):
+            return None   # 같은 문장에 출처를 밝힌 확인된 기사·증권사 숫자
+        if kind == "pct" and re.search(r"직전\s*분기|전\s*분기", text):
+            return None if pool.has(kind, v, n, tol, sign, src=pool.qoq) else "직전 분기 대비 값이 아니다"
+        if kind == "pct" and re.search(r"전년", text) and pool.has(kind, v, n, tol, sign, src=pool.qoq) \
+                and not pool.has(kind, v, n, tol, sign, src=pool.pct):
+            return "직전 분기 대비 값이다. '전년 대비'로 쓰지 않는다"
+        if pool.has(kind, v, n, tol, sign):
+            if lab and not any(pool.has_lab(x, kind, v, n, tol, sign) for x in lab):
+                return f"'{'·'.join(lab)}' 계정 값이 아니다(다른 계정의 숫자)"
+            return None
+        if sign and pool.has(kind, v, n, tol):
+            return "부호(늘었다·줄었다)가 원천과 반대다"
+        if kind in ("pct", "pp") and pool.has(kind, v, n, tol, sign, src=pool.orig):
+            return None if re.search(r"처음 발표|기사", text) else \
+                "처음 발표한 전년 대비 증가율이다. '처음 발표한 전년과 견주면'처럼 밝혀야 쓴다(성장률이 아니다)"
+        if kind in pool.ext and pool.has(kind, v, n, tol, None, src=pool.ext[kind]):
+            return "기사·증권사 숫자다. 출처(매체·증권사)를 같은 문장에 밝힌다"
+        return "재무·주가 데이터에서 나오지 않는 숫자"
+
     for sec, key, text in texts:
         seen = set()
-        for kind, v, tok, n, tol in claim_tokens(text):
-            if tok in seen or pool.has(kind, v, n, tol):
+        for frag, why in from_to_conflicts(text, pool.pairs):
+            R.add(L, False, f"{sec}[{key}] '{frag}'", why, "B·C 조각에서 바로잡고 다시 조립한다")
+        for kind, v, tok, n, tol, lab, sign, sent in claim_tokens(text, with_label=True):
+            if tok in seen:
+                continue
+            why = why_fail(kind, v, n, tol, lab, sign, sent)
+            if why is None:
                 continue
             seen.add(tok)
             c = claims.get(norm_claim(re.sub(r"^약\s*", "", tok))) or claims.get(norm_claim(tok))
             if c and c.get("status") in ok_status and c.get("url"):
                 continue
-            R.add(L, False, f"{sec}[{key}] '{tok}'", "재무·주가 데이터에서 나오지 않는 숫자",
+            R.add(L, False, f"{sec}[{key}] '{tok}'", why,
                   "B·C 조각(B.json·C.json)에서 그 숫자를 빼거나 facts에 있는 표기로 바꾸고 다시 조립한다. "
                   "기사 숫자를 꼭 써야 하면 원문을 확인해 V1.json의 claims에 {text, url, status:'confirmed'}로 남긴다")
 

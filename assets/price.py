@@ -3,6 +3,8 @@
 """전일(최근 거래일) 종가와 52주 범위를 신뢰할 수 있는 소스에서 가져온다.
 
 웹 검색 현재가는 출처마다 값이 달라 부정확하므로, 주가는 항상 이 모듈로 채운다.
+오늘 행은 쓰지 않는다. 장중에는 현재가이고, 장 마감 뒤에도 Naver는 넥스트레이드(NXT, 20시까지) 거래를 합친
+값으로 그 행을 계속 바꾼다(2026-10-29 실측: 16:03 29,250 → 16:30 29,100, KRX 종가 29,150). 지난 거래일 행은 KRX 종가와 같다.
 소스 우선순위: Naver 금융 siseJson(requests만 필요) → pykrx(설치돼 있으면 폴백).
 
 CLI:  python3 price.py 035720   →  JSON 한 줄
@@ -36,6 +38,15 @@ def _naver_daily(stock_code: str, days: int = 400):
     return out
 
 
+KST = datetime.timezone(datetime.timedelta(hours=9))
+
+
+def _settled(rows, now: datetime.datetime | None = None):
+    """오늘(KST) 행을 뺀다. 전 거래일 확정 종가만 남아, 하루 안에 몇 번을 받아도 값이 같다."""
+    today = (now or datetime.datetime.now(KST)).astimezone(KST).strftime("%Y%m%d")
+    return [r for r in rows if r[0] < today]
+
+
 def _pykrx_daily(stock_code: str, days: int = 400):
     from pykrx import stock
     end = datetime.date.today()
@@ -45,12 +56,12 @@ def _pykrx_daily(stock_code: str, days: int = 400):
             for idx, row in df.iterrows()]
 
 
-def get_prev_close(stock_code: str) -> dict | None:
-    """최근 거래일 종가 기준 요약. 실패 시 None."""
+def get_prev_close(stock_code: str, now: datetime.datetime | None = None) -> dict | None:
+    """전 거래일 확정 종가 기준 요약. 실패 시 None."""
     rows = None
     for fetch in (_naver_daily, _pykrx_daily):
         try:
-            rows = fetch(stock_code)
+            rows = _settled(fetch(stock_code), now)
             if rows:
                 break
         except Exception:

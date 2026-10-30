@@ -376,7 +376,7 @@ def t_fin_ratios(a: dict) -> dict:
             pass
     return result(corp, body, basis=basis, settlement_date=stlm, **_pmeta(per),
                   caution="DART가 계산해 둔 값이다. 분기·반기 보고서 값은 연초부터 그 기간 끝까지 누적 기준이고 연환산하지 않았다"
-                          "(현대차 2026 반기 순이익률 5.752% = 상반기 누적 순이익 ÷ 누적 매출). 2023년 3분기 이전은 제공되지 않는다.")
+                          "(예: 반기 순이익률 = 상반기 누적 순이익 ÷ 상반기 누적 매출). 증가율 행은 전기말·전년 같은 기간 대비다. 2023년 3분기 이전은 제공되지 않는다.")
 
 
 def _iso_date(v: Any) -> str | None:
