@@ -205,7 +205,11 @@ def collect(a) -> dict:
 
     def line(k, label):
         c, p = r[k]
-        return f"{label} {p:,}억 → {c:,}억 ({c - p:+,}억, {chg(k)})"
+        out = f"{label} {p:,}억 → {c:,}억 ({c - p:+,}억, {chg(k)})"
+        y = _pct(*raw[k])
+        if y is not None and abs(y) >= 300 and not turn_label(*r[k]):   # 기저가 작으면 증가율이 부풀어 보인다
+            out += " [전년 기저가 작아 증가율보다 증감액으로 읽는다]"
+        return out
 
     opm = (raw["op"][1] / raw["rev"][1] * 100, raw["op"][0] / raw["rev"][0] * 100)
     npm = (raw["np"][1] / raw["rev"][1] * 100, raw["np"][0] / raw["rev"][0] * 100)
@@ -284,9 +288,10 @@ def pl_bridge(items, a, np_raw):
         return None
     eok = lambda v: round(v / 1e8)
     lines = [f"{k} {eok(p):,}억 → {eok(c):,}억" for k, (c, p) in got.items()]
-    if "세전이익" in got and "법인세" in got and all(got["세전이익"]):
+    if "세전이익" in got and "법인세" in got:
         (tc, tp), (bc, bp) = got["법인세"], got["세전이익"]
-        lines.insert(2, f"실효세율(법인세 ÷ 세전이익) {tp / bp * 100:.1f}% → {tc / bc * 100:.1f}%")
+        if min(tc, tp, bc, bp) > 0:   # 세전 손실이나 법인세 환급이면 실효세율은 뜻이 없다
+            lines.insert(2, f"실효세율(법인세 ÷ 세전이익) {tp / bp * 100:.1f}% → {tc / bc * 100:.1f}%")
     parent = getattr(a, "np_basis", "total") == "parent"     # 순이익 기준과 같은 기준의 중단영업으로 나눈다
     dkey, ckey = ("중단영업이익 지배주주 몫", "계속영업이익 지배주주 몫") if parent else ("중단영업이익", "계속영업이익")
     if dkey in got:
@@ -295,7 +300,12 @@ def pl_bridge(items, a, np_raw):
         lines.append(f"{'지배주주' if parent else ''}순이익 증감 {round(npc - npp):+,}억 가운데 {dkey} 증감 {eok(dc - dp):+,}억")
     if not parent:   # 연결 기준이면 지배주주 몫 줄은 참고로만 (계속영업 지배주주 몫은 생략해 줄 수를 줄인다)
         lines = [x for x in lines if not x.startswith("계속영업이익 지배주주 몫")]
-    return {"lines": lines, "rows": got, "keys": (ckey, dkey)}
+    material = False   # 중단영업이 순이익을 설명할 만큼 클 때만 '함께 읽을 것'을 단다
+    if dkey in got:
+        (dc, dp), (npc, npp) = got[dkey], np_raw
+        npc, npp = npc * 1e8, npp * 1e8
+        material = abs(dc) >= abs(npc) * 0.1 or (npc != npp and abs(dc - dp) >= abs(npc - npp) * 0.2)
+    return {"lines": lines, "rows": got, "keys": (ckey, dkey), "material_disc": material}
 
 
 CF_TOTALS = {"Operating": "ifrs-full_CashFlowsFromUsedInOperatingActivities",
@@ -337,10 +347,11 @@ def cash_flow(items):
             txt += f" (가장 큰 항목: {big.get('account_nm', '').strip()} {_bs_fmt(bv, bv)[0]})"
         out.append(txt)
     fin = sec.get("Financing", {}).get("subs", [])
-    borrow = sum(_amt_won(it.get("thstrm_amount")) or 0 for it in fin if "차입" in it.get("account_nm", "") and "상환" not in it.get("account_nm", ""))
-    repay = sum(_amt_won(it.get("thstrm_amount")) or 0 for it in fin if "상환" in it.get("account_nm", "") and "차입" in it.get("account_nm", ""))
+    debt = [it for it in fin if any(w in it.get("account_nm", "") for w in ("차입", "사채"))]   # 차입금과 사채(회사채)
+    borrow = sum(_amt_won(it.get("thstrm_amount")) or 0 for it in debt if "상환" not in it.get("account_nm", ""))
+    repay = sum(_amt_won(it.get("thstrm_amount")) or 0 for it in debt if "상환" in it.get("account_nm", ""))
     if borrow or repay:
-        out.append(f"차입금 차입 {_bs_fmt(borrow, borrow)[0]}, 상환 {_bs_fmt(repay, repay)[0]}")
+        out.append(f"차입금·사채 조달 {_bs_fmt(borrow, borrow)[0]}, 상환 {_bs_fmt(repay, repay)[0]}")
     div = next((it for it in fin if it.get("account_id") == "ifrs-full_DividendsPaidClassifiedAsFinancingActivities"), None)
     dv = _amt_won(div.get("thstrm_amount")) if div else None
     if dv:
@@ -354,7 +365,10 @@ def scope_notes(items, bridge):
     cf = [it for it in items if it.get("sj_div") == "CF"]
     sc = next((it for it in cf if it.get("account_id") in SCOPE_IDS), None)
     v = _amt_won(sc.get("thstrm_amount")) if sc else None
-    if v:
+    assets = next((_amt_won(it.get("thstrm_amount")) for it in items if it.get("account_id") == "ifrs-full_Assets"), None)
+    disc = (bridge or {}).get("material_disc", False)
+    # 사소한 연결 변동(한화솔루션 2Q26 -11억)에는 달지 않는다: 중단영업이 있거나 자산총계의 0.5% 이상일 때만
+    if v and (disc or (assets and abs(v) >= assets * 0.005)):
         out.append(f"연결 범위가 바뀌었다({sc.get('account_nm', '').strip()} {_bs_fmt(v, v)[0]}). 재무상태의 차입금·무형자산·비지배지분 증감에는 "
                    "연결에서 빠진 회사 몫이 섞여 있어, 상환·개선이나 악화로 읽지 않는다.")
     fv = next((it for it in cf if "FairValueThroughOtherComprehensiveIncome" in (it.get("account_id") or "")
@@ -431,6 +445,16 @@ def valuation(a, px, items):
     out = f"{_bs_fmt(cap, cap)[0]} ({int(d[4:6])}/{int(d[6:])} 종가 × 보고서 기준일 보통주 {shares:,}주)"
     if eq:
         out += f", 지배주주자본 대비 PBR {cap / eq:.2f}배"
+    return out
+
+
+def _base_notes(r, raw):
+    """증가율이 300%를 넘으면(전년 기저가 작으면) 화면 각주로 밝힌다. 포스코퓨처엠 2Q26 영업이익 8억 → 267억(+3351.2%)."""
+    out = []
+    for k, label in (("rev", "매출"), ("op", "영업이익"), ("np", "순이익")):
+        y = _pct(*raw[k])
+        if y is not None and abs(y) >= 300 and not turn_label(*r[k]):
+            out.append(f"{label}은 전년 {r[k][1]:,}억으로 기저가 작아 증가율이 크게 보인다. 증감액({r[k][0] - r[k][1]:+,}억)으로 읽는다.")
     return out
 
 
@@ -550,7 +574,7 @@ def build(a) -> None:
     if n_sent > 2 or len(C["HEADLINE"]) > 220:
         print(f"⚠️  HEADLINE이 {n_sent}문장·{len(C['HEADLINE'])}자다. 회의에서 그대로 말할 2문장으로 줄이도록 C를 다시 띄운다.", file=sys.stderr)
     js = {"HEADLINE": C["HEADLINE"].strip(), "WATCH": C.get("WATCH", [])[:3],
-          "NOTES": _restated_note(c), "NP_BRIDGE": _np_bridge_text(c["bridge"]),
+          "NOTES": _restated_note(c) + _base_notes(r, raw), "NP_BRIDGE": _np_bridge_text(c["bridge"]),
           "CHIPS": chips, "SEGS": segs, "TOT25": r["rev"][1], "TOT26": r["rev"][0], "DELTA": [],
           "CURR": px["close"], "NAME": corp["corp_name"], "CONS": {},
           "ANALYSTS": analysts, "BULLS": C["BULLS"], "BEARS": C["BEARS"], "NEWS": A1["NEWS"], "PERSONAS": B,

@@ -751,7 +751,8 @@ class GateRound3(unittest.TestCase):
                 self.assertNotEqual(self.fails(t), "")
 
     def test_should_pass(self):
-        for t in ("영업이익은 2,039억에서 2,770억으로 늘었다", "순이익은 1,718억에서 180억으로 줄었다",
+        for t in ("매출은 전년 대비 +9.4%, 직전 분기 대비로는 +8.1%다",
+                  "한국투자증권은 감익을 봤다. 3분기 영업이익 2,246억을 전망했다","영업이익은 2,039억에서 2,770억으로 늘었다", "순이익은 1,718억에서 180억으로 줄었다",
                   "영업이익은 직전 분기 대비 31.0% 늘었다", "매출은 전년 대비 +9.4%다",
                   "한국투자증권은 3분기 영업이익 2,246억을 추정했다", "영업이익률은 +2.6%p 개선됐다",
                   "731억 줄어든 것은 아니다"):
@@ -772,12 +773,18 @@ class CashFlowAndScope(unittest.TestCase):
                  self.cf(15, "dart_RepaymentsOfShortTermBorrowings", "단기차입금의 상환", 3437 * E),
                  self.cf(20, "ifrs-full_CashFlowsFromUsedInInvestingActivities", "투자활동현금흐름", 15575 * E),
                  self.cf(25, "ifrs-full_CashFlowsFromLosingControlOfSubsidiariesOrOtherBusinessesClassifiedAsInvestingActivities",
-                         "종속기업 처분 및 연결범위변동으로 인한 순현금흐름", -1546 * E)]
+                         "종속기업 처분 및 연결범위변동으로 인한 순현금흐름", -1546 * E),
+                 {"sj_div": "BS", "account_id": "ifrs-full_Assets", "account_nm": "자산총계", "thstrm_amount": str(277000 * E)}]
         out = ar.cash_flow(items)
         self.assertIn("재무활동 -1,459억 (가장 큰 항목: 단기차입금의 차입 3,990억)", out)
-        self.assertIn("차입금 차입 3,990억, 상환 3,437억", out)
+        self.assertIn("차입금·사채 조달 3,990억, 상환 3,437억", out)
         notes = ar.scope_notes(items, None)
         self.assertTrue(notes and "연결 범위가 바뀌었다" in notes[0] and "상환·개선" in notes[0])
+
+    def test_tiny_scope_change_no_note(self):   # 한화솔루션 2Q26: 연결범위 변동 -11억, 자산 수십조
+        items = [self.cf(25, "ifrs-full_CashFlowsFromLosingControlOfSubsidiariesOrOtherBusinessesClassifiedAsInvestingActivities", "연결범위 변동", -11 * E),
+                 {"sj_div": "BS", "account_id": "ifrs-full_Assets", "account_nm": "자산총계", "thstrm_amount": str(300000 * E)}]
+        self.assertIsNone(ar.scope_notes(items, {"rows": {"중단영업이익": (24 * E, -11 * E)}, "material_disc": False}))
 
     def test_no_scope_change_no_note(self):
         self.assertIsNone(ar.scope_notes([self.cf(9, "ifrs-full_CashFlowsFromUsedInFinancingActivities", "재무활동", 1)], None))

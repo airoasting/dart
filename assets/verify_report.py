@@ -591,13 +591,14 @@ def check_dart(d, R: Report, pool):
             fin = aid.endswith("FinancingActivities")
             continue
         nm = it.get("account_nm", "")
-        if fin and "차입" in nm:
+        if fin and ("차입" in nm or "사채" in nm):
             v_ = _amt(it.get("thstrm_amount")) or 0
             if "상환" in nm:
                 repay += v_
             else:
                 borrow += v_
     pool.add_eok(_eok(borrow), _eok(repay))
+    pool.add_lab("차입금", _eok(borrow), _eok(repay))
     ids_ = {it.get("account_id"): it for it in items if it.get("sj_div") in ("IS", "CIS")}
     for num_id, den_id, lab in (("ifrs-full_IncomeFromDiscontinuedOperationsAttributableToOwnersOfParent",
                                  "ifrs-full_ProfitLossFromDiscontinuedOperations", "중단영업"),
@@ -871,6 +872,7 @@ def from_to_conflicts(text: str, pairs=()):
         if rev and not fwd:
             out.append((m.group(0).strip(), "비교 기간과 당기 숫자의 앞뒤가 바뀌었다"))
     return out
+PERIOD = re.compile(r"직전\s*분기|전\s*분기|전년")
 SENT_END = re.compile(r"[.!?。]\s|[,;]")         # 라벨은 같은 문장, 같은 쉼표 마디 안에서만 잇는다
 JOSA = re.compile(r"(으로|에서|까지|부터|보다|은|는|이|가|을|를|도|의|과|와|로|만|에)$")
 # 라벨로 읽는 낱말 전체. '금융자산', '리스부채', '자본금'처럼 하위 계정 낱말은 라벨이 아니다
@@ -986,10 +988,9 @@ def claim_tokens(text, with_label=False):
             m2 = LABEL_AFTER.match(ahead)
             la = find_labels(ahead[m2.end():m2.end() + 8]) if m2 else []
             lab = (la[0],) if la and ahead[m2.end():].lstrip().startswith(tuple(LABEL_WORDS)) else None
-        s0 = t.rfind(". ", 0, mt.start())
-        s1 = t.find(". ", mt.end())
-        sent = t[s0 + 2 if s0 >= 0 else 0: s1 if s1 >= 0 else len(t)]
-        out.append((kind, v, tok, n, tol, lab, sign, sent) if with_label else (kind, v, tok, n, tol))
+        pers = list(PERIOD.finditer(seg))                # 같은 마디에서 숫자 앞 가장 가까운 기간 표지
+        per = None if not pers else ("qoq" if "분기" in pers[-1].group(0) else "yoy")
+        out.append((kind, v, tok, n, tol, lab, sign, per) if with_label else (kind, v, tok, n, tol))
     return out
 
 
@@ -1094,15 +1095,16 @@ def check_ledger(d, R: Report, pool, tps, tp):
     sources = {x for x in sources if x}
     attrib = re.compile("|".join(re.escape(x) for x in sources) or r"(?!x)x")   # 출처 이름(매체·증권사)만 인정한다
 
-    def why_fail(kind, v, n, tol, lab, sign, text):
-        """None이면 통과. 아니면 실패 이유. text는 그 숫자가 든 문장, lab은 같은 마디의 계정 라벨들."""
+    def why_fail(kind, v, n, tol, lab, sign, text, per=None):
+        """None이면 통과. 아니면 실패 이유. text는 그 숫자가 든 카드·문단, lab은 같은 마디의 계정 라벨들,
+        per는 같은 마디에서 숫자 앞 가장 가까운 기간 표지(qoq·yoy)."""
         if sign == 0:
             return "부호(+/−)와 늘었다·줄었다가 서로 엇갈린다"
         if kind in pool.ext and pool.has(kind, v, n, tol, None, src=pool.ext[kind]) and attrib.search(text):
             return None   # 같은 문장에 출처를 밝힌 확인된 기사·증권사 숫자
-        if kind == "pct" and re.search(r"직전\s*분기|전\s*분기", text):
+        if kind == "pct" and per == "qoq":
             return None if pool.has(kind, v, n, tol, sign, src=pool.qoq) else "직전 분기 대비 값이 아니다"
-        if kind == "pct" and re.search(r"전년", text) and pool.has(kind, v, n, tol, sign, src=pool.qoq) \
+        if kind == "pct" and per == "yoy" and pool.has(kind, v, n, tol, sign, src=pool.qoq) \
                 and not pool.has(kind, v, n, tol, sign, src=pool.pct):
             return "직전 분기 대비 값이다. '전년 대비'로 쓰지 않는다"
         if pool.has(kind, v, n, tol, sign):
@@ -1122,10 +1124,10 @@ def check_ledger(d, R: Report, pool, tps, tp):
         seen = set()
         for frag, why in from_to_conflicts(text, pool.pairs):
             R.add(L, False, f"{sec}[{key}] '{frag}'", why, "B·C 조각에서 바로잡고 다시 조립한다")
-        for kind, v, tok, n, tol, lab, sign, sent in claim_tokens(text, with_label=True):
+        for kind, v, tok, n, tol, lab, sign, per in claim_tokens(text, with_label=True):
             if tok in seen:
                 continue
-            why = why_fail(kind, v, n, tol, lab, sign, sent)
+            why = why_fail(kind, v, n, tol, lab, sign, plain(text), per)   # 출처 이름은 같은 카드·문단 안이면 된다
             if why is None:
                 continue
             seen.add(tok)

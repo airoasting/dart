@@ -55,7 +55,7 @@ skill-creator 기준(발동, 절차, 산출물, 효율, 도구, 재현)에 이 �
 | 파일 | 상한 | 2026-10-30 (2.4.0) |
 |---|---:|---:|
 | `SKILL.md` | 22KB | 21.5KB (2.3.2 18.0KB. 사용자에게 하는 말 표와 전달 예문, B·C 순서, R 고침 한 번이 더해졌다) |
-| `references/agent-prompts.md` | 18KB | 18.0KB (2.3.2 11.8KB. B·C 공통 뉴스 규칙, C 결론·다음에 볼 것, R의 target·limit) |
+| `references/agent-prompts.md` | 19KB | 18.3KB (2.3.2 11.8KB. B·C 공통 뉴스 규칙, C 결론·다음에 볼 것, R의 target·limit, A2b IR 제품별) |
 | `investor_persona/_ALL.md` (에이전트 B) | 18KB | 17.2KB |
 
 측정: `wc -c SKILL.md references/agent-prompts.md investor_persona/_ALL.md`
