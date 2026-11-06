@@ -1,157 +1,178 @@
 <!doctype html>
 <html lang="ko">
+<!-- README 썸네일. 숫자는 카카오_20260704.html(1Q 2026, 연결) 실측: KPI 카드, SEGS·DELTA(사업별 매출 증감), PERSONAS(13인 평가). 다시 찍기: README "작동 방식"의 썸네일 문단 -->
 <head>
 <meta charset="utf-8">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html,body { width:1200px; height:630px; overflow:hidden; }
   body {
-    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Segoe UI',sans-serif;
+    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;
     -webkit-font-smoothing:antialiased;
-    background:#0B0B0D;
-    color:#F2F2F2;
-    position:relative;
+    background:#F5F1E9; color:#1F1A17; position:relative;
   }
-
-  /* ── 그라디언트 배경 ── */
-  .bg {
+  /* 모눈종이: EDGAR는 가로 괘선, JPX는 세로 괘선, DART는 모눈 */
+  .paper {
     position:absolute; inset:0;
     background:
-      radial-gradient(120% 120% at 88% 8%, rgba(224,112,80,.22) 0%, rgba(224,112,80,0) 46%),
-      radial-gradient(120% 130% at 6% 100%, rgba(90,115,150,.20) 0%, rgba(90,115,150,0) 50%),
-      radial-gradient(90% 90% at 50% -20%, rgba(255,255,255,.05) 0%, rgba(255,255,255,0) 40%),
-      linear-gradient(150deg, #0C0C0F 0%, #141417 48%, #0B0B0E 100%);
+      radial-gradient(60% 85% at 82% 45%, rgba(214,92,60,.11) 0%, rgba(214,92,60,0) 62%),
+      radial-gradient(55% 70% at 0% 100%, rgba(31,26,23,.06) 0%, rgba(31,26,23,0) 60%),
+      repeating-linear-gradient(90deg, rgba(31,26,23,.045) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(180deg, rgba(31,26,23,.045) 0 1px, transparent 1px 28px),
+      #F5F1E9;
   }
-  /* 미세 그리드 */
-  .grid {
-    position:absolute; inset:0; opacity:.045;
-    background-image:
-      linear-gradient(to right, #fff 1px, transparent 1px),
-      linear-gradient(to bottom, #fff 1px, transparent 1px);
-    background-size:56px 56px;
-    -webkit-mask-image:radial-gradient(120% 90% at 30% 40%, #000 0%, transparent 75%);
-            mask-image:radial-gradient(120% 90% at 30% 40%, #000 0%, transparent 75%);
-  }
-  /* 상단 코랄 헤어라인 */
-  .hairline {
-    position:absolute; top:0; left:0; right:0; height:3px;
-    background:linear-gradient(90deg, rgba(224,112,80,0) 0%, #E07050 22%, #C05A3C 50%, #5A7396 82%, rgba(90,115,150,0) 100%);
-    opacity:.9;
-  }
+  .topbar { position:absolute; top:0; left:0; right:0; height:8px;
+    background:linear-gradient(90deg,#1F1A17 0 96px,#D65C3C 96px 100%); }
 
-  .stage { position:relative; height:100%; display:flex; align-items:center; padding:0 72px; gap:40px; }
+  .stage { position:relative; height:100%; display:flex; align-items:center; padding:12px 56px 0 92px; gap:24px; }
 
-  /* ── 좌측 텍스트 ── */
-  .left { width:590px; flex-shrink:0; }
-  .eyebrow {
-    display:inline-flex; align-items:center; gap:9px;
-    font-size:13px; font-weight:700; letter-spacing:2.2px; text-transform:uppercase;
-    color:#E58060;
-  }
-  .eyebrow .dot { width:6px; height:6px; border-radius:50%; background:#E07050; box-shadow:0 0 10px rgba(224,112,80,.9); }
-  .wordmark {
-    margin-top:26px;
-    font-size:112px; font-weight:800; letter-spacing:-4px; line-height:.9;
-    background:linear-gradient(180deg,#FFFFFF 30%,#D8D8DC 100%);
-    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
-  }
-  .wordmark b { color:#E07050; -webkit-text-fill-color:#E07050; font-weight:800; }
-  .headline {
-    margin-top:22px;
-    font-size:30px; font-weight:700; letter-spacing:-.8px; line-height:1.42;
-    color:#F2F2F2;
-  }
-  .headline .mut { color:#9A9A9A; font-weight:600; }
-  .sub {
-    margin-top:20px;
-    font-size:16.5px; font-weight:500; letter-spacing:-.2px; line-height:1.6;
-    color:#8C8C93;
-  }
+  /* 왼쪽 */
+  .left { width:560px; flex-shrink:0; }
+  .eyebrow { font-size:14px; font-weight:700; letter-spacing:.4px; color:#D65C3C; display:flex; align-items:center; gap:12px; }
+  .eyebrow .rule { width:28px; height:1.5px; background:#1F1A17; opacity:.5; }
+  .eyebrow b { color:#1F1A17; font-weight:700; }
+  .wordmark { margin-top:14px; font-size:128px; font-weight:900; letter-spacing:-6px; line-height:.92; color:#1F1A17; }
+  .wordmark i { font-style:normal; color:#D65C3C; margin-left:-4px; }
+  .headline { margin-top:22px; font-size:33px; font-weight:800; letter-spacing:-1.2px; line-height:1.36; }
+  .headline .hl { background:linear-gradient(180deg, transparent 60%, rgba(214,92,60,.26) 60%); padding:0 2px; }
+  .sub { margin-top:16px; font-size:16.5px; font-weight:500; line-height:1.65; color:#5A524C; letter-spacing:-.2px; }
+  .cta { margin-top:28px; display:flex; align-items:center; gap:14px; }
   .cmd {
-    margin-top:30px; display:inline-flex; align-items:center; gap:11px;
-    padding:12px 20px; border-radius:12px;
-    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10);
-    font-family:'SF Mono',ui-monospace,'JetBrains Mono',Menlo,monospace;
-    font-size:17px; font-weight:600; color:#EDEDED;
-    box-shadow:0 8px 30px rgba(0,0,0,.35);
+    display:inline-flex; align-items:center; gap:10px; padding:13px 22px; border-radius:9px;
+    background:#1F1A17; color:#F2ECE4; font-family:'SF Mono',ui-monospace,Menlo,monospace; font-size:18px; font-weight:600;
+    box-shadow:6px 6px 0 rgba(214,92,60,.38);
   }
-  .cmd .caret { color:#E07050; font-weight:700; }
-  .cmd .co { color:#E07050; }
+  .cmd .p { color:#F08A68; }
+  .cmd .co { color:#F08A68; font-family:'Pretendard',-apple-system,sans-serif; font-weight:700; }
+  .alt { padding:11px 16px; border-radius:9px; border:1.5px solid rgba(31,26,23,.28); font-size:14.5px; font-weight:700; color:#3D3530; background:rgba(255,255,255,.4); }
 
-  /* ── 우측 리포트 목업(글래스 카드) ── */
-  .right { flex:1; display:flex; justify-content:center; align-items:center; }
-  .card {
-    width:388px;
-    background:linear-gradient(165deg, rgba(28,28,32,.92) 0%, rgba(20,20,24,.92) 100%);
-    border:1px solid rgba(255,255,255,.10);
-    border-radius:20px;
-    box-shadow:0 30px 70px -20px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.02) inset;
-    padding:24px 24px 26px;
-    transform:rotate(2.4deg);
-  }
-  .card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
-  .card-co { font-size:17px; font-weight:800; letter-spacing:-.3px; }
-  .card-co span { color:#7A7A82; font-weight:600; font-size:13px; margin-left:6px; }
-  .card-badge {
-    font-size:12.5px; font-weight:800; color:#E07050;
-    background:rgba(224,112,80,.14); border:1px solid rgba(224,112,80,.28);
-    padding:4px 11px; border-radius:20px;
-  }
-  .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px; }
-  .kpi { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:11px; padding:12px 11px; }
-  .kpi .l { font-size:10px; font-weight:700; color:#6E6E76; letter-spacing:.5px; text-transform:uppercase; margin-bottom:7px; }
-  .kpi .v { font-size:19px; font-weight:800; letter-spacing:-1px; }
-  .kpi .v i { font-size:11px; font-style:normal; color:#8C8C93; font-weight:600; margin-left:1px; }
-  .kpi .y { font-size:11px; font-weight:700; margin-top:5px; }
-  .kpi .y.up { color:#E07050; }
+  /* 오른쪽: 분기보고서 원문 위에 놓인 리포트 한 장 */
+  .right { flex:1; position:relative; height:540px; }
+  .sheet { position:absolute; background:#FFFFFF; border:1px solid rgba(31,26,23,.14); border-radius:6px;
+    box-shadow:0 20px 44px -20px rgba(31,26,23,.38); }
+  .back { width:440px; height:470px; right:6px; top:20px; transform:rotate(3.4deg); background:#FBF8F2; }
+  .back .tag { position:absolute; top:11px; left:18px; font-size:12px; font-weight:700; color:#8A8079; letter-spacing:.2px; }
+  .back .tag span { font-family:'SF Mono',ui-monospace,Menlo,monospace; font-weight:600; margin-left:6px; }
+  .front { width:464px; right:26px; top:52px; padding:20px 22px 18px; transform:rotate(-1.1deg); background:#FFFDF9; }
 
-  .chart-lbl { font-size:10.5px; font-weight:700; color:#6E6E76; letter-spacing:.6px; text-transform:uppercase; margin-bottom:13px; }
-  .bars { display:flex; align-items:flex-end; gap:11px; height:96px; padding-bottom:2px; }
-  .bar { flex:1; border-radius:5px 5px 2px 2px; position:relative; }
-  .bar.up { background:linear-gradient(180deg,#E07050 0%,#C05A3C 100%); }
-  .bar.st { background:linear-gradient(180deg,#6E88AB 0%,#4E668A 100%); }
-  .bar.gh { background:rgba(255,255,255,.07); border:1px dashed rgba(255,255,255,.14); }
-  .axis { height:1px; background:rgba(255,255,255,.09); margin-top:0; }
-  .bar-x { display:flex; gap:11px; margin-top:9px; }
-  .bar-x span { flex:1; text-align:center; font-size:9.5px; color:#5E5E66; font-weight:600; }
+  .co { display:flex; justify-content:space-between; align-items:flex-start; }
+  .co .n { font-size:22px; font-weight:800; letter-spacing:-.5px; }
+  .co .n span { font-size:13px; color:#8A8079; font-weight:600; margin-left:8px; letter-spacing:0; }
+  .co .t { margin-top:3px; font-size:12.5px; font-weight:600; color:#5A524C; }
+  .seal { width:62px; height:62px; border-radius:50%; border:2px solid #D65C3C; color:#D65C3C; transform:rotate(-12deg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; margin:-4px -2px 0 0;
+    box-shadow:inset 0 0 0 3px #FFFDF9, inset 0 0 0 4px rgba(214,92,60,.85); opacity:.92; }
+  .seal b { font-size:11px; font-weight:900; letter-spacing:1px; line-height:1.1; }
+  .seal span { font-size:10px; font-weight:800; letter-spacing:.5px; }
+
+  .chart { margin-top:6px; }
+
+  .kpis { display:grid; grid-template-columns:1.25fr 1fr 1fr; border-top:1.5px solid #1F1A17; border-bottom:1px solid rgba(31,26,23,.12); margin-top:4px; }
+  .kpi { padding:10px 0 10px 12px; border-left:1px solid rgba(31,26,23,.10); }
+  .kpi:first-child { border-left:none; padding-left:0; }
+  .kpi .l { font-size:11px; font-weight:700; color:#8A8079; }
+  .kpi .v { margin-top:3px; font-size:19px; font-weight:800; letter-spacing:-.6px; font-variant-numeric:tabular-nums; }
+  .kpi .v i { font-style:normal; font-size:12px; font-weight:600; color:#8A8079; margin-left:1px; }
+  .kpi .y { font-size:12.5px; font-weight:800; color:#D65C3C; margin-top:1px; }
+
+  .vote { margin-top:12px; display:flex; align-items:center; gap:12px; }
+  .vote .l { font-size:12px; font-weight:700; color:#5A524C; white-space:nowrap; }
+  .dots { display:flex; gap:4px; }
+  .dots i { width:12px; height:12px; border-radius:50%; display:block; }
+  .dots .b { background:#D65C3C; } .dots .h { background:#CFC6BD; } .dots .s { background:#3E4A5C; }
+  .vote .c { margin-left:auto; font-size:12px; font-weight:700; color:#5A524C; white-space:nowrap; }
+  .vote .c b { color:#D65C3C; } .vote .c em { font-style:normal; color:#3E4A5C; }
 </style>
 </head>
 <body>
-  <div class="bg"></div>
-  <div class="grid"></div>
-  <div class="hairline"></div>
+  <div class="paper"></div>
+  <div class="topbar"></div>
 
   <div class="stage">
     <div class="left">
-      <div class="eyebrow"><span class="dot"></span>금융감독원 전자공시 · 실적 리포트</div>
-      <div class="wordmark">DART<b>.</b></div>
-      <div class="headline">상장사 이름만 넣으면,<br><span class="mut">애널리스트급 </span>실적 리포트.</div>
-      <div class="sub">공시 재무 · KRX 종가 · 인터랙티브 차트 · 13인 투자자 시각을<br>몇 분 만에 하나의 HTML 리포트로.</div>
-      <div class="cmd"><span class="caret">$</span> /dart <span class="co">카카오</span></div>
+      <div class="eyebrow"><b>금융감독원 전자공시</b><span class="rule"></span>국내 상장사 실적 리포트</div>
+      <div class="wordmark">DART<i>.</i></div>
+      <div class="headline">상장사 이름 하나로,<br><span class="hl">애널리스트급 실적 리포트</span>.</div>
+      <div class="sub">공시 재무 · 사업별 매출 기여도 · 증권사 목표가 · 13인 투자자 평가를<br>원문 링크가 달린 HTML 리포트 한 장으로.</div>
+      <div class="cta">
+        <div class="cmd"><span class="p">$</span><span>/dart</span><span class="co">카카오</span></div>
+        <div class="alt">지분 · 임원 · 배당 바로 조회</div>
+      </div>
     </div>
 
     <div class="right">
-      <div class="card">
-        <div class="card-top">
-          <div class="card-co">카카오<span>1Q2026</span></div>
-          <div class="card-badge">영업익 +100.6%</div>
+      <div class="sheet back"><div class="tag">분기보고서<span>2026.03 · 연결</span></div></div>
+      <div class="sheet front">
+        <div class="co">
+          <div>
+            <div class="n">카카오<span>1Q 2026 · 연결</span></div>
+            <div class="t">매출 증가분은 어느 사업에서 나왔나 <span style="color:#8A8079;font-weight:500">(억원)</span></div>
+          </div>
+          <div class="seal"><b>DART</b><span>원문 대조</span></div>
         </div>
+
+        <svg class="chart" width="420" height="208" viewBox="0 0 420 208">
+          <!-- 축 16,800 ~ 20,000억. y = 170 - (v - 16800) * 0.046875. 1Q25 17,479 → 1Q26 19,421 -->
+          <g stroke="rgba(31,26,23,.08)"><line x1="0" y1="20" x2="420" y2="20"/><line x1="0" y1="95" x2="420" y2="95"/></g>
+          <!-- 이어 주는 점선 -->
+          <g stroke="#8A8079" stroke-width="1" stroke-dasharray="2 2.5">
+            <line x1="44" y1="138.2" x2="62" y2="138.2"/><line x1="96" y1="83.1" x2="114" y2="83.1"/>
+            <line x1="148" y1="59.8" x2="166" y2="59.8"/><line x1="200" y1="38" x2="218" y2="38"/>
+            <line x1="252" y1="29.8" x2="270" y2="29.8"/><line x1="304" y1="32.8" x2="322" y2="32.8"/>
+            <line x1="356" y1="47.1" x2="374" y2="47.1"/>
+          </g>
+          <!-- 시작·끝 합계 -->
+          <rect x="10" y="138.2" width="34" height="31.8" rx="2" fill="#B9AEA4"/>
+          <rect x="374" y="47.1" width="34" height="122.9" rx="2" fill="#1F1A17"/>
+          <!-- 늘어난 사업 -->
+          <g fill="#D65C3C">
+            <rect x="62" y="83.1" width="34" height="55.1" rx="2"/>
+            <rect x="114" y="59.8" width="34" height="23.3" rx="2"/>
+            <rect x="166" y="38" width="34" height="21.8" rx="2"/>
+            <rect x="218" y="29.8" width="34" height="8.2" rx="2"/>
+          </g>
+          <!-- 줄어든 사업 -->
+          <g fill="#3E4A5C">
+            <rect x="270" y="29.8" width="34" height="3" rx="1"/>
+            <rect x="322" y="32.8" width="34" height="14.3" rx="2"/>
+          </g>
+          <!-- 축 생략 표시 -->
+          <g stroke="#FFFDF9" stroke-width="3"><path d="M8,158 l38,-6"/><path d="M372,158 l38,-6"/></g>
+          <line x1="0" y1="170" x2="420" y2="170" stroke="rgba(31,26,23,.35)"/>
+          <!-- 값 -->
+          <g font-family="Pretendard,-apple-system,sans-serif" font-size="11.5" font-weight="800" text-anchor="middle">
+            <text x="27" y="131" fill="#5A524C">17,479</text>
+            <text x="79" y="76" fill="#D65C3C">+1,175</text>
+            <text x="131" y="53" fill="#D65C3C">+496</text>
+            <text x="183" y="31" fill="#D65C3C">+466</text>
+            <text x="235" y="23" fill="#D65C3C">+174</text>
+            <text x="287" y="47" fill="#3E4A5C">−64</text>
+            <text x="339" y="61" fill="#3E4A5C">−306</text>
+            <text x="391" y="40" fill="#1F1A17" font-size="12.5">19,421</text>
+          </g>
+          <g font-family="Pretendard,-apple-system,sans-serif" font-size="10.5" font-weight="600" fill="#5A524C" text-anchor="middle">
+            <text x="27" y="186" font-weight="800">1Q25</text>
+            <text x="79" y="186">페이·</text><text x="79" y="199">모빌리티</text>
+            <text x="131" y="186">톡비즈</text>
+            <text x="183" y="186">뮤직</text>
+            <text x="235" y="186">미디어</text>
+            <text x="287" y="186">포털</text>
+            <text x="339" y="186">스토리</text>
+            <text x="391" y="186" font-weight="800" fill="#1F1A17">1Q26</text>
+          </g>
+        </svg>
+
         <div class="kpis">
-          <div class="kpi"><div class="l">매출</div><div class="v">1.94<i>조</i></div><div class="y up">+4.2%</div></div>
-          <div class="kpi"><div class="l">영업익</div><div class="v">2,114<i>억</i></div><div class="y up">+100.6%</div></div>
-          <div class="kpi"><div class="l">순익</div><div class="v">2,268<i>억</i></div><div class="y up">+13.2%</div></div>
+          <div class="kpi"><div class="l">매출</div><div class="v">1조 9,421<i>억</i></div><div class="y">+11.1%</div></div>
+          <div class="kpi"><div class="l">영업이익</div><div class="v">2,114<i>억</i></div><div class="y">+66.0%</div></div>
+          <div class="kpi"><div class="l">순이익</div><div class="v">2,268<i>억</i></div><div class="y">+13.2%</div></div>
         </div>
-        <div class="chart-lbl">성장 기여도 · 워터폴</div>
-        <div class="bars">
-          <div class="bar st" style="height:46%"></div>
-          <div class="bar up" style="height:72%"></div>
-          <div class="bar up" style="height:58%"></div>
-          <div class="bar up" style="height:88%"></div>
-          <div class="bar st" style="height:38%"></div>
-          <div class="bar gh" style="height:96%"></div>
+
+        <div class="vote">
+          <span class="l">13인 투자자 평가</span>
+          <span class="dots"><i class="b"></i><i class="b"></i><i class="b"></i><i class="b"></i><i class="b"></i><i class="h"></i><i class="h"></i><i class="h"></i><i class="h"></i><i class="h"></i><i class="h"></i><i class="s"></i><i class="s"></i></span>
+          <span class="c"><b>매수 5</b> · 보유 6 · <em>매도 2</em></span>
         </div>
-        <div class="axis"></div>
-        <div class="bar-x"><span>톡비즈</span><span>미디어</span><span>페이</span><span>클라우드</span><span>기타</span><span>합계</span></div>
       </div>
     </div>
   </div>

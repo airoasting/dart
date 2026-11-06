@@ -276,6 +276,12 @@ python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
 ```
 </details>
 
+**썸네일.** `assets/thumbnail.html`을 Chrome으로 찍어 `assets/thumbnail.png`(2400×1260)를 만듭니다. 카드의 숫자는 위 예시 리포트(`카카오_20260704.html`, 1Q 2026 연결)의 KPI, 사업별 매출 증감, 13인 평가를 그대로 옮긴 값입니다. 예시 리포트를 바꾸면 숫자를 맞추고 다시 찍습니다.
+
+```bash
+cd assets && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars --window-size=1200,630 --force-device-scale-factor=2 --screenshot="$PWD/thumbnail.png" "file://$PWD/thumbnail.html"
+```
+
 ## 투자자 페르소나
 
 `investor_persona/_ALL.md` 한 파일에 13인의 투자자 철학이 들어 있습니다. 인물마다 개요, 핵심 원칙, 판단 규칙, 위험 규칙, 지어내지 말 것을 담고, 13인 공통 규칙은 맨 앞에 한 번만 둡니다.
