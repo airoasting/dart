@@ -94,7 +94,7 @@ DART 공시로 두 가지 일을 한다. 먼저 요청이 어느 쪽인지 고�
 ## Step 0. 준비
 
 - **작업 폴더**: 지금 작업 중인 폴더(cwd)에서 모든 명령을 실행한다. 결과는 `./output/`에 쌓인다. 조각 폴더는 `./output/<종목명>_<label>_parts/`(label은 Step 2의 `label`, 예: `카카오_2Q26_parts`)로 만들고, 서브에이전트에게는 **절대 경로**로 넘긴다(서브에이전트의 작업 폴더는 다를 수 있다).
-- **API 키**: 없다는 오류가 나면 `~/.claude/skills/dart/.env`에 `DART_API_KEY=발급받은_키` 한 줄을 넣도록 안내하고 멈춘다(키는 opendart.fss.or.kr에서 무료). 플러그인으로 설치했어도 이 위치를 본다.
+- **API 키**: 없다는 오류가 나면 `~/.claude/skills/dart/.env`에 `DART_API_KEY=발급받은_키` 한 줄을 넣도록 안내하고 멈춘다(키는 opendart.fss.or.kr에서 무료). 플러그인으로 설치했어도 이 위치를 본다. Codex 플러그인으로 쓰는 중이면 `~/.zshrc`에 `export DART_API_KEY=발급받은_키` 한 줄을 넣고 터미널과 Codex를 다시 켜도록 안내한다.
 
 ## Step 1. 종목 확정
 

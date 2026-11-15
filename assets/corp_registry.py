@@ -838,7 +838,8 @@ def resolve_or_refresh(query: str, api_key: str | None = None, timeout: int = 30
     if not key:
         res["notes"].append("DART API 키가 설정돼 있지 않아 최신 상장사 목록을 받지 못했습니다. "
                             "키는 opendart.fss.or.kr에서 무료로 받을 수 있습니다.")
-        res["agent"].append("~/.claude/skills/dart/.env 에 DART_API_KEY=발급받은_키 한 줄을 넣도록 안내한다.")
+        res["agent"].append("~/.claude/skills/dart/.env 에 DART_API_KEY=발급받은_키 한 줄을 넣도록 안내한다. "
+                            "Codex 플러그인이면 ~/.zshrc에 export DART_API_KEY=발급받은_키 를 넣고 터미널과 Codex를 다시 켜도록 안내한다.")
         return res
     marker = cache_dir() / "refresh_failed_at"
     try:   # 오프라인에서 질의마다 타임아웃을 기다리지 않도록, 실패 뒤 6시간은 다시 시도하지 않는다

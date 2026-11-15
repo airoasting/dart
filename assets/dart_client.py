@@ -22,7 +22,8 @@ def _load_api_key() -> str:
     key = find_api_key()
     if not key:
         raise RuntimeError("DART_API_KEY가 없습니다. ~/.claude/skills/dart/.env 에 DART_API_KEY=발급받은_키 한 줄을 넣거나 "
-                           "환경변수로 설정하세요. 키는 opendart.fss.or.kr에서 무료로 받습니다.")
+                           "환경변수로 설정하세요(Codex 플러그인은 ~/.zshrc에 export DART_API_KEY=발급받은_키 를 넣고 "
+                           "터미널과 Codex를 다시 켭니다). 키는 opendart.fss.or.kr에서 무료로 받습니다.")
     return key
 
 

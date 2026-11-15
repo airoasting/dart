@@ -111,6 +111,24 @@ DART API 키는 https://opendart.fss.or.kr 에서 무료로 발급받아 알려�
 
 > 클로드가 파일과 터미널에 접근할 수 있는 상태여야 실제로 실행됩니다(로컬 실행 권한 허용). 권한이 없으면 클로드가 명령을 대신 실행하지는 못하고, 위 방법 A의 단계를 그대로 안내해 줍니다.
 
+### 방법 C. Codex 플러그인
+
+Codex CLI(터미널)에서 차례로 입력합니다.
+
+```bash
+codex plugin marketplace add airoasting/skills
+```
+
+```bash
+codex plugin add dart@airoasting
+```
+
+스킬과 MCP 서버가 함께 설치됩니다. API 키는 환경변수로 받습니다. `~/.zshrc` 맨 끝에 `export DART_API_KEY="발급받은_키"` 한 줄을 넣고 터미널과 Codex를 다시 켭니다. 방법 A로 `~/.claude/skills/dart/.env`에 넣어 둔 키가 있으면 그것도 찾습니다.
+
+공시 숫자 조회(MCP 도구 16개)는 Codex에서 바로 됩니다. 리포트 생성은 본문의 명령 경로가 Claude Code 기준(`~/.claude/skills/dart/`)으로 적혀 있고, Codex에서는 아직 끝까지 확인하지 않았습니다.
+
+> 방법 A와 방법 C를 Codex에서 함께 쓰지 마세요. 같은 스킬이 두 번 잡힙니다.
+
 ### 부르는 법
 
 설치가 끝나면 Claude Code나 Claude Desktop에서 이렇게 부르면 됩니다.
