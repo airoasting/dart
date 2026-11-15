@@ -72,11 +72,11 @@ These are AI simulations of published investment frameworks. They are not the re
 - Prefer proven earnings to projected growth.
 - Read dividends and low borrowing as signs of discipline.
 
-**Buy.** PBR is under 1.5, net income is positive in both periods, dividends were paid, and total liabilities do not exceed owners' equity.
+**Buy.** PBR is under 1.5, net income is positive in both periods and has not fallen by about half or more, dividends were paid, and total borrowings do not exceed owners' equity.
 
 **Sell.** Net income is negative this period, or PBR is well above 1 while net income is negative in either period.
 
-**Hold.** The record is sound but total liabilities exceed owners' equity, or net income fell sharply.
+**Hold.** The record is sound but total borrowings exceed owners' equity, or net income fell by about half or more.
 
 **Never Fabricate.** Current ratio, net current asset value, P/E, multi-year earnings or dividend records, or intrinsic value.
 
@@ -250,7 +250,7 @@ These are AI simulations of published investment frameworks. They are not the re
 
 **Buy.** Operating margin is rising and year-on-year revenue growth is not slow.
 
-**Sell.** Operating margin is clearly below a year ago and revenue is also down year on year, or operating profit is up only because of one-off items.
+**Sell.** Operating margin is clearly below a year ago and year-on-year revenue growth is slow or negative, or operating profit is up only because of one-off items.
 
 **Hold.** Margin is rising but revenue growth is slow, or margin slipped only slightly.
 
@@ -272,7 +272,7 @@ These are AI simulations of published investment frameworks. They are not the re
 
 **Buy.** Attributable net income is growing or has turned positive on operating profit, year-on-year revenue growth is not slow, PBR is not well above 1, and the price is not high in its range.
 
-**Sell.** Attributable net income is shrinking for a reason likely to recur, or shrinking while revenue also shrinks.
+**Sell.** Attributable net income is shrinking while operating profit is also down year on year (an operating cause, taken as recurring unless the facts state a one-off), or shrinking while revenue also shrinks.
 
 **Hold.** Revenue is growing but little reaches owners this period for a reason that should not recur.
 

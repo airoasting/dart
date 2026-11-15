@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>카카오 2026.07.04 - AI ROASTING</title>
+<title>카카오 2026.11.15 - AI ROASTING</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
@@ -30,8 +30,10 @@
   --cdn:   rgba(140,35,15,.75);
   --cdnb:  #8B2010;
   --up:    #D96244;
-  --dn:    #DC2626;
+  --dn:    #2563EB;   /* 국내 시장 관례: 오르면 빨강 계열, 내리면 파랑 */
   --grn:   #059669;
+  --silver: #8A94A6;
+  --gold:   #B8860B;
   --r:     14px;
   --rs:    8px;
   --nav-bg:      rgba(245,245,247,.92);
@@ -66,8 +68,10 @@
   --cdn:   rgba(200,50,30,.75);
   --cdnb:  #8B2010;
   --up:    #E07050;
-  --dn:    #EF4444;
+  --dn:    #60A5FA;
   --grn:   #22C55E;
+  --silver: #A7B0C0;
+  --gold:   #E0B341;
   --nav-bg:      rgba(13,13,13,.92);
   --card-shadow: none;
   --row-hover:   rgba(255,255,255,.03);
@@ -110,10 +114,6 @@ body {
 .hdr-l h1 { font-size:1.76rem; font-weight:800; letter-spacing:-.5px; }
 .hdr-l h1 span { color:var(--coral); }
 .hdr-l p  { margin-top:6px; font-size:.87rem; color:var(--t2); }
-.hdr-r    { text-align:right; }
-.price-now { font-size:1.62rem; font-weight:700; }
-.price-chg { font-size:.90rem; font-weight:600; color:var(--up); margin-top:3px; }
-.price-meta{ font-size:.78rem; color:var(--t3); margin-top:3px; }
 
 /* ─── sticky nav ─── */
 .sticky-nav {
@@ -239,19 +239,28 @@ body {
 .kpi-val  { font-size:2.05rem; font-weight:800; letter-spacing:-1.5px; line-height:1; }
 .kpi-unit { font-size:.93rem; font-weight:500; color:var(--t2); margin-left:2px; }
 .kpi-yoy  { font-size:1rem; font-weight:700; margin-top:10px; }
-.kpi-yoy.up { color:var(--up); } .kpi-yoy.dn { color:var(--dn); }
+.kpi-yoy.up { color:var(--up); } .kpi-yoy.dn, .kpi-yoy.down { color:var(--dn); }
 .kpi-div  { height:1px; background:var(--bdr); margin:14px 0; }
 .kpi-sub  { font-size:.84rem; color:var(--t2); display:flex; align-items:center; gap:5px; }
 .kpi-sub .arr { color:var(--t3); }
-.kpi-sub .b   { color:var(--grn); font-weight:700; }
+.kpi-sub .b   { color:var(--up); font-weight:700; }
+.kpi-sub .b.dn { color:var(--dn); }
 
 /* ─── insight chips ─── */
 .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+.kpi-sub2 { font-size:.80rem; color:var(--t3); margin-top:4px; }
+.headline { font-size:1.02rem; font-weight:600; line-height:1.6; color:var(--t1); margin:0 0 16px;
+            padding:12px 16px; border-left:4px solid var(--coral); background:var(--bg2, rgba(0,0,0,.03)); border-radius:6px; }
+.headline:empty, .kpi-notes:empty, .kpi-sub2:empty { display:none; }
+.watch { margin:0 0 14px; font-size:.88rem; color:var(--t2); }
+.watch-ttl { font-weight:700; color:var(--t1); margin-bottom:4px; }
+.watch ul { margin:0; padding-left:18px; line-height:1.6; }
+.kpi-notes { font-size:.80rem; color:var(--t2); line-height:1.55; margin-top:10px; }
 .chip  { padding:6px 14px; border-radius:20px; font-size:.83rem; font-weight:600;
          display:flex; align-items:center; gap:6px;
          background:var(--bg-e); border:1px solid var(--bdr); }
 .chip .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-.chip.co { color:var(--coral); } .chip.dn { color:var(--dn); } .chip.gn { color:var(--grn); }
+.chip.co { color:var(--coral); } .chip.dn { color:var(--dn); } .chip.gn { color:var(--up); }
 
 /* ─── controls ─── */
 .ctrls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
@@ -310,6 +319,9 @@ body {
 
 /* ─── analyst table ─── */
 .at-wrap { overflow-x:auto; }
+#atBody td.r, #atBody td.at-date { white-space:nowrap; }
+.at-firm { word-break:keep-all; }   /* 줄을 바꾸면 '증권' 앞에서만 바꾼다 */
+.at-note { min-width:180px; max-width:260px; font-size:.84rem; color:var(--t2); line-height:1.5; }
 table  { width:100%; border-collapse:collapse; font-size:.88rem; }
 th     { font-weight:600; color:var(--t3); padding:10px 14px; text-align:left;
          border-bottom:1px solid var(--bdr); font-size:.74rem;
@@ -329,6 +341,7 @@ tr:hover td { background:var(--row-hover); }
 .act-ke    { color:var(--t2); }
 .pos { color:var(--up); font-weight:700; }
 .neg { color:var(--dn); font-weight:700; }
+.tp-upside { color:var(--grn); } .tp-upside[data-sign^="-"] { color:var(--dn); }   /* 평균 목표가가 현재가보다 낮으면 빨강 */
 .grn { color:var(--grn); font-weight:700; }
 
 /* ─── bull / bear ─── */
@@ -466,6 +479,20 @@ tr.link-row:hover td { background:var(--row-hover) !important; }
 
 @media(max-width:900px){ .persona-cards{grid-template-columns:repeat(2,1fr)} }
 @media(max-width:560px){ .persona-cards{grid-template-columns:1fr} }
+/* ─── expert review ─── */
+.review-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.review-card  { padding:18px; border-top:3px solid var(--rc); }
+.review-top   { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:4px; }
+.review-role  { font-size:.78rem; font-weight:800; letter-spacing:.06em; color:var(--rc); }
+.review-score { font-size:1.6rem; font-weight:800; color:var(--t1); }
+.review-score small { font-size:.8rem; font-weight:600; color:var(--t3); }
+.review-who   { font-size:.74rem; color:var(--t3); margin-bottom:10px; }
+.review-cmt   { font-size:.84rem; color:var(--t2); line-height:1.62; margin-bottom:8px; }
+.review-fix   { font-size:.8rem; color:var(--t2); line-height:1.55; padding-top:8px; border-top:1px solid var(--bdr); }
+.review-fix b { color:var(--t1); }
+.review-avg   { font-size:.86rem; color:var(--t2); white-space:nowrap; }
+.review-avg b { color:var(--t1); font-size:1.05rem; }
+@media(max-width:900px){ .review-cards{grid-template-columns:1fr} }
 
 /* ─── section entrance animation ─── */
 .sc.sc-anim { opacity:0; transform:translateY(14px); }
@@ -506,7 +533,7 @@ tr.link-row:hover td { background:var(--row-hover) !important; }
     --t1:#111111; --t2:#4B5563; --t3:#6B7280;
     --coral:#C0522F; --coral-d:#A24428; --coral-l:rgba(192,82,47,.80);
     --coral-a22:rgba(192,82,47,.22); --coral-a35:rgba(192,82,47,.35);
-    --up:#C0522F; --dn:#C02626; --grn:#047857;
+    --up:#C0522F; --dn:#1D4ED8; --grn:#047857;
     --card-shadow:none; --row-hover:transparent;
     --td-border:rgba(0,0,0,.10); --q-bg:rgba(0,0,0,.06);
     --prog-track:rgba(0,0,0,.10);
@@ -596,13 +623,8 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div class="wrap">
 <div class="hdr">
   <div class="hdr-l">
-    <h1><span>카카오</span> (035720) 실적 대시보드</h1>
-    <p>1Q 2025(재작성) vs 1Q 2026 &nbsp;|&nbsp; 연결 · 전년은 중단영업 재분류 후 재작성치 기준 &nbsp;|&nbsp; 기준일: 2026.07.04 &nbsp;|&nbsp; <span style="color:var(--grn)">숫자 검증 통과</span> <span style="color:var(--t3)">(74개 항목 · 2회차 · 2026-10-04 00:09)</span></p>
-  </div>
-  <div class="hdr-r">
-    <div class="price-now">46,000<span style="font-size:.93rem;color:var(--t2);font-weight:500">원</span></div>
-    <div class="price-chg">+1.66% (5/8 종가)</div>
-    <div class="price-meta">52W 36,300 ~ 71,600 &nbsp;|&nbsp; KRX</div>
+    <h1><span>카카오</span> (035720) 실적 리포트</h1>
+    <p>3Q 2025 vs 3Q 2026 &nbsp;|&nbsp; 연결 기준(전년은 이번 보고서에 다시 실린 수치) &nbsp;|&nbsp; 기준일: 2026.11.15 &nbsp;|&nbsp; <span style="color:var(--grn)">숫자 검증 통과</span> <span style="color:var(--t3)">(숫자 73개 원천 대조 · 2026-11-15 23:28)</span></p>
   </div>
 </div>
 </div>
@@ -612,12 +634,13 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
   <div class="nav-progress-track"><div class="nav-progress-bar" id="navProgress"></div></div>
   <div class="sticky-nav-outer">
     <div class="sticky-nav-inner">
-      <a class="nav-link active" href="#sec-kpi">26 1Q 실적</a>
+      <a class="nav-link active" href="#sec-kpi">3Q26 실적</a>
       <a class="nav-link" href="#sec-growth">성장 기여도</a>
       <a class="nav-link" href="#sec-segment">사업별 매출</a>
       <a class="nav-link" href="#sec-market">애널리스트 시각</a>
       <a class="nav-link" href="#sec-news">뉴스</a>
       <a class="nav-link" href="#sec-persona">투자자 시각</a>
+      <a class="nav-link" href="#sec-review">전문가 평가</a>
     </div>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="다크 모드로 전환" title="테마 전환 (T)">
       <span id="themeBtnIcon">🌙</span>
@@ -628,39 +651,43 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div style="max-width:1080px;margin:0 auto;padding:0 20px">
 
 <!-- ══ 실적 요약 ════════════════════════════════════ -->
-<div id="sec-kpi" class="sec-label">26 1Q 실적 요약</div>
+<div id="sec-kpi" class="sec-label">3Q26 실적 요약</div>
 <div class="sc nr full">
+  <div class="headline" id="headline"></div>
   <div class="kpi-grid">
     <div class="kpi-card nr">
       <div class="kpi-lbl">전체 매출</div>
-      <div class="kpi-val">19,421<span class="kpi-unit">억원</span></div>
-      <div class="kpi-yoy up">+1,942억 &nbsp;(+11.1% YoY)</div>
+      <div class="kpi-val">20,868<span class="kpi-unit">억원</span></div>
+      <div class="kpi-yoy up">+1,246억 &nbsp;(전년 대비 +6.3%)</div>
       <div class="kpi-div"></div>
-      <div class="kpi-sub">1Q25(재작성) &nbsp;17,479억</div>
+      <div class="kpi-sub">3Q25 &nbsp;19,622억</div>
     </div>
     <div class="kpi-card nr">
       <div class="kpi-lbl">영업이익</div>
-      <div class="kpi-val">2,114<span class="kpi-unit">억원</span></div>
-      <div class="kpi-yoy up">+840억 &nbsp;(+66.0% YoY)</div>
+      <div class="kpi-val">2,403<span class="kpi-unit">억원</span></div>
+      <div class="kpi-yoy up">+165억 &nbsp;(전년 대비 +7.4%)</div>
       <div class="kpi-div"></div>
-      <div class="kpi-sub">OPM &nbsp;7.3%<span class="arr"> → </span><span class="b">10.9%</span></div>
+      <div class="kpi-sub">영업이익률 &nbsp;11.4%<span class="arr"> → </span><span class="b">11.5%</span></div>
     </div>
     <div class="kpi-card nr">
       <div class="kpi-lbl">당기순이익</div>
-      <div class="kpi-val">2,268<span class="kpi-unit">억원</span></div>
-      <div class="kpi-yoy up">+265억 &nbsp;(+13.2% YoY)</div>
+      <div class="kpi-val">1,777<span class="kpi-unit">억원</span></div>
+      <div class="kpi-yoy down">-152억 &nbsp;(전년 대비 -7.9%)</div>
       <div class="kpi-div"></div>
-      <div class="kpi-sub">NPM &nbsp;11.5%<span class="arr"> → </span><span class="b">11.7%</span></div>
+      <div class="kpi-sub">순이익률 &nbsp;9.8%<span class="arr"> → </span><span class="b dn">8.5%</span></div>
+      <div class="kpi-sub kpi-sub2" id="npBridge"></div>
     </div>
   </div>
-  <div class="chips" id="perfChips"></div>
+  <div class="chips" id="perfChips" style="margin-top:16px"></div>
+  <div class="watch" id="watchBox"><div class="watch-ttl">다음에 볼 것</div><ul id="watchList"></ul></div>
+  <div class="kpi-notes" id="kpiNotes"></div>
 </div>
 
 <!-- ══ 성장 기여도 ════════════════════════════════════ -->
 <div id="sec-growth" class="sec-label">성장 기여도 분석</div>
 <div class="sc nr full">
   <div class="sh">
-    <div class="sann">순증 <strong style="color:var(--coral)">+1,942억</strong> &nbsp;= 성장 기여 <strong style="color:var(--coral)">+2,311억</strong> + 감소 요인 <strong style="color:var(--dn)">-370억</strong> &nbsp;<span style="color:var(--t3);font-size:.80rem">* 추정치 포함</span></div>
+    <div class="sann">순증 <strong style="color:var(--coral)">+1,246억</strong> &nbsp;= 성장 기여 <strong style="color:var(--coral)">+2,224억</strong> + 감소 요인 <strong style="color:var(--dn)">-978억</strong> &nbsp;<span id="deltaEst" style="color:var(--t3);font-size:.80rem">* 추정치 포함</span></div>
   </div>
   <div class="cw" style="height:360px"><canvas id="deltaChart"></canvas></div>
 </div>
@@ -676,6 +703,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
       <button class="cb active" onclick="setF('all',this)">전체</button>
       <button class="cb" onclick="setF('platform',this)">플랫폼</button>
       <button class="cb" onclick="setF('content',this)">콘텐츠</button>
+      <button class="cb" onclick="setF('other',this)">기타</button>
     </div>
     <div class="cg" id="sg">
       <button class="cb active" onclick="setS('size',this)">규모순</button>
@@ -685,17 +713,17 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
     </div>
   </div>
   <div class="leg-row">
-    <button class="lb" id="ls0" onclick="togL(0,this)"><span class="dot" style="background:var(--c25)"></span>1Q 2025</button>
-    <button class="lb" id="ls1" onclick="togL(1,this)"><span class="dot" style="background:var(--coral)"></span>1Q 2026</button>
+    <button class="lb" id="ls0" onclick="togL(0,this)"><span class="dot" style="background:var(--c25)"></span>3Q 2025</button>
+    <button class="lb" id="ls1" onclick="togL(1,this)"><span class="dot" style="background:var(--coral)"></span>3Q 2026</button>
   </div>
   <div class="cw" id="segWrap" style="height:420px"><canvas id="segChart"></canvas></div>
   <div class="dp" id="dp">
     <div class="dp-hdr"><div class="dp-title" id="dpT"></div><button class="dp-close" onclick="closeDp()">✕</button></div>
     <div class="dp-grid">
-      <div class="dp-item ni-sm"><div class="dp-lbl">1Q 2025</div><div class="dp-val" id="dp25"></div></div>
-      <div class="dp-item ni-sm"><div class="dp-lbl">1Q 2026</div><div class="dp-val" id="dp26"></div></div>
-      <div class="dp-item ni-sm"><div class="dp-lbl">δ 절대</div><div class="dp-val" id="dpD"></div></div>
-      <div class="dp-item ni-sm"><div class="dp-lbl">YoY %</div><div class="dp-val" id="dpP"></div></div>
+      <div class="dp-item ni-sm"><div class="dp-lbl">3Q 2025</div><div class="dp-val" id="dp25"></div></div>
+      <div class="dp-item ni-sm"><div class="dp-lbl">3Q 2026</div><div class="dp-val" id="dp26"></div></div>
+      <div class="dp-item ni-sm"><div class="dp-lbl">증감</div><div class="dp-val" id="dpD"></div></div>
+      <div class="dp-item ni-sm"><div class="dp-lbl">전년 대비</div><div class="dp-val" id="dpP"></div></div>
       <div class="dp-item ni-sm"><div class="dp-lbl">믹스 변화</div><div class="dp-val" id="dpM"></div></div>
     </div>
   </div>
@@ -703,9 +731,9 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
   <div class="dt-wrap" id="dtW">
     <table><thead><tr>
       <th>사업부문</th><th>구분</th>
-      <th class="r">1Q25</th><th class="r">1Q26</th>
-      <th class="r">δ(억)</th><th class="r">YoY%</th>
-      <th class="r">비중25</th><th class="r">비중26</th><th class="r">믹스Δ</th>
+      <th class="r">3Q25</th><th class="r">3Q26</th>
+      <th class="r">증감(억)</th><th class="r">전년 대비</th>
+      <th class="r">3Q25 비중</th><th class="r">3Q26 비중</th><th class="r">비중 변화</th>
     </tr></thead><tbody id="tB"></tbody></table>
   </div>
   <div class="fn" id="fn1"></div>
@@ -715,37 +743,37 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div id="sec-market" class="sec-label">애널리스트 시각</div>
 <div class="sc nr full">
   <div class="sh">
-    <div class="sann">표의 4개 증권사 기준 (전체 커버리지 집계는 미확인)</div>
+    <div class="sann">증권사 4곳 기준(보고서 2026.11.06~2026.11.06) · 목표가 하향 3, 유지 1 · 전체 커버리지는 미확인</div>
   </div>
   <div class="cons-wrap">
     <div class="cons-pie">
       <canvas id="consChart" style="max-width:150px;max-height:150px"></canvas>
-      <div class="cons-lbl">Buy 4 &nbsp;|&nbsp; Hold 0 &nbsp;|&nbsp; Sell 0</div>
+      <div class="cons-lbl">매수 3 &nbsp;|&nbsp; 보유 1 &nbsp;|&nbsp; 매도 0</div>
     </div>
     <div>
       <div class="cons-rows" style="margin-bottom:16px">
         <div class="cons-row">
-          <span class="nm" style="color:var(--coral)">Buy</span>
-          <div class="cons-bw"><div class="cons-b" style="width:100.0%;background:var(--coral)"></div></div>
-          <span class="cnt" style="color:var(--coral)">4</span>
+          <span class="nm" style="color:var(--coral)">매수</span>
+          <div class="cons-bw"><div class="cons-b" style="width:75.0%;background:var(--coral)"></div></div>
+          <span class="cnt" style="color:var(--coral)">3</span>
         </div>
         <div class="cons-row">
-          <span class="nm" style="color:#4B5563">Hold</span>
-          <div class="cons-bw"><div class="cons-b" style="width:0.0%;background:#9CA3AF"></div></div>
-          <span class="cnt" style="color:#4B5563">0</span>
+          <span class="nm" style="color:#4B5563">보유</span>
+          <div class="cons-bw"><div class="cons-b" style="width:25.0%;background:#9CA3AF"></div></div>
+          <span class="cnt" style="color:#4B5563">1</span>
         </div>
         <div class="cons-row">
-          <span class="nm" style="color:var(--dn)">Sell</span>
+          <span class="nm" style="color:var(--dn)">매도</span>
           <div class="cons-bw"><div class="cons-b" style="width:0.0%;background:var(--dn)"></div></div>
           <span class="cnt" style="color:var(--dn)">0</span>
         </div>
       </div>
       <div class="tp-sum">
-        <div class="tp-item"><div class="l">현재가</div><div class="v">46,000원</div></div>
-        <div class="tp-item"><div class="l">최저 목표가</div><div class="v">70,000원</div></div>
-        <div class="tp-item"><div class="l">평균 목표가</div><div class="v" style="color:var(--coral)">71,250원</div></div>
-        <div class="tp-item"><div class="l">최고 목표가</div><div class="v">75,000원</div></div>
-        <div class="tp-item"><div class="l">Implied Upside</div><div class="v" style="color:var(--grn)">+54.9%</div></div>
+        <div class="tp-item"><div class="l">현재가</div><div class="v">31,900원 (11/13 종가)</div></div>
+        <div class="tp-item"><div class="l">최저 목표가</div><div class="v">36,000원</div></div>
+        <div class="tp-item"><div class="l">평균 목표가</div><div class="v" style="color:var(--coral)">40,000원</div></div>
+        <div class="tp-item"><div class="l">최고 목표가</div><div class="v">43,000원</div></div>
+        <div class="tp-item"><div class="l">평균 목표가까지</div><div class="v tp-upside" data-sign="+25.4%">+25.4%</div></div>
       </div>
     </div>
   </div>
@@ -756,7 +784,7 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
       <thead><tr>
         <th>증권사</th><th>투자의견</th>
         <th class="r">목표가</th><th class="r">변동</th>
-        <th class="r">Upside</th><th>날짜</th><th>코멘트</th>
+        <th class="r">상승 여력</th><th>날짜</th><th>코멘트</th>
       </tr></thead>
       <tbody id="atBody"></tbody>
     </table>
@@ -764,11 +792,11 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 </div>
 <div class="bb-grid" style="margin-bottom:24px">
   <div class="bb-card nr bb-bull">
-    <div class="bb-head"><span class="icon">📈</span><span class="ttl" style="color:var(--coral)">Bull Case 5가지</span></div>
+    <div class="bb-head"><span class="icon">📈</span><span class="ttl" style="color:var(--coral)">강세 논거 5가지</span></div>
     <div id="bullList"></div>
   </div>
   <div class="bb-card nr bb-bear">
-    <div class="bb-head"><span class="icon">📉</span><span class="ttl" style="color:var(--dn)">Bear Case 5가지</span></div>
+    <div class="bb-head"><span class="icon">📉</span><span class="ttl" style="color:var(--dn)">약세 논거 5가지</span></div>
     <div id="bearList"></div>
   </div>
 </div>
@@ -783,39 +811,57 @@ a:has(.news-card):hover .news-headline { color:var(--coral); }
 <div id="sec-persona" class="sec-label">투자자 시각</div>
 <div class="sc nr full">
   <div class="sh">
-    <div class="sann">13인의 전설적 투자자가 카카오을 본다면</div>
+    <div class="sann">13인 투자자가 본 카카오</div>
   </div>
   <div class="persona-summary nr" id="personaSummary"></div>
   <div class="persona-grid" id="personaGrid"></div>
-  <div class="disc">※ 투자자 시각은 각 인물의 공개된 투자 철학·발언을 기반으로 AI가 시뮬레이션한 가상 평가이며, 실제 의견이 아닙니다.</div>
+  <div class="disc">※ 투자자 시각은 각 인물의 공개된 투자 철학·발언을 기반으로 AI가 시뮬레이션한 가상 평가이고, 실제 의견이 아니다.</div>
+</div>
+
+<!-- ══ 전문가 평가 ════════════════════════════════════ -->
+<div id="sec-review-wrap">
+<div id="sec-review" class="sec-label">전문가 평가</div>
+<div class="sc nr full">
+  <div class="sh">
+    <div class="sann" id="reviewScene"></div>
+    <div class="review-avg" id="reviewAvg"></div>
+  </div>
+  <div class="review-cards" id="reviewCards"></div>
+  <div class="disc">※ RED(논리)·SILVER(분야 전문가)·GOLD(실제 독자) 세 관점의 AI 평가다(10점 만점, 참고용). "남은 한계"는 이 리포트를 읽을 때 감안할 점이다. 숫자의 정확성은 이 평가와 별개로 숫자 검증 게이트가 원천과 대조했다.</div>
+</div>
 </div>
 
 </div><!-- /inner wrap -->
 
 <div class="invest-disclaimer">
-  <strong>투자위험 고지사항 (Investment Risk Disclosure)</strong><br>
-  본 자료는 공개된 IR 자료·뉴스·리서치 보고서를 기반으로 정보 제공 목적으로만 작성되었으며, 특정 금융투자상품의 매수·매도를 권유하거나 투자를 권고하지 않습니다.
-  본 자료에 포함된 일부 수치는 추정치를 포함하고 있으며, 실제 수치와 다를 수 있습니다.
-  금융투자상품 거래 시 원금 손실이 발생할 수 있으며, 투자에 관한 최종 판단과 그에 따른 손익의 책임은 전적으로 투자자 본인에게 있습니다.
-  과거의 수익률이나 투자 실적이 미래의 수익을 보장하지 않습니다.
-  「투자자 시각」 섹션은 각 인물의 공개된 투자 철학을 기반으로 AI가 시뮬레이션한 가상 평가이며, 해당 인물의 실제 의견이 아닙니다.
+  <strong>투자위험 고지</strong><br>
+  이 자료는 공시·IR 자료·뉴스·증권사 보고서를 바탕으로 정보 제공 목적으로만 만들었고, 특정 금융투자상품의 매수·매도를 권유하지 않는다.
+  추정치로 표시한 수치는 실제와 다를 수 있다.
+  금융투자상품 거래에서는 원금 손실이 생길 수 있고, 투자 판단과 그 손익의 책임은 투자자 본인에게 있다.
+  과거의 실적이 미래의 수익을 보장하지 않는다.
+  「투자자 시각」 섹션은 각 인물의 공개된 투자 철학을 기반으로 AI가 시뮬레이션한 가상 평가이고, 해당 인물의 실제 의견이 아니다.
 </div>
 
 <script>
 /* ═══════════════ DATA ═══════════════ */
 const NAME = "카카오";
-const CONS = {"buy": 4, "hold": 0, "sell": 0};
-const CHIPS = [{"cls": "co", "dot": "var(--coral)", "txt": "플랫폼 기타(페이·모빌리티) +30.2% YoY"}, {"cls": "gn", "dot": "var(--grn)", "txt": "OPM 7.3% → 10.9% (+3.6pp)"}, {"cls": "co", "dot": "var(--coral)", "txt": "영업이익 +66%: 레버리지 가속"}, {"cls": "dn", "dot": "var(--dn)", "txt": "지배주주순이익 1,717억, 전년 수준"}];
-const SEGS = [{"name": "톡비즈", "sub": "플랫폼", "cat": "platform", "q25": 5590, "q26": 6086, "est": false}, {"name": "포털비즈", "sub": "플랫폼", "cat": "platform", "q25": 740, "q26": 676, "est": false}, {"name": "플랫폼 기타 (페이·모빌리티)", "sub": "플랫폼", "cat": "platform", "q25": 3890, "q26": 5065, "est": false}, {"name": "뮤직", "sub": "콘텐츠", "cat": "content", "q25": 4380, "q26": 4846, "est": false}, {"name": "스토리 (픽코마·엔터)", "sub": "콘텐츠", "cat": "content", "q25": 2130, "q26": 1824, "est": false}, {"name": "미디어", "sub": "콘텐츠", "cat": "content", "q25": 750, "q26": 924, "est": false}];
-const TOT25 = 17479;
-const TOT26 = 19421;
-const DELTA = [{"name": "플랫폼 기타 (페이·모빌리티)", "d": 1175, "est": false}, {"name": "톡비즈", "d": 496, "est": false}, {"name": "뮤직", "d": 466, "est": false}, {"name": "미디어", "d": 174, "est": false}, {"name": "포털비즈", "d": -64, "est": false}, {"name": "스토리 (픽코마·엔터)", "d": -306, "est": false}, {"name": "합계", "d": 1942, "tot": true}];
-const CURR = 46000;
-const ANALYSTS = [{"firm": "메리츠증권", "r": "Buy", "tp": 75000, "from": 75000, "date": "2026.05.08", "note": "\"주가 바닥 통과, 에이전틱 커머스 성공이 핵심\""}, {"firm": "한국투자증권", "r": "Buy", "tp": 70000, "from": 70000, "date": "2026.05.08", "note": "목표가 7만원 유지 (4/3에 7.5만→7만 하향)"}, {"firm": "한화투자증권", "r": "Buy", "tp": 70000, "from": 85000, "date": "2026.05.08", "note": "목표가 8.5만→7만, 글로벌 피어 밸류에이션 압축 반영"}, {"firm": "다올투자증권", "r": "Buy", "tp": 70000, "from": 80000, "date": "2026.04.08", "note": "1Q26 프리뷰. AI 모네타이제이션 타임라인 불확실"}];
-const BULLS = [{"t": "OPM 7.3% → 10.9%, 영업 레버리지 확인", "d": "비핵심 자회사 정리(카카오게임즈 중단영업 분류, 다음 사업 양도)로 손익 구조가 가벼워졌다. 1Q 2026 영업이익 +66% YoY는 수익성 전환 신호다."}, {"t": "챗GPT 포 카카오 누적 가입자 1,100만", "d": "서비스 MAU가 전 분기 대비 2배 가까이 늘었다. 5,000만 이용자를 에이전틱 AI 플랫폼으로 옮기겠다는 전략의 초기 지표다."}, {"t": "에이전트 커머스 실험 시작", "d": "4월부터 카카오톡 카나나와 선물하기 연동을 실험하고 있다. 5월 중 외부 커머스 파트너를 연동하고 하반기에 에이전트 커머스를 본격화할 계획이다."}, {"t": "구글 전략적 파트너십, 온디바이스 AI", "d": "Android 기기 탑재 방식으로 카카오 AI 에이전트의 하드웨어 접점이 확보됐다. 카나나가 먼저 말을 거는 '선톡'에 이용자 약 70%가 긍정 피드백을 줬다."}, {"t": "포트폴리오 구조조정, 밸류에이션 재평가 기대", "d": "다음·게임즈 정리 후 핵심 사업 집중도가 높아졌다. 메리츠증권은 2027년 지배순이익 기준 PER이 약 21배까지 낮아진다고 봤다."}];
-const BEARS = [{"t": "AI 모네타이제이션 타임라인이 불투명하다", "d": "에이전트 커머스는 아직 실험 단계다. 4~5월 한국투자·다올·한화 등 여러 증권사가 목표가를 낮췄다. AI가 의미 있는 매출로 이어지는 시점에 대한 가시성이 부족하다."}, {"t": "지배주주순이익이 제자리, 실적 품질 이슈", "d": "연결 순이익은 +13% YoY 늘었지만 지배주주 귀속분은 사실상 전년 수준이다. 비지배 지분 이익이 약 2배로 늘어 카카오 주주의 몫이 제한적이다."}, {"t": "카카오모빌리티 지분 거래 불확실성", "d": "4월 우버의 카카오모빌리티 지분 인수 검토 보도가 나왔지만 카카오모빌리티는 근거 없다고 부인했다. 거래 방향이 정해지기 전까지 기업가치 재평가 요인으로 쓰기 어렵다."}, {"t": "SM엔터 거버넌스 리스크가 남아 있다", "d": "창업자 김범수 항소심이 진행 중이다. SM 인수 과정 관련 법적 불확실성이 멀티플 디스카운트 요인으로 작용하고 있다."}, {"t": "목표가 대비 괴리 지속, Value Trap 우려", "d": "표의 4개 증권사 평균 목표가 71,250원(현재가 대비 +54.9%)에도 시장은 재평가를 허용하지 않는 상태다. 52주 고점(71,600원)이 평균 목표가 수준이라 신규 매수 근거가 약하다."}];
-const NEWS = [{"h": "영업익 66% 뛴 카카오, 주가는 빠졌다…지배순익 Flat의 그림자", "src": "인사이트", "date": "2026.05.08", "sent": "mix", "url": "https://www.insight.co.kr/news/553232", "body": "영업이익 +66%에도 지배주주순이익이 1,717억원으로 전년 수준에 머물렀다. 실적 발표일 주가는 -2.27%(45,250원) 마감."}, {"h": "메리츠증권 \"카카오, 주가 바닥 통과… 에이전틱 커머스 성공이 핵심\"", "src": "글로벌이코노믹", "date": "2026.05.08", "sent": "pos", "url": "https://www.g-enews.com/article/Securities/2026/05/20260508085811806344093b5d4e_1", "body": "목표가 75,000원 유지. AI 에이전트 커머스 수익화 시점이 주가 Re-rating의 핵심 트리거라고 강조."}, {"h": "[카카오 전환기] \"돈 안 되니 매각\"…다음 포기 후 업스테이지 지분 30% 확보", "src": "딜사이트", "date": "2026.02.06", "sent": "mix", "url": "https://dealsite.co.kr/articles/156392", "body": "카카오가 다음 사업 정리와 함께 업스테이지 지분 확보를 추진 중이다. 지분율과 기업가치는 공개되지 않았다."}, {"h": "\"카톡 기반 챗GPT 1,100만\"…카카오, 1분기에도 최대 실적(종합)", "src": "뉴스1", "date": "2026.05.07", "sent": "pos", "url": "https://www.news1.kr/it-science/general-it/6159249", "body": "정신아 대표가 컨퍼런스콜에서 챗GPT 포 카카오 누적 가입자 1,100만 돌파와 5,000만 이용자 대상 에이전틱 AI 전환 전략을 밝혔다."}, {"h": "1분기 최대 실적 쓴 카카오… \"AI 에이전트 커머스 본격화\"", "src": "파이낸셜뉴스", "date": "2026.05.07", "sent": "pos", "url": "https://www.fnnews.com/news/202605071040174234", "body": "지난달부터 카나나와 선물하기 연동을 실험 중이다. 이달 중 외부 커머스 파트너를 연동하고 하반기 에이전트 커머스를 본격화한다."}, {"h": "카카오 순익 13% 늘었어도 주주 몫은 뒷걸음…비지배지분순익 두 배로", "src": "인사이트", "date": "2026.05.07", "sent": "neg", "url": "https://www.insight.co.kr/news/553146", "body": "연결 순이익은 2,003억원에서 2,268억원으로 13.2% 늘었지만, 비지배지분순익이 285억원에서 551억원으로 늘어 주주 귀속분은 제자리였다."}, {"h": "AI 사업 불확실성에… 눈높이 낮아지는 네카오", "src": "서울경제", "date": "2026.04.10", "sent": "neg", "url": "https://www.sedaily.com/article/20031090", "body": "이달 들어 증권사 10곳이 네이버·카카오 목표가를 낮췄다(네이버 6곳, 카카오 4곳). AI 수익화 가시성 부족이 이유다."}];
-const PERSONAS = [{"name": "피터 린치", "type": "성장주 발굴", "rating": "buy", "desc": "피델리티 마젤란 펀드 매니저. 13년간 연평균 +29% 수익률", "eval": "플랫폼 기타 매출 +30.2% YoY, 챗GPT 포 카카오 MAU 2배 가까이 증가. 숫자가 이미 말하고 있다. 전형적인 텐배거 후보다."}, {"name": "캐시 우드", "type": "파괴적 혁신·테마", "rating": "buy", "desc": "ARK Invest 창업자 겸 CEO. 파괴적 혁신 테마 ETF 운용", "eval": "AI 에이전트 커머스와 핀테크가 동시에 성장 중이다. 카카오는 혁신 포트폴리오에 빠질 수 없다."}, {"name": "마이클 버리", "type": "역발상 투자", "rating": "buy", "desc": "Big Short 주인공. 2008년 서브프라임 위기를 미리 공매도해 수천억 수익", "eval": "고점 대비 -36% 하락, 구조조정이 완료된 시점이다. 시장이 외면할 때 들어가는 게 역발상의 본질이다."}, {"name": "스탠리 드러켄밀러", "type": "매크로·모멘텀", "rating": "buy", "desc": "조지 소로스의 파트너 출신. 퀀텀 펀드로 30년간 연평균 +30% 수익률", "eval": "영업이익 턴어라운드에 AI 모멘텀까지 더해졌다. 지금 국내 플랫폼 중 이만한 상승 흐름은 없다."}, {"name": "라케시 중주왈라", "type": "장기 성장", "rating": "buy", "desc": "인도의 워런 버핏. 인도 주식시장 최대 개인 투자자 (2022년 작고)", "eval": "5,000만 유저를 기반으로 한 국내 디지털 독점이다. 3~5년 보유하면 결국 시장이 가치를 인정한다."}, {"name": "워런 버핏", "type": "가치 투자·경제적 해자", "rating": "hold", "desc": "버크셔 해서웨이 회장. 60년간 연평균 +19.8%를 달성한 가치 투자의 살아있는 전설", "eval": "AI 수익화 타임라인이 아직 불투명하다. 해자가 눈으로 보일 때 사도 늦지 않는다."}, {"name": "찰리 멍거", "type": "집중 투자·품질 우선", "rating": "hold", "desc": "버크셔 해서웨이 부회장. 버핏의 평생 파트너 (2023년 작고)", "eval": "비핵심 사업을 덜어낸 방향은 맞다. 그러나 경영진 신뢰부터 회복해야 밸류에이션이 열린다."}, {"name": "필립 피셔", "type": "장기 R&D 성장", "rating": "hold", "desc": "성장주 투자의 아버지. 「위대한 기업에 투자하라」 저자. 버핏에게도 영향을 끼침", "eval": "자체 AI 모델(Kanana) 확보는 긍정적 신호다. 수익 모델이 구체화되면 그때 비중을 늘린다."}, {"name": "빌 애크먼", "type": "행동주의 투자", "rating": "hold", "desc": "퍼싱 스퀘어 캐피털 창업자. 기업 경영진에 직접 개입하는 행동주의 투자의 대가", "eval": "창업자 소송이 끝나지 않았다. 거버넌스 리스크가 사라지기 전까지 적극적으로 나서기 어렵다."}, {"name": "애스워스 다모다란", "type": "DCF·내재가치 평가", "rating": "hold", "desc": "NYU 스턴 경영대 교수. 「기업 가치평가」 저자. 전 세계 애널리스트의 교과서", "eval": "AI 성장 가정을 넣으면 현재가는 적정 수준이다. 그 가정이 맞는지를 지금 시장이 검증하는 중이다."}, {"name": "모니시 파브라이", "type": "집중 투자·복리", "rating": "hold", "desc": "파브라이 인베스트먼트 펀드 운용. Dhandho(위험 없는 베팅) 철학으로 유명", "eval": "하락 리스크는 제한적이다. 다만 상승 촉매가 현실이 되려면 좀 더 기다려야 한다."}, {"name": "벤저민 그레이엄", "type": "안전마진·청산가치", "rating": "sell", "desc": "가치 투자의 아버지. 버핏의 스승. 「현명한 투자자」 저자", "eval": "AI 기대감을 걷어내면 청산가치 대비 여전히 비싸다. 충분한 안전마진 없이는 손댈 수 없다."}, {"name": "나심 탈렙", "type": "꼬리 위험 관리", "rating": "sell", "desc": "「블랙 스완」 저자. 극단적 위험과 불확실성 이론 연구의 권위자", "eval": "거버넌스 불확실성과 AI 실패 시나리오는 시장이 생각하는 것보다 훨씬 큰 꼬리 위험이다."}];
+const CONS = {"buy": 3, "hold": 1, "sell": 0};
+const CHIPS = [{"cls": "co", "dot": "var(--coral)", "txt": "쟁점: 인공지능 수익화 시점"}, {"cls": "gn", "dot": "var(--up)", "txt": "영업이익 +7.4%"}, {"cls": "dn", "dot": "var(--dn)", "txt": "순이익 -7.9% (중단영업 손실 전환)"}, {"cls": "dn", "dot": "var(--dn)", "txt": "증권사 목표가 하향 흐름"}];
+const SEGS = [{"name": "톡비즈 광고·구독", "sub": "비즈니스 메시지, 톡 디스플레이 광고, 구독 (전년 동기는 회사 실적 발표 자료의 십억원 단위 값)", "cat": "platform", "q25": 3530, "q26": 3915, "est": true}, {"name": "톡비즈 커머스", "sub": "선물하기, 톡스토어, 쇼핑라이브 (전년 동기는 회사 실적 발표 자료의 십억원 단위 값)", "cat": "platform", "q25": 2090, "q26": 2413, "est": true}, {"name": "플랫폼 기타", "sub": "카카오모빌리티, 카카오페이 등", "cat": "platform", "q25": 4979, "q26": 6021, "est": false}, {"name": "뮤직", "sub": "음원·음반 유통, 레이블, 음원플랫폼, 에스엠엔터테인먼트", "cat": "content", "q25": 5654, "q26": 5083, "est": false}, {"name": "스토리", "sub": "픽코마, 카카오페이지, 카카오웹툰", "cat": "content", "q25": 2413, "q26": 2006, "est": false}, {"name": "미디어", "sub": "영상 제작 등", "cat": "content", "q25": 958, "q26": 1428, "est": false}, {"name": "연결조정", "sub": "부문 간 거래와 단위 반올림 차이", "cat": "other", "q25": -2, "q26": 2, "est": true}];
+const TOT25 = 19622;
+const TOT26 = 20868;
+const DELTA = [{"name": "톡비즈 광고·구독", "d": 385, "est": true}, {"name": "톡비즈 커머스", "d": 323, "est": true}, {"name": "플랫폼 기타", "d": 1042, "est": false}, {"name": "뮤직", "d": -571, "est": false}, {"name": "스토리", "d": -407, "est": false}, {"name": "미디어", "d": 470, "est": false}, {"name": "연결조정", "d": 4, "est": true}, {"name": "합계", "d": 1246, "tot": true}];
+const CURR = 31900;
+const ANALYSTS = [{"firm": "유진투자증권", "r": "Buy", "tp": 42000, "from": 58000, "dir": null, "date": "2026.11.06", "note": "에이전트형 인공지능 수익화를 검증할 시점이 뒤로 밀렸다고 보고 목표 주가수익비율을 30배에서 25배로 낮췄다."}, {"firm": "대신증권", "r": "Buy", "tp": 43000, "from": 47000, "dir": null, "date": "2026.11.06", "note": "광고는 4분기에도 두 자릿수 성장을 예상하지만, 새 인공지능 서비스가 이용자 증가와 실제 수익 확대로 이어지는지 확인이 필요하다고 봤다."}, {"firm": "메리츠증권", "r": "Hold", "tp": 36000, "from": 37000, "dir": null, "date": "2026.11.06", "note": "최근 주가 급등은 반도체에 쏠렸던 자금이 플랫폼·게임으로 옮겨 온 순환매 성격이 강하고, 장기 주주를 얻으려면 본업의 큰 변화가 먼저 확인돼야 한다고 봤다."}, {"firm": "신한투자증권", "r": "Buy", "tp": 39000, "from": null, "dir": "same", "date": "2026.11.06", "note": "3분기 실적은 시장 기대에 부합했고 콘텐츠 회복이 늦어 외형 성장보다 수익성 방어가 중요하며, 주가 방향은 12월 비공개 시험을 앞둔 인공지능 에이전트 카나나 스페이스가 정한다고 봤다."}];
+const BULLS = [{"t": "매출과 영업이익이 함께 늘었다", "d": "매출은 19,622억에서 20,868억으로 6.3%, 영업이익은 2,238억에서 2,403억으로 7.4% 늘었다. 영업이익률도 11.4%에서 11.5%로 올랐다."}, {"t": "톡비즈 광고와 커머스가 성장을 이끌었다", "d": "한국경제 보도에 따르면 톡비즈 매출은 6329억원으로 13% 늘었다. 서울경제 보도로는 톡비즈 커머스 매출이 2413억 원으로 16% 증가했다."}, {"t": "현금이 늘었다", "d": "현금및현금성자산은 전기말 6.4조에서 7.7조가 됐다. 누적 영업활동 현금흐름 5,409억에 기타포괄손익-공정가치 측정 금융자산 처분 2.1조가 더해졌다."}, {"t": "주주환원을 늘린다", "d": "회사는 1500억원 규모의 자사주를 사들여 소각한다고 밝혔다(아이뉴스24 보도). 올해 누적 배당금 지급은 1,045억이다."}, {"t": "회사는 연간 목표를 유지했다", "d": "회사는 연결 매출 10% 이상 성장과 영업이익률 10% 목표를 달성할 수 있다고 밝혔다(아이뉴스24 보도). 인공지능 사업은 2028년 손익분기점 수준까지 개선될 것으로 전망했다(서울경제 보도)."}];
+const BEARS = [{"t": "순이익이 줄었지만 주주 몫은 늘었다", "d": "순이익은 1,929억에서 1,777억으로 7.9% 줄었고, 순이익 증감 -152억 가운데 중단영업이익 증감이 -175억이다. 다만 지배주주순이익은 1,249억에서 1,592억으로 늘어, 주주 몫 기준으로는 방향이 다르다."}, {"t": "영업이익이 직전 분기보다 줄고 기대에 못 미쳤다", "d": "영업이익은 직전 분기 2,770억에서 2,403억으로 13.3% 줄었다. 한국경제 보도에 따르면 시장 전망치 2483억원을 3.2% 밑돌았다."}, {"t": "인공지능 서비스 적자와 목표가 하향", "d": "한국경제 보도에 따르면 인공지능 서비스 부문 영업손실이 640억원으로 커졌고 증권사 10곳이 목표주가를 내렸다. 유진투자증권은 수익화 검증 시점이 뒤로 밀렸다고 보고 목표가를 58,000원에서 42,000원으로 낮췄다."}, {"t": "콘텐츠 매출이 줄고 있다", "d": "서울경제 보도에 따르면 콘텐츠 부문 매출은 8517억 원으로 6% 줄었고 뮤직은 10%, 스토리는 17% 감소했다. 신한투자증권도 콘텐츠 회복이 늦어 수익성 방어가 중요하다고 봤다."}, {"t": "세전이익은 줄었고 낮아진 세율은 원인 미확인이다", "d": "세전이익은 2,544억에서 2,235억으로 줄었다. 실효세율이 30.9%에서 20.3%로 낮아진 원인은 확인되지 않아, 이 세율이 이어진다고 보기 어렵다."}];
+const NEWS = [{"h": "'카톡 광고·커머스 견인' 카카오 영업익 7.4% 증가…\"AI 서비스 본격화\" [종합]", "src": "한국경제", "date": "2026.11.05", "sent": "pos", "url": "https://www.hankyung.com/article/202611057131g", "body": "카카오게임즈와 카카오헬스케어를 중단영업으로 뺀 기준으로 3분기 매출은 6.3%, 영업이익은 7.4% 늘었다. 플랫폼 부문 매출이 1조2350억원으로 17% 늘었고 톡비즈 매출은 6329억원으로 13% 증가했다."}, {"h": "카카오, 3분기 영업익 7%↑…AI 서비스로 성장동력 확대", "src": "서울경제", "date": "2026.11.05", "sent": "mix", "url": "https://m.sedaily.com/article/20110436", "body": "톡비즈 커머스 매출은 2413억 원으로 16% 늘고 거래액은 2조3000억 원으로 13% 증가했다. 반면 콘텐츠 부문 매출은 8517억 원으로 6% 줄었고 뮤직은 10%, 스토리는 17% 감소했다."}, {"h": "[컨콜 종합] 카카오 \"더 속도감 있게 AI 서비스 확대⋯매출 10% 이상 성장 달성 가능\"", "src": "아이뉴스24", "date": "2026.11.05", "sent": "pos", "url": "https://www.inews24.com/view/2022954", "body": "카카오는 연초에 내놓은 연결 매출 10% 이상 성장과 영업이익률 10% 목표를 달성할 수 있다고 밝혔다. 보통주 515만4639주, 1500억원 규모의 자사주를 사들여 소각하고 인공지능 비서 카나나 스페이스는 12월 시범 서비스를 시작한다."}, {"h": "카카오 “AI 이용자 1000만 연내 확보…2년내 수익 낼 것”", "src": "서울경제", "date": "2026.11.05", "sent": "mix", "url": "https://m.sedaily.com/article/20110854", "body": "카카오는 연내 월간 활성 인공지능 이용자 1000만 명을 확보하고 2028년 인공지능 사업 수익성이 손익분기점 수준까지 개선될 것으로 전망했다. 인적분할 기일은 2027년 1월 1일에서 2월 1일로 한 달 미뤄졌다."}, {"h": "1500억 자사주 소각에 폭락장 견뎠지만…목표가는 반토막 [종목+]", "src": "한국경제", "date": "2026.11.07", "sent": "mix", "url": "https://www.hankyung.com/article/2026110611706", "body": "실적 발표일인 5일 주가는 10.65% 올랐지만 영업이익은 시장 전망치 2483억원을 3.2% 밑돌았다. 인공지능 서비스 부문 영업손실이 640억원으로 커지면서 이번 주 증권사 10곳이 목표주가를 내렸다."}];
+const PERSONAS = [{"name": "애스워스 다모다란", "type": "내러티브 가치평가", "rating": "hold", "desc": "기업의 이야기를 성장·이익률·위험의 숫자로 바꿔 가격이 담은 기대와 견준다.", "eval": "PBR 1.20배와 시가총액 14.1조가 담은 기대는 크지 않고 주가도 52주 28,400 ~ 64,500원 범위의 아래쪽이다. 다만 매출이 +6.3% 느는 동안 영업이익률은 11.4% → 11.5%로 +0.1%p 오르는 데 그쳐 이익률 개선이 뚜렷하다고 보기 어려워 보유다."}, {"name": "벤저민 그레이엄", "type": "안전마진 가치투자", "rating": "buy", "desc": "원금 보호를 먼저 따지고, 검증된 이익과 배당, 낮은 차입에서 안전마진을 찾는다.", "eval": "PBR 1.20배로 방어적 기준 안에 있고 순이익은 1,929억 → 1,777억으로 줄었지만 두 기간 모두 흑자이며 배당금 1,045억도 지급했다. 단기차입금 1.0조와 장기차입금 4,090억을 합쳐도 지배주주자본 11.8조에 크게 못 미쳐 매수 조건을 모두 채운다."}, {"name": "빌 애크먼", "type": "집중 행동주의", "rating": "hold", "desc": "단순하고 현금을 잘 버는 사업에 집중 투자하고, 가치를 여는 구체적 촉매를 요구한다.", "eval": "누적 영업활동 현금흐름 5,409억으로 현금 창출은 탄탄하다. 다만 1500억원 규모 자사주 매입·소각 방침(아이뉴스24 보도)은 공시에서 집행이 확인되지 않고 인적분할(서울경제 보도)도 아직 예정이어서 촉매는 가능성에 머물러 보유다."}, {"name": "캐시 우드", "type": "파괴적 혁신 성장", "rating": "hold", "desc": "여러 해에 걸친 혁신 기술의 채택 곡선을 보고, 변동성을 감수하며 성장에 투자한다.", "eval": "매출은 전년 대비 +6.3% 늘었지만 직전 분기 대비로는 -0.6%로 꺾여 빠른 성장이라 하기 어렵다. 인공지능 서비스 부문은 영업손실이 640억원으로 커졌고(한국경제 보도) 이용자 확보는 아직 목표 단계여서(서울경제 보도) 매출로 확인될 때까지 보유다."}, {"name": "찰리 멍거", "type": "우량 기업 품질", "rating": "hold", "desc": "무엇이 나쁜 투자를 만드는지부터 거꾸로 따지고, 좋은 사업을 적정한 값에 산다.", "eval": "주주에게 가장 큰 부담은 인공지능 서비스 부문 영업손실 640억원(한국경제 보도)으로, 한 번으로 끝나는 손실이 아니라 커지며 이어지는 손실이다. 영업이익률이 11.4% → 11.5%로 소폭 올랐고 주가가 52주 범위 아래쪽이라 가격 부담은 없지만, 부담이 일회성이라는 조건을 채우지 못해 보유다."}, {"name": "마이클 버리", "type": "역발상 딥밸류", "rating": "buy", "desc": "시장이 외면한 곳에서 재무 숫자가 버텨 주는 싼 자산을 찾는다.", "eval": "주가 31,900원은 52주 28,400 ~ 64,500원 범위의 바닥권이고, 누적 차입금·사채 조달 8,065억은 상환 6,568억을 조금 웃도는 정도라 차입이 늘고 있다고 보지 않는다. 영업이익이 전년 대비 +7.4% 늘고 누적 영업활동 현금흐름도 5,409억 흑자여서 매수이며, 직전 분기 대비 -13.3%는 지켜볼 대목이다."}, {"name": "모니시 파브라이", "type": "비대칭 가치", "rating": "buy", "desc": "틀려도 적게 잃고 맞으면 크게 버는 비대칭 구조를 찾고, 하방 보호를 먼저 확인한다.", "eval": "현금및현금성자산 7.7조는 시가총액 14.1조 옆에 놓아도 크고, 단기차입금 1.0조와 장기차입금 4,090억, 예수부채 2.9조를 모두 합쳐도 현금이 더 많다. 본업은 흑자이고 주가는 52주 범위 아래쪽이며, 순이익 증감 -152억 가운데 중단영업이익 증감 -175억으로 가장 나쁜 숫자의 원인이 영업 밖에 있어 매수다."}, {"name": "나심 탈레브", "type": "꼬리 위험 회피", "rating": "hold", "desc": "평균이 아니라 충격을 받았을 때 무너지는 취약성을 먼저 걷어 낸다.", "eval": "단기차입금 1.0조, 예수부채 2.9조, 미지급법인세 1,037억을 합쳐도 현금 7.7조 안에 들어와 매도 조건은 아니다. 그러나 곧 갚아야 할 의무가 현금에 견줘 가볍다고 하기는 어렵고 연결 범위도 바뀌어 의무의 무게를 그대로 재기 어려우므로 보유다."}, {"name": "피터 린치", "type": "합리적 가격의 성장", "rating": "buy", "desc": "쉬운 말로 설명되는 사업을 유형별로 나누고, 성장에 합당한 값만 치른다.", "eval": "꾸준히 버는 대형 우량주 유형으로, 영업이익이 전년 대비 +7.4% 늘어 매출 +6.3%보다 빠르다. 차입금·사채 조달 8,065억과 상환 6,568억이 비슷해 차입이 늘지 않았고 PBR 1.20배도 과하지 않아 매수다."}, {"name": "필립 피셔", "type": "질적 성장 탐구", "rating": "hold", "desc": "여러 해 동안 매출과 이익률이 함께 자라는 기업을 골라 오래 보유한다.", "eval": "영업이익률은 11.4% → 11.5%로 +0.1%p 올랐지만 오름폭이 작아 뚜렷한 상승으로 보기 어렵다. 매출이 +6.3% 늘어 이익률이 매출과 함께 움직인 점은 좋으나, 영업이익이 직전 분기 대비 2,770억 → 2,403억으로 줄어 방향이 굳지 않아 보유다."}, {"name": "라케시 준준왈라", "type": "장기 성장과 가치", "rating": "buy", "desc": "경기 순환을 넘어 성장하는 사업을 오래 들고, 성장이 주주 몫에 닿는지를 본다.", "eval": "지배주주순이익이 1,249억 → 1,592억으로 늘었고 매출과 영업이익(2,238억 → 2,403억)도 함께 늘어 성장이 주주 몫까지 닿았다. 배당금 1,045억을 지급했고 PBR 1.20배에 주가가 52주 범위 아래쪽이라 매수다."}, {"name": "스탠리 드러켄밀러", "type": "비대칭 추세 매매", "rating": "sell", "desc": "수준이 아니라 변화를 보고, 이익 방향이 바뀌는 지점을 가격보다 먼저 잡는다.", "eval": "영업이익이 직전 분기 대비 2,770억 → 2,403억(-13.3%)으로 꺾였고 매출도 -0.6% 줄었는데, 주가는 이미 52주 28,400 ~ 64,500원의 바닥권이다. 전년 대비로는 +7.4%지만 이익 방향이 아래로 돌아섰고 낮은 주가가 그 기대를 말해 주므로 매도다."}, {"name": "워런 버핏", "type": "장기 품질과 가치", "rating": "hold", "desc": "이해할 수 있고 경제성이 오래가는 사업을 합리적인 값에 사서 오래 보유한다.", "eval": "세전이익이 2,544억 → 2,235억으로 줄었는데 영업이익은 늘어 영업 악화 때문은 아니며, 영업이익 아래에서 줄어든 원인은 공시에 드러나지 않는다. 누적 영업활동 현금흐름 5,409억과 지배주주자본에 견줘 작은 차입은 든든하지만 세전이익이 늘지 않아 보유다."}];
+const HEADLINE = "매출과 영업이익은 톡비즈 광고·커머스 성장(한국경제 보도)으로 늘었지만, 순이익은 중단영업이익이 손실로 돌아서며 7.9% 줄었다. 주가는 52주 범위 바닥권이고 증권사는 목표가를 낮추는 중이라, 남은 쟁점은 이번 분기 실적이 아니라 인공지능 서비스 수익화 시점에 대한 증권사 전망이다.";
+const NOTES = ["전년 숫자는 이번 보고서에 다시 실린 값이다(중단영업 재분류 등). 기사의 증가율(매출 +0.0%, 영업이익 +15.5%)은 처음 발표한 전년과 견준 것이라 연결 범위가 달라 같은 기준의 성장률로 보지 않는다."];
+const NP_BRIDGE = "계속영업 1,782억 · 중단영업 -5억";
+const REVIEW = {"scene": "월요일 오전 투자위원회 직전, 인터넷 업종을 맡은 포트폴리오 매니저가 이 리포트만 보고 카카오 비중 조정을 안건에 올릴지 정한다.", "stale": false, "reviews": [{"role": "RED", "score": 9.0, "comment": "순이익 증감 -152억 가운데 중단영업이익 증감이 -175억이라는 사실로 순이익 감소를 영업 밖 요인으로 가르고, 지배주주순이익 1,249억 → 1,592억을 약세 논거 안에 함께 적어 한쪽으로 쏠리지 않았다.", "fix": "결론이 남은 쟁점은 이번 분기 실적이 아니라고 단정하지만, 약세 논거에는 영업이익이 직전 분기보다 13.3% 줄었고 시장 전망치 2483억원을 3.2% 밑돌았다(한국경제 보도)는 내용이 있다. 결론에서 이 단정을 빼고 직전 분기 대비 영업이익 감소를 한 구절로 넣어 결론과 약세 논거가 어긋나지 않게 한다.", "target": "C", "limit": "영업이익이 늘었는데 세전이익이 줄어든 원인과 실효세율이 낮아진 원인은 공시 주석을 보기 전이라 확인되지 않았다."}, {"role": "SILVER", "score": 8.5, "comment": "매출을 톡비즈 광고·구독, 톡비즈 커머스, 플랫폼 기타, 뮤직, 스토리, 미디어로 나눠 업종에서 먼저 보는 구분을 따랐고, 십억원 단위로만 확인된 전년 동기 값을 추정으로 표시하며 증권사 4곳 기준이라고 밝혔다.", "fix": "결론과 강세 논거가 성장의 출처를 톡비즈 광고·커머스로만 적었는데, 리포트의 부문 표에서는 카카오모빌리티·카카오페이가 든 플랫폼 기타의 증가 폭이 톡비즈 두 부문 각각보다 크다. 결론의 주어를 플랫폼 부문 전체(한국경제 보도, 플랫폼 부문 매출 1조2350억원으로 17% 증가)로 넓히고 톡비즈는 그 안의 한 축으로 쓴다.", "target": "C", "limit": "부문별 영업이익이 공시되지 않아 인공지능 서비스 적자가 전체 이익률을 얼마나 누르는지와 플랫폼 기타 증가에 연결 범위 변동이 섞였는지는 확인되지 않았다."}, {"role": "GOLD", "score": 9.0, "comment": "첫 화면 결론에 실적 방향, 주가 위치, 증권사 목표가 흐름, 남은 쟁점이 함께 담겨 회의에서 그대로 말할 수 있고, 다음에 볼 것마다 긍정과 부정의 기준이 달려 판단을 바꿀 조건이 보인다.", "fix": "결론이 쟁점을 인공지능 서비스 수익화 시점으로 잡았지만 가장 가까운 확인 시점이 다음에 볼 것에 없다. 인공지능 비서 카나나 스페이스의 12월 시범 서비스(아이뉴스24 보도)를 다음에 볼 것 첫 줄에 올려, 다음 분기 실적 전에 무엇을 언제 확인할지 알게 한다.", "target": "C", "limit": "증권사 목표가는 4곳만 확인된 값이고 목표주가를 내린 증권사는 10곳(한국경제 보도)이어서, 리포트의 평균 목표가를 시장 전체의 눈높이로 읽기는 어렵다."}]};
+const WATCH = ["인공지능 서비스 부문 영업손실이 640억원(한국경제 보도)보다 줄면 긍정이고, 더 커지면 수익화 지연 우려가 커진다.", "콘텐츠 부문 매출 감소(서울경제 보도, 6% 감소)가 멈추는지 본다. 뮤직과 스토리의 감소 폭이 줄면 긍정이고, 커지면 수익성 방어 부담이 커진다.", "인적분할 기일이 2027년 1월 1일에서 2월 1일로 미뤄졌다(서울경제 보도). 일정이 지켜지면 긍정이고, 다시 밀리면 지배구조 불확실성이 커진다."];
 
 /* ═══════════════ HELPERS ═══════════════ */
 const pv  =(a,b)=>a?(b-a)/a*100:null;
@@ -895,12 +941,12 @@ function rebuildCharts(){
 }
 
 /* ═══════════════ NAV HIGHLIGHT ═══════════════ */
-const sections=['sec-kpi','sec-growth','sec-segment','sec-market','sec-news','sec-persona'];
+const sections=['sec-kpi','sec-growth','sec-segment','sec-market','sec-news','sec-persona','sec-review'];
 window.addEventListener('scroll',()=>{
   let cur=sections[0];
   sections.forEach(id=>{
     const el=document.getElementById(id);
-    if(el&&window.scrollY+140>=el.offsetTop)cur=id;
+    if(el&&el.offsetParent!==null&&window.scrollY+140>=el.offsetTop)cur=id;   /* 숨긴 섹션(평가 없음)은 건너뛴다 */
   });
   document.querySelectorAll('.nav-link').forEach(a=>{
     a.classList.toggle('active',a.getAttribute('href')==='#'+cur);
@@ -918,6 +964,20 @@ document.addEventListener('keydown',e=>{
     if(tag!=='INPUT'&&tag!=='TEXTAREA'&&tag!=='SELECT'){toggleTheme();}
   }
 });
+
+/* ═══════════════ 결론·다음에 볼 것·각주 (옛 데이터에는 없다) ═══════════════ */
+function buildHeadline(){
+  const hl=typeof HEADLINE!=='undefined'?HEADLINE:'';
+  document.getElementById('headline').textContent=hl||'';
+  const w=typeof WATCH!=='undefined'?WATCH:[];
+  const box=document.getElementById('watchBox');
+  if(!w.length){ box.style.display='none'; }
+  else{ const ul=document.getElementById('watchList'); w.forEach(t=>{const li=document.createElement('li'); li.textContent=t; ul.appendChild(li);}); }
+  const nb=typeof NP_BRIDGE!=='undefined'?NP_BRIDGE:'';
+  document.getElementById('npBridge').textContent=nb||'';
+  const notes=typeof NOTES!=='undefined'?NOTES:[];
+  document.getElementById('kpiNotes').textContent=notes.length?'* '+notes.join(' '):'';
+}
 
 /* ═══════════════ INSIGHT CHIPS ═══════════════ */
 function buildChips(){
@@ -992,8 +1052,8 @@ function drawSeg(){
   segC=new Chart(ctx,{
     type:'bar',
     data:{labels,datasets:[
-      {label:'1Q 2025',data:data.map(s=>s.q25),backgroundColor:c.seg25,borderColor:c.seg25b,borderWidth:1.5,borderRadius:5},
-      {label:'1Q 2026',data:data.map(s=>s.q26>0?s.q26:null),
+      {label:'3Q 2025',data:data.map(s=>s.q25),backgroundColor:c.seg25,borderColor:c.seg25b,borderWidth:1.5,borderRadius:5},
+      {label:'3Q 2026',data:data.map(s=>s.q26>0?s.q26:null),
        backgroundColor:data.map(s=>s.q26>s.q25?c.segUp:c.segDn),
        borderColor:data.map(s=>s.q26>s.q25?c.segUpB:c.segDnB),borderWidth:1.5,borderRadius:5},
     ]},
@@ -1067,7 +1127,7 @@ function showDp(seg){
   const pEl=document.getElementById('dpP');
   pEl.textContent=p===null?'N/A':(sgn(p)+p.toFixed(1)+'%');
   pEl.style.color=p===null?'var(--t2)':p>=0?'var(--up)':'var(--dn)';
-  const mxD=seg.q26>0?((seg.q26/TOT26-seg.q25/TOT25)*100).toFixed(1)+'pp':'-';
+  const mxD=seg.q26>0?((seg.q26/TOT26-seg.q25/TOT25)*100).toFixed(1)+'%p':'-';
   document.getElementById('dpM').textContent=`${mx25} → ${mx26} (${mxD})`;
   document.getElementById('dp').classList.add('on');
 }
@@ -1087,7 +1147,7 @@ function renderTbl(){
       <td class="r ${p===null?'':p>=0?'pos':'neg'}">${p===null?'N/A':sgn(p)+p.toFixed(1)+'%'}</td>
       <td class="r">${m25}%</td>
       <td class="r">${m26==='-'?'-':m26+'%'}</td>
-      <td class="r ${mD==='N/A'?'':parseFloat(mD)>=0?'pos':'neg'}">${mD==='N/A'?'N/A':sgn(parseFloat(mD))+mD+'pp'}</td>`;
+      <td class="r ${mD==='N/A'?'':parseFloat(mD)>=0?'pos':'neg'}">${mD==='N/A'?'N/A':sgn(parseFloat(mD))+mD+'%p'}</td>`;
     tb.appendChild(tr);
   });
 }
@@ -1098,15 +1158,27 @@ function togTable(){
   b.textContent=o?'데이터 테이블 닫기':'데이터 테이블 보기';
   b.classList.toggle('open',o);if(o)renderTbl();
 }
-document.getElementById('fn1').innerHTML=
-  '* 추정치: 카카오모빌리티(플랫폼기타 역산), 픽코마·카카오엔터(스토리 비율 기준), 기타·재편(1Q26 세부 미공시). 영업이익·순이익은 연결 기준 IR 발표치.';
+/* 각주는 데이터에서 만든다: est:true 부문만 추정치로 밝힌다 */
+(function(){
+  const est=SEGS.filter(s=>s.est&&s.name!=='연결조정').map(s=>s.name);   // 연결조정은 반올림 차이다
+  document.getElementById('fn1').textContent=est.length
+    ? '* 추정치: '+est.join(', ')+' (원문에서 확인하지 못했거나, 비중으로 역산·합계를 맞춘 값)'
+    : '* 모든 부문 숫자는 출처(정기보고서·IR) 그대로다'+(SEGS.some(s=>s.name==='연결조정')?'. 연결조정은 부문 합계와 총매출의 반올림 차이다.':'.');
+  const de=document.getElementById('deltaEst');
+  const body=SEGS.filter(s=>s.name!=='연결조정');
+  if(de){ de.style.display=DELTA.some(x=>x.est&&!x.tot&&x.name!=='연결조정')?'':'none';
+          if(body.length&&body.every(s=>s.est)) de.textContent='* 부문 매출은 모두 추정치'; }
+})();
 
 /* ═══════════════ MARKET TAB ═══════════════ */
 function buildMarket(){
   const c=tc();
-  consChartInst=new Chart(document.getElementById('consChart').getContext('2d'),{
+  const hasCons=(CONS.buy+CONS.hold+CONS.sell)>0;
+  /* 커버리지 없음: 0/0/0 도넛과 빈 막대 대신 문구(coverage_note)와 표의 안내 행만 남긴다 */
+  const cw=document.querySelector('.cons-wrap'); if(cw) cw.style.display=hasCons?'':'none';
+  if(hasCons) consChartInst=new Chart(document.getElementById('consChart').getContext('2d'),{
     type:'doughnut',
-    data:{labels:['Buy','Hold','Sell'],
+    data:{labels:['매수','보유','매도'],
           datasets:[{data:[CONS.buy,CONS.hold,CONS.sell],
             backgroundColor:['rgba(201,100,66,.85)','rgba(156,163,175,.7)','rgba(146,32,16,.85)'],
             borderWidth:0,borderRadius:4}]},
@@ -1116,21 +1188,24 @@ function buildMarket(){
 
   const tbody=document.getElementById('atBody');
   tbody.innerHTML='';
+  if(!ANALYSTS.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--t2);padding:18px">실적 발표 뒤 나온 증권사 보고서를 찾지 못했다 (커버리지 없음)</td></tr>';
+  }
   ANALYSTS.forEach(a=>{
-    const delta=a.tp-a.from;
-    const action=delta>0?`<span class="act-up">▲ 상향</span>`:delta<0?`<span class="act-dn">▼ 하향</span>`:`<span class="act-ke">유지</span>`;
+    const delta=(a.from==null)?null:a.tp-a.from;   // 직전 목표가가 원문에 없으면 방향을 지어내지 않는다
+    const action=delta===null?(a.dir==='down'?`<span class="act-dn">▼ 하향(폭 미확인)</span>`:a.dir==='up'?`<span class="act-up">▲ 상향(폭 미확인)</span>`:`<span class="act-ke" title="원문에 직전 목표가가 없다">–</span>`):delta>0?`<span class="act-up">▲ 상향</span>`:delta<0?`<span class="act-dn">▼ 하향</span>`:`<span class="act-ke">유지</span>`;
     const upside=((a.tp-CURR)/CURR*100).toFixed(1);
     const tr=document.createElement('tr');
     tr.className='link-row';
     tr.onclick=()=>window.open(`https://search.naver.com/search.naver?where=news&query=${encodeURIComponent(NAME+' '+a.firm+' 목표가 '+a.date)}`, '_blank');
     tr.innerHTML=`
-      <td><strong>${a.firm}</strong></td>
-      <td><span class="badge ${a.r==='Buy'?'badge-buy':a.r==='Hold'?'badge-hold':'badge-sell'}">${a.r}</span></td>
+      <td class="at-firm"><strong>${a.firm.replace(/증권$/,'<wbr>증권')}</strong></td>
+      <td><span class="badge ${a.r==='Buy'?'badge-buy':a.r==='Hold'?'badge-hold':'badge-sell'}">${({Buy:'매수',Hold:'보유',Sell:'매도'})[a.r]||a.r}</span></td>
       <td class="r"><strong>${a.tp.toLocaleString('ko-KR')}원</strong></td>
       <td class="r">${action} ${Math.abs(delta)>0?Math.abs(delta).toLocaleString('ko-KR')+'원':''}</td>
-      <td class="r pos">+${upside}%</td>
-      <td style="font-size:.82rem;color:var(--t2)">${a.date}</td>
-      <td style="font-size:.84rem;color:var(--t2)">${a.note}</td>`;
+      <td class="r ${upside>=0?'pos':'neg'}">${upside>=0?'+':''}${upside}%</td>
+      <td class="at-date" style="font-size:.82rem;color:var(--t2)">${a.date}</td>
+      <td><div class="at-note">${a.note}</div></td>`;
     tbody.appendChild(tr);
   });
 
@@ -1183,6 +1258,36 @@ function buildNews(){
 }
 
 /* ═══════════════ PERSONAS ═══════════════ */
+
+/* 전문가 평가: 평가가 없는 옛 데이터면 섹션을 숨긴다. 문장은 textContent로 넣는다 */
+function buildReview(){
+  const wrap=document.getElementById('sec-review-wrap');
+  if(typeof REVIEW==='undefined'||!REVIEW||!(REVIEW.reviews||[]).length){
+    wrap.style.display='none';
+    const nl=document.querySelector('.nav-link[href="#sec-review"]'); if(nl) nl.style.display='none';
+    return;
+  }
+  const meta={RED:['var(--dn)','이성 비평가 · 논리와 근거'],
+              SILVER:['var(--silver)','분야 전문가 · 업종 실무 해석'],
+              GOLD:['var(--gold)','실제 독자 · 이것으로 결정할 수 있는가']};
+  document.getElementById('reviewScene').textContent='GOLD 독자 장면: '+REVIEW.scene+
+    (REVIEW.stale?' (이 평가 뒤에 본문 일부가 고쳐졌다)':'');
+  const avg=REVIEW.reviews.reduce((a,r)=>a+r.score,0)/REVIEW.reviews.length;
+  document.getElementById('reviewAvg').innerHTML='평균 <b>'+avg.toFixed(1)+'</b> / 10';
+  const box=document.getElementById('reviewCards'); box.innerHTML='';
+  REVIEW.reviews.forEach(r=>{
+    const [color,who]=meta[r.role]||['var(--t2)',''];
+    const card=document.createElement('div'); card.className='review-card nr'; card.style.setProperty('--rc',color);
+    card.innerHTML='<div class="review-top"><span class="review-role"></span><span class="review-score"></span></div>'+
+      '<div class="review-who"></div><div class="review-cmt"></div><div class="review-fix"><b>남은 한계</b> <span></span></div>';
+    card.querySelector('.review-role').textContent=r.role;
+    card.querySelector('.review-score').innerHTML=(+r.score).toFixed(1)+' <small>/ 10</small>';
+    card.querySelector('.review-who').textContent=who;
+    card.querySelector('.review-cmt').textContent=r.comment;
+    card.querySelector('.review-fix span').textContent=r.limit||r.fix;
+    box.appendChild(card);
+  });
+}
 
 function buildPersonas(){
   const buy =PERSONAS.filter(p=>p.rating==='buy');
@@ -1280,8 +1385,8 @@ window.addEventListener('DOMContentLoaded',()=>{
 
   /* 한 단계가 실패해도 나머지 섹션은 그린다.
      (CDN 차단 시 Chart 미정의로 전체 렌더가 죽던 문제) */
-  [['chips',buildChips],['delta',buildDeltaChart],['segment',drawSeg],
-   ['market',buildMarket],['news',buildNews],['persona',buildPersonas],
+  [['headline',buildHeadline],['chips',buildChips],['delta',buildDeltaChart],['segment',drawSeg],
+   ['market',buildMarket],['news',buildNews],['persona',buildPersonas],['review',buildReview],
    ['scroll',initScrollAnim]].forEach(([name,fn])=>{
     try{ fn(); }catch(e){ console.error('['+name+'] 렌더 실패:',e); }
   });
@@ -1292,8 +1397,8 @@ window.addEventListener('DOMContentLoaded',()=>{
       el.insertAdjacentHTML('beforeend',
         '<div style="position:absolute;inset:0;display:flex;align-items:center;'+
         'justify-content:center;text-align:center;padding:20px;font-size:.85rem;'+
-        'color:var(--t2);line-height:1.7">차트 라이브러리(CDN)를 불러오지 못했습니다.<br>'+
-        '네트워크 연결을 확인하거나 아래 데이터 테이블을 참고하세요.</div>');
+        'color:var(--t2);line-height:1.7">차트 라이브러리(CDN)를 불러오지 못했다.<br>'+
+        '네트워크 연결을 확인하거나 아래 데이터 표를 본다.</div>');
     });
     try{
       const w=document.getElementById('dtW');

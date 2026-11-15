@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**바로 보기** → [카카오 1Q2026 리포트](https://airoasting.github.io/dart/%EC%B9%B4%EC%B9%B4%EC%98%A4_20260704.html)  ·  [SK하이닉스 2Q2026 (큰 숫자 사례)](https://airoasting.github.io/dart/SK%ED%95%98%EC%9D%B4%EB%8B%89%EC%8A%A4_20261004.html)
+**바로 보기** → [카카오 3Q2026 리포트](https://airoasting.github.io/dart/%EC%B9%B4%EC%B9%B4%EC%98%A4_20261115.html)  ·  [SK하이닉스 2Q2026 (큰 숫자 사례)](https://airoasting.github.io/dart/SK%ED%95%98%EC%9D%B4%EB%8B%89%EC%8A%A4_20261004.html)
 
 ---
 
@@ -41,15 +41,15 @@
 - **숫자는 빌드 전에 전부 다시 대조합니다.** 리포트를 만들기 직전에 검증 게이트가 DART와 KRX를 다시 조회하고, 증감률·마진·합계를 다시 계산하고, 문장 속 숫자까지 출처와 맞춰 봅니다. 하나라도 틀리면 고쳐서 다시 검증하며, 최대 3번 안에 맞지 않으면 멈추고 남은 불일치를 보여 드립니다. 통과한 리포트에는 헤더에 "숫자 검증 통과"가 찍힙니다.
 - 추정치가 섞인 값은 화면에 명확히 표시합니다. 투자자 시각은 AI가 시뮬레이션한 가상 평가임을 밝힙니다. 전문가 평가도 AI의 참고 의견이며, 그 문장 속 숫자 역시 검증 게이트가 대조합니다.
 
-## 예시로 보기 (카카오 1Q2026)
+## 예시로 보기 (카카오 3Q2026)
 
-카카오는 영업이익이 1년 전보다 66% 늘어 이익률이 10%대로 올라선 분기를 보냈습니다. [리포트 전체 열어보기](https://airoasting.github.io/dart/%EC%B9%B4%EC%B9%B4%EC%98%A4_20260704.html)
+카카오는 매출과 영업이익이 1년 전보다 늘었지만, 중단영업이익이 손실로 돌아서며 순이익은 7.9% 줄어든 분기를 보냈습니다. [리포트 전체 열어보기](https://airoasting.github.io/dart/%EC%B9%B4%EC%B9%B4%EC%98%A4_20261115.html)
 
-| 지표 | 2025 1Q (재작성) | 2026 1Q | 전년 대비 |
+| 지표 | 2025 3Q (재작성) | 2026 3Q | 전년 대비 |
 |------|---------|---------|-----|
-| 매출 | 17,479억 | **19,421억** | +11.1% |
-| 영업이익 | 1,274억 (이익률 7.3%) | **2,114억 (10.9%)** | +66.0% |
-| 당기순이익 | 2,003억 | **2,268억** | +13.2% |
+| 매출 | 19,622억 | **20,868억** | +6.3% |
+| 영업이익 | 2,238억 (이익률 11.4%) | **2,403억 (11.5%)** | +7.4% |
+| 당기순이익 | 1,929억 | **1,777억** | -7.9% |
 
 전년 숫자는 이번 분기 보고서에 실린 재작성치입니다(중단영업 재분류 반영). 작년에 발표된 숫자와 다를 수 있습니다.
 
@@ -139,7 +139,7 @@ DART API 키는 https://opendart.fss.or.kr 에서 무료로 발급받아 알려�
 "PDF로 만들어줘"라고 이어서 말하거나, 직접 실행해도 됩니다.
 
 ```bash
-python3 ~/.claude/skills/dart/assets/html2pdf.py output/카카오_20260704_01.html
+python3 ~/.claude/skills/dart/assets/html2pdf.py output/카카오_20261115_01.html
 ```
 
 **추가 설치는 필요 없습니다.** 컴퓨터에 Chrome이나 Edge가 있으면 그걸 자동으로 씁니다. A4 규격으로, 차트와 데이터 테이블이 함께 들어갑니다.
@@ -261,6 +261,7 @@ python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
 │   ├── price.py                # 전일 종가·52주 (KRX)
 │   ├── dart_text.py            # 공시 원문 텍스트 검색 (A2b·V2b 부문 조사·검증용)
 │   ├── html2pdf.py             # 리포트 HTML → PDF (A4)
+│   ├── capture_screenshots.py  # README 스크린샷 7장 다시 찍기
 │   ├── dart_client.py          # DART API 클라이언트 (재시도·키 가림)
 │   ├── mcp_server.py           # DART 도구 16개 MCP 서버 (표준 라이브러리, stdio)
 │   ├── http_compat.py          # requests가 없으면 urllib으로 대신 접속
@@ -276,7 +277,13 @@ python3 ~/.claude/skills/dart/assets/corp_registry.py 현대차
 ```
 </details>
 
-**썸네일.** `assets/thumbnail.html`을 Chrome으로 찍어 `assets/thumbnail.png`(2400×1260)를 만듭니다. 카드의 숫자는 위 예시 리포트(`카카오_20260704.html`, 1Q 2026 연결)의 KPI, 사업별 매출 증감, 13인 평가를 그대로 옮긴 값입니다. 예시 리포트를 바꾸면 숫자를 맞추고 다시 찍습니다.
+**스크린샷.** 위 "예시로 보기"의 7장은 예시 리포트에서 섹션별로 찍습니다. 예시 리포트를 바꾸면 아래 한 줄로 다시 찍습니다(Playwright와 Chromium 필요).
+
+```bash
+python3 assets/capture_screenshots.py 카카오_20261115.html
+```
+
+**썸네일.** `assets/thumbnail.html`을 Chrome으로 찍어 `assets/thumbnail.png`(2400×1260)를 만듭니다. 카드의 숫자는 위 예시 리포트(`카카오_20261115.html`, 3Q 2026 연결)의 KPI, 사업별 매출 증감, 13인 평가를 그대로 옮긴 값입니다. 예시 리포트를 바꾸면 숫자를 맞추고 다시 찍습니다.
 
 ```bash
 cd assets && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars --window-size=1200,630 --force-device-scale-factor=2 --screenshot="$PWD/thumbnail.png" "file://$PWD/thumbnail.html"

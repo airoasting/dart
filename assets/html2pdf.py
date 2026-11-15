@@ -11,7 +11,7 @@
     다시 그린 다음 PDF를 만든다. 구버전 리포트 HTML도 런타임 주입으로 함께 고친다.
 
 사용
-    python3 assets/html2pdf.py output/카카오_20260704_01.html
+    python3 assets/html2pdf.py output/카카오_20261115_01.html
     python3 assets/html2pdf.py output/*.html -o output/pdf
     python3 assets/html2pdf.py report.html --keep-dark      # 다크 팔레트 유지
 

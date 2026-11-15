@@ -3,7 +3,7 @@
 사용자가 PDF나 인쇄본을 요청할 때만 쓴다.
 
 ```bash
-python3 ~/.claude/skills/dart/assets/html2pdf.py output/카카오_20260704_01.html
+python3 ~/.claude/skills/dart/assets/html2pdf.py output/카카오_20261115_01.html
 python3 ~/.claude/skills/dart/assets/html2pdf.py output/*.html -o output/pdf
 ```
 

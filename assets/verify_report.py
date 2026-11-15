@@ -1107,6 +1107,8 @@ def check_ledger(d, R: Report, pool, tps, tp):
         if kind == "pct" and per == "yoy" and pool.has(kind, v, n, tol, sign, src=pool.qoq) \
                 and not pool.has(kind, v, n, tol, sign, src=pool.pct):
             return "직전 분기 대비 값이다. '전년 대비'로 쓰지 않는다"
+        if kind in ("pct", "pp") and pool.has(kind, v, n, tol, sign, src=pool.orig) and re.search(r"처음 발표|기사", text):
+            return None   # 처음 발표 기준이라고 밝힌 증가율. 다른 계정에 우연히 같은 값(+0.0% 등)이 있어도 계정 불일치로 보지 않는다
         if pool.has(kind, v, n, tol, sign):
             if lab and not any(pool.has_lab(x, kind, v, n, tol, sign) for x in lab):
                 return f"'{'·'.join(lab)}' 계정 값이 아니다(다른 계정의 숫자)"
